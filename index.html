@@ -1,0 +1,104 @@
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ODC Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist', 'sans-serif'],
+          },
+          fontSize: {
+            'xs': ['11px', { lineHeight: '16px', letterSpacing: '0.3px' }],
+            'sm': ['12px', { lineHeight: '18px', letterSpacing: '0.2px' }],
+            'base': ['14px', { lineHeight: '20px', letterSpacing: '0.15px' }],
+            'lg': ['16px', { lineHeight: '24px', letterSpacing: '0.1px' }],
+            'xl': ['18px', { lineHeight: '26px', letterSpacing: '0px' }],
+            '2xl': ['22px', { lineHeight: '28px', letterSpacing: '-0.2px' }],
+            '3xl': ['28px', { lineHeight: '32px', letterSpacing: '-0.3px' }],
+          },
+          fontWeight: {
+            thin: '100',
+            extralight: '200',
+            light: '300',
+            normal: '400',
+            medium: '500',
+            semibold: '600',
+            bold: '700',
+            extrabold: '800',
+            black: '900',
+          },
+          colors: {
+            primary: '#0060ff',
+            background: {
+              light: '#ffffff',
+              dark: '#ffffff',
+              darker: '#f9fafb'
+            },
+            surface: {
+              light: '#ffffff',
+              dark: '#f3f4f6',
+              hover: '#eeeff2'
+            },
+            border: {
+              light: '#e5e7eb',
+              dark: '#d1d5db'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { 
+      font-family: 'Geist', sans-serif;
+      font-feature-settings: "rlig" 1, "calt" 1;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f3f4f6;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 3px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #9ca3af;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .material-symbols-outlined.fill-1 {
+      font-variation-settings: 'FILL' 1;
+    }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "recharts": "https://esm.sh/recharts@^3.7.0",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-background-light text-slate-900">
+  <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
