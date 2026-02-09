@@ -27,14 +27,10 @@ const TICKETS: Ticket[] = [
 
 const Dashboard: React.FC = () => {
   return (
-    <div className="flex flex-col gap-8 p-6 md:p-8 animate-in fade-in duration-500">
-      <div>
-        <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Dashboard Overview</h1>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="mx-auto w-full max-w-7xl px-6 py-6 md:px-8 md:py-8 flex flex-col gap-8 animate-in fade-in duration-500">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {METRICS.map((metric, idx) => (
-        <div className="flex flex-col gap-4 rounded-xl border border-border-light bg-surface-light p-5 shadow-lg transition-transform hover:scale-[1.02]">
+        <div className="flex flex-col gap-4 rounded-2xl border border-border-light bg-surface-light p-6 shadow-lg transition-transform hover:scale-[1.02]">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-slate-600">{metric.title}</p>
               <span className={`material-symbols-outlined ${metric.colorClass} fill-1 text-[22px]`}>{metric.icon}</span>
@@ -59,8 +55,8 @@ const Dashboard: React.FC = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="rounded-xl border border-border-light bg-surface-light p-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-2xl border border-border-light bg-surface-light p-6">
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-lg font-semibold text-slate-900 tracking-tight">Resource Utilization</h3>
@@ -108,7 +104,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="rounded-xl border border-border-light bg-surface-light p-6">
+        <div className="rounded-2xl border border-border-light bg-surface-light p-6">
           <h3 className="mb-6 text-lg font-semibold text-slate-900 tracking-tight">Team Performance</h3>
           <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -137,7 +133,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <div className="rounded-xl border border-border-light bg-surface-light p-6 flex flex-col">
+        <div className="rounded-2xl border border-border-light bg-surface-light p-6 flex flex-col">
           <div className="mb-6 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-slate-900 tracking-tight">Logwork Status</h3>
             <button className="text-xs font-semibold text-primary hover:underline">View All</button>
@@ -166,7 +162,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="md:col-span-1 lg:col-span-2 rounded-xl border border-border-light bg-surface-light p-6">
+        <div className="md:col-span-1 lg:col-span-2 rounded-2xl border border-border-light bg-surface-light p-6">
           <div className="mb-6 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-slate-900 tracking-tight">Assigned Tickets</h3>
             <button className="flex items-center gap-2 rounded-md bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors">

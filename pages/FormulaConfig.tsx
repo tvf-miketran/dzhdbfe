@@ -22,18 +22,12 @@ const FormulaConfig: React.FC = () => {
   return (
     <div className="flex flex-col gap-8 p-6 md:p-8 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Formula & Role Configuration</h1>
-          <p className="text-sm text-slate-500 font-light max-w-2xl">
-            Define the mathematical models for KPI calculation and adjust performance weighting by role.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <button className="px-4 py-2.5 rounded-lg border border-border-light bg-white text-slate-700 font-medium hover:bg-slate-50 transition-colors">
+      <div className="flex flex-col lg:flex-row justify-end items-start lg:items-center gap-6">
+        <div className="flex gap-2">
+          <button className="px-3 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-colors shadow-md hover:shadow-lg">
             Discard
           </button>
-          <button className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary hover:bg-emerald-600 text-white font-semibold shadow-md hover:shadow-lg transition-all">
+          <button className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-primary hover:bg-emerald-600 text-white text-xs font-semibold transition-colors shadow-md hover:shadow-lg">
             <span className="material-symbols-outlined text-[18px]">save</span>
             Save
           </button>

@@ -49,10 +49,6 @@ const Projects: React.FC = () => {
   return (
     <div className="flex flex-col gap-8 p-6 md:p-8 animate-in fade-in duration-500">
       <div className="flex flex-col gap-6">
-        <div>
-          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Projects</h1>
-        </div>
-
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-sm">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
@@ -70,7 +66,7 @@ const Projects: React.FC = () => {
             onClick={() => setIsCreateOpen(true)}
           >
             <span className="material-symbols-outlined text-[18px]">add</span>
-            Create Project
+            Tạo Project
           </button>
         </div>
       </div>

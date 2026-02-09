@@ -13,24 +13,7 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 const Logwork: React.FC = () => {
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background-light animate-in fade-in duration-500">
-      <div className="shrink-0 p-8 flex flex-col gap-8 border-b border-border-light bg-slate-50">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-4xl font-semibold leading-none tracking-tight text-slate-900">Monthly Logwork Management</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex bg-surface-light rounded-lg p-1 border border-border-light">
-              <button className="p-2 text-slate-500 hover:text-primary rounded transition-colors"><span className="material-symbols-outlined">calendar_month</span></button>
-              <button className="p-2 text-slate-500 hover:text-primary rounded transition-colors"><span className="material-symbols-outlined">tune</span></button>
-              <button className="p-2 text-slate-500 hover:text-primary rounded transition-colors"><span className="material-symbols-outlined">download</span></button>
-            </div>
-            <button className="flex items-center gap-2 h-11 px-6 rounded-lg bg-primary hover:bg-emerald-600 text-white font-semibold text-sm transition-all shadow-xl shadow-primary/20">
-              <span className="material-symbols-outlined text-[20px]">save</span>
-              Save Changes
-            </button>
-          </div>
-        </div>
-
+      <div className="shrink-0 p-6 md:p-8 flex flex-col gap-8 border-b border-border-light bg-slate-50">
         <div className="flex flex-wrap items-end gap-6">
           <div className="w-80">
             <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Project</label>
@@ -52,8 +35,11 @@ const Logwork: React.FC = () => {
               <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">calendar_today</span>
             </div>
           </div>
-          <div className="ml-auto flex items-center pb-2">
-             <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-600">Input total hours per month</span>
+          <div className="ml-auto flex flex-wrap items-center gap-4 pb-2">
+            <button className="flex items-center gap-2 h-10 px-5 rounded-lg bg-primary hover:bg-emerald-600 text-white font-semibold text-xs transition-all shadow-xl shadow-primary/20">
+              <span className="material-symbols-outlined text-[18px]">save</span>
+              Save Changes
+            </button>
           </div>
         </div>
       </div>

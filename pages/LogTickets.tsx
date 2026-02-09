@@ -67,76 +67,71 @@ const LogTickets: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-8 p-6 md:p-8 animate-in fade-in duration-500">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Log Tickets</h1>
-        <p className="text-sm text-slate-500 font-light">Quickly register and track ticket status for development projects.</p>
-      </div>
-
       <div className="bg-surface-light border border-border-light rounded-xl shadow-lg overflow-hidden">
         <div className="px-6 py-4 border-b border-border-light bg-slate-50 flex items-center gap-3">
-          <span className="material-symbols-outlined text-primary text-[22px]">add_task</span>
-          <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-widest">New Ticket Entry</h3>
+          <span className="material-symbols-outlined text-primary text-[18px]">add_task</span>
+          <h3 className="text-xs font-semibold text-slate-900 uppercase tracking-widest">New Ticket Entry</h3>
         </div>
         
         <form onSubmit={handleAddTicket} className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-semibold text-slate-700 uppercase tracking-widest">Ticket ID(s)</label>
+            <label className="text-[11px] font-semibold text-slate-700 uppercase tracking-widest">Ticket ID(s)</label>
             <input 
               type="text" 
               value={formData.ticketId}
               onChange={(e) => setFormData({...formData, ticketId: e.target.value})}
               placeholder="e.g. ODC-123, ODC-124"
-              className="h-10 px-3 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+              className="h-10 px-3 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
             />
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-semibold text-slate-700 uppercase tracking-widest">Project</label>
+            <label className="text-[11px] font-semibold text-slate-700 uppercase tracking-widest">Project</label>
             <div className="relative">
               <select 
                 value={formData.project}
                 onChange={(e) => setFormData({...formData, project: e.target.value})}
-                className="h-10 w-full px-3 rounded-lg border border-slate-300 bg-white text-slate-900 outline-none focus:ring-2 focus:ring-primary focus:border-primary appearance-none cursor-pointer transition-all"
+                className="h-10 w-full px-3 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 outline-none focus:ring-2 focus:ring-primary focus:border-primary appearance-none cursor-pointer transition-all"
               >
                 {PROJECT_LIST.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
-              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px] pointer-events-none">expand_more</span>
+              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[16px] pointer-events-none">expand_more</span>
             </div>
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-semibold text-slate-700 uppercase tracking-widest">Work Type</label>
+            <label className="text-[11px] font-semibold text-slate-700 uppercase tracking-widest">Work Type</label>
             <div className="relative">
               <select 
                 value={formData.type}
                 onChange={(e) => setFormData({...formData, type: e.target.value})}
-                className="h-10 w-full px-3 rounded-lg border border-slate-300 bg-white text-slate-900 outline-none focus:ring-2 focus:ring-primary focus:border-primary appearance-none cursor-pointer transition-all"
+                className="h-10 w-full px-3 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 outline-none focus:ring-2 focus:ring-primary focus:border-primary appearance-none cursor-pointer transition-all"
               >
                 {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
-              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px] pointer-events-none">expand_more</span>
+              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[16px] pointer-events-none">expand_more</span>
             </div>
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-semibold text-slate-700 uppercase tracking-widest">Role</label>
+            <label className="text-[11px] font-semibold text-slate-700 uppercase tracking-widest">Role</label>
             <div className="relative">
               <select 
                 value={formData.role}
                 onChange={(e) => setFormData({...formData, role: e.target.value})}
-                className="h-10 w-full px-3 rounded-lg border border-slate-300 bg-white text-slate-900 outline-none focus:ring-2 focus:ring-primary focus:border-primary appearance-none cursor-pointer transition-all"
+                className="h-10 w-full px-3 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 outline-none focus:ring-2 focus:ring-primary focus:border-primary appearance-none cursor-pointer transition-all"
               >
                 {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
-              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px] pointer-events-none">expand_more</span>
+              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[16px] pointer-events-none">expand_more</span>
             </div>
           </div>
 
           <button 
             type="submit"
-            className="h-10 bg-primary hover:bg-emerald-600 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+            className="h-10 bg-primary hover:bg-emerald-600 text-white text-sm font-semibold rounded-lg transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
           >
-            <span className="material-symbols-outlined text-[18px]">send</span>
+            <span className="material-symbols-outlined text-[16px]">send</span>
             Submit
           </button>
         </form>
