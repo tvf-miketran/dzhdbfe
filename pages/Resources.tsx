@@ -221,6 +221,7 @@ const Resources: React.FC = () => {
                 <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600">Role</th>
                 <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600">Efficiency %</th>
                 <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600">Status</th>
+                <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600">Reset</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border-light">
@@ -278,6 +279,15 @@ const Resources: React.FC = () => {
                       {user.status}
                     </button>
                   </td>
+                  <td className="py-4 px-6">
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-red-500 text-red-600 text-xs font-semibold bg-white hover:bg-red-50 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">undo</span>
+                      Reset
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -326,10 +336,10 @@ const Resources: React.FC = () => {
                 />
               </div>
 
-              {/* Mã nhân viên */}
+              {/* Email nhân viên */}
               <div>
                 <label htmlFor="employeeId" className="block text-sm font-medium text-slate-700 mb-2">
-                  Mã nhân viên <span className="text-red-500">*</span>
+                  Email nhân viên <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="employeeId"
