@@ -12,6 +12,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
   const { login } = useAuth();
 
   // Use the login mutation hook
@@ -40,6 +41,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       toast.error("Please enter both email and password");
       return;
     }
+
+    if (password.length < 6) {
+      setPasswordError("Password must be at least 6 characters.");
+      return;
+    }
+
+    setPasswordError("");
 
     // Call the login mutation
     loginMutation.mutate({ email, password });
@@ -158,21 +166,34 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full h-12 pl-11 pr-11 rounded-xl border border-transparent bg-slate-50 text-slate-900 placeholder-slate-400 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                    onChange={(e) => {
+                      const nextValue = e.target.value;
+                      setPassword(nextValue);
+                      if (passwordError && nextValue.length >= 6) {
+                        setPasswordError("");
+                      }
+                    }}
+                    className={`w-full h-12 pl-11 pr-11 rounded-xl border bg-slate-50 text-slate-900 placeholder-slate-400 outline-none ring-1 focus:ring-2 transition-all ${
+                      passwordError
+                        ? "border-red-300 ring-red-200 focus:ring-red-300"
+                        : "border-transparent ring-slate-200 focus:ring-primary/40 focus:border-primary"
+                    }`}
                     placeholder="demo123"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 flex items-center justify-center text-slate-400 hover:text-slate-600"
                   >
-                    <span className="material-symbols-outlined text-[20px]">
+                    <span className="material-symbols-outlined text-[20px] leading-none">
                       {showPassword ? "visibility_off" : "visibility"}
                     </span>
                   </button>
                 </div>
+                {passwordError && (
+                  <p className="mt-2 text-xs text-red-600">{passwordError}</p>
+                )}
               </div>
 
               {/* Remember Me and Forgot Password */}

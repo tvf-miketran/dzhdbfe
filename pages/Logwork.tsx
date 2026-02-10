@@ -49,12 +49,12 @@ const Logwork: React.FC = () => {
           <table className="w-full border-collapse">
             <thead className="bg-slate-50 sticky top-0 z-20">
               <tr className="border-b border-border-light">
-                <th className="sticky left-0 z-30 bg-slate-50 px-6 py-5 text-left text-[11px] font-semibold uppercase tracking-widest text-slate-600 border-r border-border-light min-w-[260px]">User Name</th>
-                <th className="px-6 py-5 text-left text-[11px] font-semibold uppercase tracking-widest text-slate-600 border-r border-border-light min-w-[160px]">Role</th>
+                <th className="sticky left-0 z-30 bg-slate-50 px-6 py-5 text-center text-[11px] font-semibold uppercase tracking-widest text-slate-600 border-r border-border-light min-w-[260px]">User Name</th>
+                <th className="px-6 py-5 text-center text-[11px] font-semibold uppercase tracking-widest text-slate-600 border-r border-border-light min-w-[160px]">Role</th>
                 {MONTHS.map(m => (
                   <th key={m} className="px-2 py-5 text-center text-[11px] font-semibold uppercase tracking-widest text-slate-600 border-r border-border-light min-w-[100px]">{m}</th>
                 ))}
-                <th className="px-6 py-5 text-right text-[11px] font-semibold uppercase tracking-widest text-slate-600 bg-slate-100 min-w-[120px]">YTD Total</th>
+                <th className="px-6 py-5 text-center text-[11px] font-semibold uppercase tracking-widest text-slate-600 bg-slate-100 min-w-[120px]">YTD Total</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border-light">
@@ -62,15 +62,15 @@ const Logwork: React.FC = () => {
                 const total = user.hours.reduce((a, b) => a + b, 0);
                 return (
                   <tr key={user.id} className="group hover:bg-slate-50 transition-colors">
-                    <td className="sticky left-0 z-10 bg-surface-light group-hover:bg-slate-100 transition-colors px-6 py-4 border-r border-border-light">
-                      <div className="flex items-center gap-4">
+                    <td className="sticky left-0 z-10 bg-surface-light group-hover:bg-slate-100 transition-colors px-6 py-4 border-r border-border-light text-center">
+                      <div className="flex items-center justify-center gap-4">
                         <div className={`h-10 w-10 rounded-full ${user.color}/10 flex items-center justify-center font-semibold text-xs ${user.color.replace('bg-', 'text-')}`}>
                           {user.initials}
                         </div>
                         <span className="text-sm font-semibold text-slate-900 truncate">{user.name}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm font-normal text-slate-600 border-r border-border-light">{user.role}</td>
+                    <td className="px-6 py-4 text-center text-sm font-normal text-slate-600 border-r border-border-light">{user.role}</td>
                     {user.hours.map((h, i) => (
                       <td key={i} className="p-1 border-r border-border-light group-hover:bg-slate-100/50 transition-colors">
                         <input 
@@ -81,7 +81,7 @@ const Logwork: React.FC = () => {
                         />
                       </td>
                     ))}
-                    <td className="px-6 py-4 text-right font-semibold text-slate-900 bg-slate-100/50">
+                    <td className="px-6 py-4 text-center font-semibold text-slate-900 bg-slate-100/50">
                       {total.toLocaleString()}
                     </td>
                   </tr>
