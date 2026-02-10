@@ -83,23 +83,23 @@ const Performance: React.FC = () => {
           <table className="w-full text-left border-collapse">
             <thead className="bg-slate-50 border-b border-border-light">
               <tr>
-                <th className="py-4 px-6 text-[10px] font-semibold uppercase tracking-widest text-slate-600">Role Name</th>
+                <th className="py-4 px-6 text-[10px] font-semibold uppercase tracking-widest text-slate-600 text-center">Role Name</th>
                 <th className="py-4 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-600 text-center">View Dashboard</th>
                 <th className="py-4 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-600 text-center">Edit Weights</th>
                 <th className="py-4 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-600 text-center">Manage Users</th>
                 <th className="py-4 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-600 text-center">Export Reports</th>
-                <th className="py-4 px-6 text-[10px] font-semibold uppercase tracking-widest text-slate-600 text-right"></th>
+                <th className="py-4 px-6 text-[10px] font-semibold uppercase tracking-widest text-slate-600 text-center"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border-light">
               {roles.map((role, i) => (
                 <tr key={role.role} className="hover:bg-slate-50 transition-colors">
-                  <td className="py-5 px-6">
-                    <div className="flex items-center gap-3">
+                  <td className="py-5 px-6 text-center">
+                    <div className="flex items-center justify-center gap-3">
                       <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                         <span className="material-symbols-outlined fill-1 text-[20px]">{role.icon}</span>
                       </div>
-                      <div>
+                      <div className="text-center">
                         <div className="text-sm font-bold text-slate-900 tracking-tight">{role.role}</div>
                         <div className="text-[11px] font-medium text-slate-500">{role.desc}</div>
                       </div>
@@ -128,7 +128,7 @@ const Performance: React.FC = () => {
                       </div>
                     </td>
                   ))}
-                  <td className="py-5 px-6 text-right">
+                  <td className="py-5 px-6 text-center">
                     {role.system ? (
                       <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">System Locked</span>
                     ) : (
