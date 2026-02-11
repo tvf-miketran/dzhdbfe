@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { TicketEntry } from '../types';
+import toast from 'react-hot-toast';
 
 const PROJECT_LIST: string[] = ['Alpha Banking Portal', 'Cloud Migration II', 'Mobile App Refresh', 'Internal HR Tool', 'E-commerce Engine'];
 const DEFAULT_TYPE = 'Feature';
@@ -15,6 +16,7 @@ const LogTickets: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'draft' | 'final'>('draft');
   const [draftEntries, setDraftEntries] = useState<TicketEntry[]>([]);
   const [finalEntries, setFinalEntries] = useState<TicketEntry[]>(INITIAL_FINAL_ENTRIES);
+  const [validationError, setValidationError] = useState<string>('');
 
   const [formData, setFormData] = useState({
     ticketId: '',
@@ -27,8 +29,20 @@ const LogTickets: React.FC = () => {
     e.preventDefault();
     if (!formData.ticketId.trim()) return;
 
-    const ids = formData.ticketId.split(',').map(s => s.trim()).filter(s => s);
+    const ids = formData.ticketId
+      .split(/[,;\s\n]+/)
+      .map(s => s.trim())
+      .filter(s => s);
     
+    const ticketIdPattern = /^[a-zA-Z]+-\d+$/;
+    const invalidIds = ids.filter(id => !ticketIdPattern.test(id));
+    
+    if (invalidIds.length > 0) {
+      setValidationError(`Invalid ticket ID format: ${invalidIds.join(', ')}. Expected format: project id-numbers (e.g., ocd-01)`);
+      return;
+    }
+    
+    setValidationError('');
     const newEntries: TicketEntry[] = ids.map(id => ({
       id: Math.random().toString(36).substr(2, 9),
       ticketId: id,
@@ -40,18 +54,32 @@ const LogTickets: React.FC = () => {
     }));
 
     setDraftEntries(prev => [...prev, ...newEntries]);
+    toast.success(`${newEntries.length} ticket${newEntries.length > 1 ? 's' : ''} added to draft!`);
     setFormData({ ...formData, ticketId: '' });
   };
 
   const handleSubmitDraft = () => {
     if (draftEntries.length === 0) return;
     setFinalEntries(prev => [...prev, ...draftEntries]);
+    toast.success(`${draftEntries.length} ticket${draftEntries.length > 1 ? 's' : ''} submitted to final!`);
     setDraftEntries([]);
     setActiveTab('final');
   };
 
   const updateStatus = (id: string, newStatus: 'Open' | 'Closed' | 'InQA') => {
     setFinalEntries(prev => prev.map(entry => 
+      entry.id === id ? { ...entry, status: newStatus } : entry
+    ));
+  };
+
+  const updateDraftType = (id: string, newType: string) => {
+    setDraftEntries(prev => prev.map(entry => 
+      entry.id === id ? { ...entry, type: newType } : entry
+    ));
+  };
+
+  const updateDraftStatus = (id: string, newStatus: 'Open' | 'Closed' | 'InQA') => {
+    setDraftEntries(prev => prev.map(entry => 
       entry.id === id ? { ...entry, status: newStatus } : entry
     ));
   };
@@ -130,10 +158,21 @@ const LogTickets: React.FC = () => {
                 <input 
                   type="text" 
                   value={formData.ticketId}
-                  onChange={(e) => setFormData({...formData, ticketId: e.target.value})}
+                  onChange={(e) => {
+                    setFormData({...formData, ticketId: e.target.value});
+                    if (validationError) setValidationError('');
+                  }}
                   placeholder="e.g. ODC-123, ODC-124"
-                  className="h-10 px-3 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                  className={`h-10 px-3 rounded-lg border bg-white text-sm text-slate-900 placeholder-slate-400 outline-none focus:ring-2 transition-all ${
+                    validationError ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-slate-300 focus:ring-primary focus:border-primary'
+                  }`}
                 />
+                {validationError && (
+                  <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">error</span>
+                    {validationError}
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-col gap-2">
@@ -219,22 +258,45 @@ const LogTickets: React.FC = () => {
                           <span className="text-sm font-medium text-slate-700">{entry.projectName}</span>
                         </td>
                         <td className="py-4 px-6 text-center">
-                          <span className={`inline-flex px-2.5 py-1 rounded border text-xs font-semibold uppercase tracking-tight ${getTypeColor(entry.type)}`}>
-                            {entry.type}
-                          </span>
+                          <div className="relative inline-block w-full max-w-[140px]">
+                            <select 
+                              value={entry.type}
+                              onChange={(e) => updateDraftType(entry.id, e.target.value)}
+                              className={`w-full h-8 pl-2 pr-7 rounded border text-xs font-semibold uppercase tracking-tight appearance-none outline-none cursor-pointer transition-all ${getTypeColor(entry.type)}`}
+                            >
+                              <option value="Feature">Feature</option>
+                              <option value="Bug Fix">Bug Fix</option>
+                              <option value="Refactor">Refactor</option>
+                              <option value="Hotfix">Hotfix</option>
+                              <option value="Research">Research</option>
+                            </select>
+                            <span className="material-symbols-outlined absolute right-1.5 top-1/2 -translate-y-1/2 text-[14px] pointer-events-none text-slate-500">expand_more</span>
+                          </div>
                         </td>
                         <td className="py-4 px-6 text-center">
                           <span className="text-sm text-slate-700">{entry.role}</span>
                         </td>
                         <td className="py-4 px-6 text-center">
-                          <span className="inline-flex px-2.5 py-1 rounded border text-xs font-semibold uppercase tracking-tight bg-slate-100 text-slate-700 border-slate-200">
-                            Draft
-                          </span>
+                          <div className="relative inline-block w-full max-w-[120px]">
+                            <select 
+                              value={entry.status}
+                              onChange={(e) => updateDraftStatus(entry.id, e.target.value as any)}
+                              className={`w-full h-8 pl-2 pr-7 rounded border text-xs font-semibold uppercase tracking-tight appearance-none outline-none cursor-pointer transition-all ${getStatusColor(entry.status)}`}
+                            >
+                              <option value="Open">Open</option>
+                              <option value="InQA">InQA</option>
+                              <option value="Closed">Closed</option>
+                            </select>
+                            <span className="material-symbols-outlined absolute right-1.5 top-1/2 -translate-y-1/2 text-[14px] pointer-events-none text-slate-500">expand_more</span>
+                          </div>
                         </td>
                         <td className="py-4 px-6 text-center text-xs text-slate-600">{entry.timestamp}</td>
                         <td className="py-4 px-6 text-center">
                           <button 
-                            onClick={() => setDraftEntries(prev => prev.filter(e => e.id !== entry.id))}
+                            onClick={() => {
+                              setDraftEntries(prev => prev.filter(e => e.id !== entry.id));
+                              toast.success('Draft ticket deleted!');
+                            }}
                             className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Delete ticket"
                           >
@@ -270,13 +332,12 @@ const LogTickets: React.FC = () => {
                   <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Role</th>
                   <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Status</th>
                   <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Date</th>
-                  <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-light">
                 {finalEntries.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center">
+                    <td colSpan={6} className="py-12 text-center">
                       <div className="flex flex-col items-center justify-center">
                         <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">inbox</span>
                         <p className="text-slate-500 font-medium">No final tickets yet</p>
@@ -302,29 +363,11 @@ const LogTickets: React.FC = () => {
                         <span className="text-sm text-slate-700">{entry.role}</span>
                       </td>
                       <td className="py-4 px-6 text-center">
-                        <div className="relative inline-block w-full max-w-[120px]">
-                          <select 
-                            value={entry.status}
-                            onChange={(e) => updateStatus(entry.id, e.target.value as any)}
-                            className={`w-full h-8 pl-2 pr-7 rounded border text-xs font-semibold uppercase tracking-tight appearance-none outline-none cursor-pointer transition-all ${getStatusColor(entry.status)}`}
-                          >
-                            <option value="Open">Open</option>
-                            <option value="InQA">InQA</option>
-                            <option value="Closed">Closed</option>
-                          </select>
-                          <span className="material-symbols-outlined absolute right-1.5 top-1/2 -translate-y-1/2 text-[14px] pointer-events-none text-slate-500">expand_more</span>
-                        </div>
+                        <span className={`inline-flex px-2.5 py-1 rounded border text-xs font-semibold uppercase tracking-tight ${getStatusColor(entry.status)}`}>
+                          {entry.status}
+                        </span>
                       </td>
                       <td className="py-4 px-6 text-center text-xs text-slate-600">{entry.timestamp}</td>
-                      <td className="py-4 px-6 text-center">
-                        <button 
-                          onClick={() => setFinalEntries(prev => prev.filter(e => e.id !== entry.id))}
-                          className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete ticket"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
-                        </button>
-                      </td>
                     </tr>
                   ))
                 )}

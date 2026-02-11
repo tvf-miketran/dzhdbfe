@@ -40,13 +40,6 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
         </div>
         
         <div className="flex items-center gap-2">
-          <button className="relative flex h-10 w-10 items-center justify-center rounded-full text-slate-400 hover:bg-surface-dark hover:text-slate-900 transition-colors">
-            <span className="material-symbols-outlined text-[20px]">notifications</span>
-            <span className="absolute top-2.5 right-2.5 block h-2 w-2 rounded-full border-2 border-background-dark bg-primary"></span>
-          </button>
-          
-          <div className="hidden sm:block h-6 w-px bg-border-light mx-1"></div>
-          
           <button className="lg:hidden h-9 w-9 overflow-hidden rounded-full border border-border-light">
             <img src="https://picsum.photos/seed/user/40/40" alt="Avatar" className="h-full w-full object-cover" />
           </button>

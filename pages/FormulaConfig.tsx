@@ -3,6 +3,13 @@ import React, { useState } from 'react';
 
 const FormulaConfig: React.FC = () => {
   const [formula, setFormula] = useState("({Ticket_Count} * 1.5) + (({Logwork_Hours} / 160) * 100) + ({Quality_Score} * 0.8)");
+  const [roleWeights, setRoleWeights] = useState<Record<string, number>>({
+    sr: 0.8,
+    jr: 0.5,
+    qa: 0.7,
+    ba: 0.75,
+    tl: 1.0
+  });
   
   const variables = [
     { name: 'Ticket_Count', color: 'bg-emerald-600' },
@@ -12,11 +19,11 @@ const FormulaConfig: React.FC = () => {
   ];
 
   const roles = [
-    { id: 'sr', title: 'Senior Developer', icon: 'code', multiplier: 120, range: [80, 150] },
-    { id: 'jr', title: 'Junior Developer', icon: 'laptop', multiplier: 85, range: [50, 100] },
-    { id: 'qa', title: 'QA Engineer', icon: 'bug_report', multiplier: 100, range: [80, 120] },
-    { id: 'ba', title: 'Business Analyst', icon: 'analytics', multiplier: 110, range: [80, 140] },
-    { id: 'tl', title: 'Team Lead', icon: 'groups', multiplier: 140, range: [100, 200] },
+    { id: 'sr', title: 'Senior Developer', icon: 'code', multiplier: 0.8, range: [0, 1] },
+    { id: 'jr', title: 'Junior Developer', icon: 'laptop', multiplier: 0.5, range: [0, 1] },
+    { id: 'qa', title: 'QA Engineer', icon: 'bug_report', multiplier: 0.7, range: [0, 1] },
+    { id: 'ba', title: 'Business Analyst', icon: 'analytics', multiplier: 0.75, range: [0, 1] },
+    { id: 'tl', title: 'Team Lead', icon: 'groups', multiplier: 1.0, range: [0, 1] },
   ];
 
   return (
@@ -109,7 +116,7 @@ const FormulaConfig: React.FC = () => {
              <span className="material-symbols-outlined text-primary text-[20px]">assignment_ind</span>
              <h3 className="text-lg font-semibold text-slate-900 tracking-tight">Role Weighting</h3>
           </div>
-          <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest">Baseline: <span className="text-slate-900 font-bold">100%</span></span>
+          <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest">Range: <span className="text-slate-900 font-bold">0 - 1</span></span>
         </div>
         
         <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
@@ -125,19 +132,21 @@ const FormulaConfig: React.FC = () => {
                      <p className="text-[10px] text-slate-600 uppercase font-semibold tracking-widest mt-0.5">Expectation Multiplier</p>
                    </div>
                 </div>
-                <span className="text-sm font-bold text-primary">{role.multiplier}%</span>
+                <span className="text-sm font-bold text-primary">{roleWeights[role.id].toFixed(2)}</span>
               </div>
               <div className="flex flex-col gap-2">
                 <input 
                   type="range" 
                   min={role.range[0]} 
                   max={role.range[1]} 
-                  defaultValue={role.multiplier}
+                  step="0.01"
+                  value={roleWeights[role.id]}
+                  onChange={(e) => setRoleWeights(prev => ({ ...prev, [role.id]: parseFloat(e.target.value) }))}
                   className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary"
                 />
                 <div className="flex justify-between text-[10px] font-semibold text-slate-600 px-1">
-                  <span>{role.range[0]}%</span>
-                  <span>{role.range[1]}%</span>
+                  <span>{role.range[0].toFixed(1)}</span>
+                  <span>{role.range[1].toFixed(1)}</span>
                 </div>
               </div>
             </div>
@@ -147,7 +156,7 @@ const FormulaConfig: React.FC = () => {
         <div className="p-4 bg-slate-50 border-t border-border-light flex items-center gap-3">
           <span className="material-symbols-outlined text-slate-500 text-[18px]">info</span>
           <p className="text-xs text-slate-600 font-medium">
-            Higher role weights increase the base expectation for KPIs. A 120% weight means 20% more output than baseline.
+            Role weights adjust the base expectation for KPIs. Values range from 0 to 1, where 1.0 represents maximum weight.
           </p>
         </div>
       </div>

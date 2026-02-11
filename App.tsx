@@ -12,6 +12,7 @@ import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import FormulaConfig from "./pages/FormulaConfig";
 import { useAuth } from "./context/AuthContext";
+import { Toaster } from "react-hot-toast";
 
 const App: React.FC = () => {
   const { isAuthenticated, logout: authLogout, checkAuth } = useAuth();
@@ -107,6 +108,33 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen w-full bg-background-light overflow-hidden font-sans">
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#fff',
+            color: '#0f172a',
+            border: '1px solid #e2e8f0',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            fontSize: '14px',
+            fontWeight: '500',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
       <Sidebar
         activePage={activePage}
         onNavigate={setActivePage}
