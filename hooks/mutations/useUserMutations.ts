@@ -76,3 +76,28 @@ export const useUpdatePreferences = (
     ...options,
   });
 };
+
+/**
+ * Hook for creating a new employee
+ */
+export const useCreateEmployee = (
+  options?: Omit<
+    UseMutationOptions<
+      Awaited<ReturnType<typeof userService.createEmployee>>,
+      Error,
+      Parameters<typeof userService.createEmployee>[0]
+    >,
+    "mutationFn"
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: userService.createEmployee,
+    onSuccess: () => {
+      // Invalidate employees queries to refetch the list
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.lists() });
+    },
+    ...options,
+  });
+};

@@ -9,7 +9,7 @@ export const API_BASE_URL =
 
 // API versions
 export const API_VERSION = {
-  V1: "/api/",
+  V1: "/api",
   V2: "/api/v2",
 } as const;
 
@@ -35,6 +35,15 @@ export const ENDPOINTS = {
     UPDATE_PROFILE: "/users/profile",
     CHANGE_PASSWORD: "/users/change-password",
     PREFERENCES: "/users/preferences",
+  },
+
+  // Employees endpoints
+  EMPLOYEES: {
+    LIST: "employees",
+    GET: (id: string) => `employees/${id}`,
+    CREATE: "employees",
+    UPDATE: (id: string) => `employees/${id}`,
+    DELETE: (id: string) => `employees/${id}`,
   },
 
   // Dashboard & Metrics endpoints

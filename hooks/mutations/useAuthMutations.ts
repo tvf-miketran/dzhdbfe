@@ -34,9 +34,25 @@ export const useLogin = (
   return useMutation({
     mutationFn: authService.login,
     onSuccess: (data) => {
-      // Store access token
-      setAuthToken(data.access_token);
+      console.log("[useLogin] Login response:", data);
+
+      // Validate response structure
+      if (!data?.user?.access_token) {
+        console.error(
+          "[useLogin] Invalid response structure - missing access_token",
+        );
+        toast.error("Login failed: Invalid response from server");
+        return;
+      }
+
+      // Store access token and user information
+      console.log(
+        "[useLogin] Storing token:",
+        data.user.access_token.substring(0, 20) + "...",
+      );
+      setAuthToken(data.user.access_token);
       localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("user", JSON.stringify(data.user.user));
 
       // Invalidate auth queries
       queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });
@@ -82,9 +98,10 @@ export const useRegister = (
   return useMutation({
     mutationFn: authService.register,
     onSuccess: (data) => {
-      // Store access token
-      setAuthToken(data.access_token);
+      // Store access token and user information
+      setAuthToken(data.user.access_token);
       localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("user", JSON.stringify(data.user.user));
 
       // Invalidate auth queries
       queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });

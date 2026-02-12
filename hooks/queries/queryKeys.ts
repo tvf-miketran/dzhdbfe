@@ -16,6 +16,18 @@ export const queryKeys = {
     all: ["user"] as const,
     profile: () => [...queryKeys.user.all, "profile"] as const,
     preferences: () => [...queryKeys.user.all, "preferences"] as const,
+    employees: (params?: Record<string, unknown> | undefined) =>
+      [...queryKeys.user.all, "employees", { params }] as const,
+  },
+
+  // Employees keys
+  employees: {
+    all: ["employees"] as const,
+    lists: () => [...queryKeys.employees.all, "list"] as const,
+    list: (params?: Record<string, unknown> | undefined) =>
+      [...queryKeys.employees.lists(), { params }] as const,
+    details: () => [...queryKeys.employees.all, "detail"] as const,
+    detail: (id: string) => [...queryKeys.employees.details(), id] as const,
   },
 
   // Dashboard keys

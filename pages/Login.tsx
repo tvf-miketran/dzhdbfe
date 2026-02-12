@@ -18,8 +18,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   // Use the login mutation hook
   const loginMutation = useLogin({
     onSuccess: (data) => {
-      // Store token in auth context
-      login(data.access_token);
+      // Store token and user in auth context
+      login(data.user.access_token, data.user.user);
 
       // Redirect to dashboard
       onLogin();

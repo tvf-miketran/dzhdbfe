@@ -5,6 +5,7 @@
 
 import axiosInstance from "../helpers/axios";
 import { ENDPOINTS } from "../config/api";
+import type { EmployeesResponse } from "../types";
 
 export interface UserProfile {
   id: string;
@@ -103,6 +104,53 @@ export const userService = {
       ENDPOINTS.USER.PREFERENCES,
       data,
     );
+    return response.data;
+  },
+
+  /**
+   * Get employees list with pagination and filters
+   */
+  getEmployees: async (params?: {
+    page?: number;
+    per_page?: number;
+    search?: string;
+    status?: boolean;
+  }): Promise<EmployeesResponse> => {
+    const response = await axiosInstance.get<EmployeesResponse>(
+      ENDPOINTS.EMPLOYEES.LIST,
+      { params },
+    );
+    return response.data;
+  },
+
+  /**
+   * Create a new employee
+   */
+  createEmployee: async (data: {
+    vnFullName: string;
+    enFullName: string;
+    email: string;
+    employeeId: string;
+    password: string;
+    description?: string;
+    authorizeRole?: "MEMBER" | "ADMIN";
+    status?: boolean;
+  }): Promise<{
+    data: {
+      id: string;
+      employeeId: string;
+      email: string;
+      vnFullName: string;
+      enFullName: string;
+      authorizeRole: "ADMIN" | "MEMBER";
+      status: boolean;
+      description?: string;
+      createdAt: string;
+    };
+    message: string;
+    success: boolean;
+  }> => {
+    const response = await axiosInstance.post(ENDPOINTS.EMPLOYEES.CREATE, data);
     return response.data;
   },
 };
