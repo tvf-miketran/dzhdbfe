@@ -76,3 +76,102 @@ export const useUpdatePreferences = (
     ...options,
   });
 };
+
+/**
+ * Hook for creating a new employee
+ */
+export const useCreateEmployee = (
+  options?: Omit<
+    UseMutationOptions<
+      Awaited<ReturnType<typeof userService.createEmployee>>,
+      Error,
+      Parameters<typeof userService.createEmployee>[0]
+    >,
+    "mutationFn"
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: userService.createEmployee,
+    onSuccess: () => {
+      // Invalidate employees queries to refetch the list
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.lists() });
+    },
+    ...options,
+  });
+};
+
+/**
+ * Hook for updating an existing employee
+ */
+export const useUpdateEmployee = (
+  options?: Omit<
+    UseMutationOptions<
+      Awaited<ReturnType<typeof userService.updateEmployee>>,
+      Error,
+      { id: string; data: Parameters<typeof userService.updateEmployee>[1] }
+    >,
+    "mutationFn"
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }) => userService.updateEmployee(id, data),
+    onSuccess: (_result, { id }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.lists() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.employees.detail(id),
+      });
+    },
+    ...options,
+  });
+};
+
+/**
+ * Hook for resetting employee password
+ */
+export const useResetEmployeePassword = (
+  options?: Omit<
+    UseMutationOptions<
+      Awaited<ReturnType<typeof userService.resetEmployeePassword>>,
+      Error,
+      string
+    >,
+    "mutationFn"
+  >,
+) => {
+  return useMutation({
+    mutationFn: userService.resetEmployeePassword,
+    ...options,
+  });
+};
+
+/**
+ * Hook for toggling employee status (active <-> inactive)
+ */
+export const useToggleEmployeeStatus = (
+  options?: Omit<
+    UseMutationOptions<
+      Awaited<ReturnType<typeof userService.toggleEmployeeStatus>>,
+      Error,
+      string
+    >,
+    "mutationFn"
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: userService.toggleEmployeeStatus,
+    onSuccess: () => {
+      // Invalidate paginated employees list
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.lists() });
+      // Invalidate all project detail caches so the project-filtered view
+      // (which uses useProjectWithMembers) also reflects the new status
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.details() });
+    },
+    ...options,
+  });
+};

@@ -5,6 +5,7 @@
 
 import axiosInstance from "../helpers/axios";
 import { ENDPOINTS } from "../config/api";
+import type { EmployeesResponse } from "../types";
 
 export interface UserProfile {
   id: string;
@@ -102,6 +103,157 @@ export const userService = {
     const response = await axiosInstance.put<UserPreferences>(
       ENDPOINTS.USER.PREFERENCES,
       data,
+    );
+    return response.data;
+  },
+
+  /**
+   * Get employees list with pagination and filters
+   */
+  getEmployees: async (params?: {
+    page?: number;
+    per_page?: number;
+    search?: string;
+    status?: boolean;
+  }): Promise<EmployeesResponse> => {
+    const response = await axiosInstance.get<EmployeesResponse>(
+      ENDPOINTS.EMPLOYEES.LIST,
+      { params },
+    );
+    return response.data;
+  },
+
+  /**
+   * Create a new employee
+   */
+  createEmployee: async (data: {
+    vnFullName: string;
+    enFullName: string;
+    email: string;
+    employeeId: string;
+    password: string;
+    description?: string;
+    authorizeRole?: "MEMBER" | "ADMIN";
+    status?: boolean;
+  }): Promise<{
+    data: {
+      id: string;
+      employeeId: string;
+      email: string;
+      vnFullName: string;
+      enFullName: string;
+      authorizeRole: "ADMIN" | "MEMBER";
+      status: boolean;
+      description?: string;
+      createdAt: string;
+    };
+    message: string;
+    success: boolean;
+  }> => {
+    const response = await axiosInstance.post(ENDPOINTS.EMPLOYEES.CREATE, data);
+    return response.data;
+  },
+
+  /**
+   * Get a single employee by ID
+   */
+  getEmployee: async (
+    id: string,
+  ): Promise<{
+    data: {
+      authorizeRole: "ADMIN" | "MEMBER";
+      createdAt: string;
+      description?: string;
+      email: string;
+      employeeId: string;
+      enFullName: string;
+      id: string;
+      status: boolean;
+      updatedAt: string;
+      vnFullName: string;
+    };
+    message: string;
+    success: boolean;
+  }> => {
+    const response = await axiosInstance.get(ENDPOINTS.EMPLOYEES.GET(id));
+    return response.data;
+  },
+
+  /**
+   * Update an existing employee
+   */
+  updateEmployee: async (
+    id: string,
+    data: {
+      vnFullName?: string;
+      enFullName?: string;
+      email?: string;
+      employeeId?: string;
+      description?: string;
+      authorizeRole?: "MEMBER" | "ADMIN";
+      status?: boolean;
+    },
+  ): Promise<{
+    data: {
+      authorizeRole: "ADMIN" | "MEMBER";
+      description?: string;
+      email: string;
+      employeeId: string;
+      enFullName: string;
+      id: string;
+      status: boolean;
+      updatedAt: string;
+      vnFullName: string;
+    };
+    message: string;
+    success: boolean;
+  }> => {
+    const response = await axiosInstance.put(
+      ENDPOINTS.EMPLOYEES.UPDATE(id),
+      data,
+    );
+    return response.data;
+  },
+
+  /**
+   * Reset employee password (resets to employee's email)
+   */
+  resetEmployeePassword: async (
+    employeeId: string,
+  ): Promise<{
+    data: null;
+    message: string;
+    success: boolean;
+  }> => {
+    const response = await axiosInstance.post(
+      ENDPOINTS.EMPLOYEES.RESET_PASSWORD,
+      { employeeId },
+    );
+    return response.data;
+  },
+
+  /**
+   * Toggle employee status (active <-> inactive)
+   */
+  toggleEmployeeStatus: async (
+    id: string,
+  ): Promise<{
+    data: {
+      authorizeRole: "ADMIN" | "MEMBER";
+      description?: string;
+      email: string;
+      employeeId: string;
+      enFullName: string;
+      id: string;
+      status: boolean;
+      updatedAt: string;
+      vnFullName: string;
+    };
+    message: string;
+    success: boolean;
+  }> => {
+    const response = await axiosInstance.patch(
+      ENDPOINTS.EMPLOYEES.TOGGLE_STATUS(id),
     );
     return response.data;
   },

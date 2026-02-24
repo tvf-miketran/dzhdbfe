@@ -5,6 +5,7 @@
 
 import axiosInstance from "../helpers/axios";
 import { ENDPOINTS } from "../config/api";
+import { User } from "../types";
 
 export interface LoginCredentials {
   email: string;
@@ -12,7 +13,11 @@ export interface LoginCredentials {
 }
 
 export interface LoginResponse {
-  access_token: string;
+  user: {
+    access_token: string;
+    token_type: string;
+    user: User;
+  };
 }
 
 export interface RegisterData {

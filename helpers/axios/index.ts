@@ -24,6 +24,7 @@ export interface ApiError {
   statusCode?: number;
   code?: string;
   details?: unknown;
+  errors?: string[];
 }
 
 /**
@@ -47,10 +48,19 @@ axiosInstance.interceptors.request.use(
     // Get authentication token from localStorage
     const token = localStorage.getItem("access_token");
 
-    if (token && config.headers) {
+    // Validate token before using it
+    if (token && token !== "undefined" && token !== "null" && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else if (token === "undefined" || token === "null") {
+      // Clean up invalid token
+      console.error("[Axios] Invalid token detected, removing:", token);
+      localStorage.removeItem("access_token");
     }
 
+    // Add ngrok bypass header for development
+    if (config.headers) {
+      config.headers["ngrok-skip-browser-warning"] = "true";
+    }
     // Add request timestamp for debugging
     if (import.meta.env.DEV) {
       console.log(
@@ -58,6 +68,11 @@ axiosInstance.interceptors.request.use(
         {
           params: config.params,
           data: config.data,
+          hasToken: !!token && token !== "undefined" && token !== "null",
+          tokenPreview:
+            token && token !== "undefined" && token !== "null"
+              ? `${token.substring(0, 20)}...`
+              : "No valid token",
         },
       );
     }
@@ -114,6 +129,7 @@ axiosInstance.interceptors.response.use(
       // For now, just logout on 401 since we don't have refresh token endpoint
       localStorage.removeItem("access_token");
       localStorage.removeItem("isAuthenticated");
+      localStorage.removeItem("user");
 
       // Redirect to login page
       window.location.href = "/";
@@ -161,6 +177,7 @@ axiosInstance.interceptors.response.use(
       statusCode: error.response?.status,
       code: error.code,
       details: error.response?.data?.details,
+      errors: error.response?.data?.errors,
     };
 
     return Promise.reject(apiError);
@@ -171,6 +188,12 @@ axiosInstance.interceptors.response.use(
  * Helper function to set auth token
  */
 export const setAuthToken = (token: string): void => {
+  if (!token || token === "undefined" || token === "null") {
+    console.error("[setAuthToken] Invalid token provided:", token);
+    removeAuthToken();
+    return;
+  }
+  console.log("[setAuthToken] Setting token:", token.substring(0, 20) + "...");
   localStorage.setItem("access_token", token);
 };
 

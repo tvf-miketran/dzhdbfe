@@ -5,6 +5,14 @@
 
 import axiosInstance from "../helpers/axios";
 import { ENDPOINTS } from "../config/api";
+import type {
+  ProjectsAllResponse,
+  ProjectsPaginatedResponse,
+  ProjectsPaginatedParams,
+  ProjectDetailResponse,
+  AddProjectMembersPayload,
+  AddProjectMembersResponse,
+} from "../types";
 
 export interface Project {
   id: string;
@@ -64,10 +72,60 @@ export interface ProjectStats {
  */
 export const projectsService = {
   /**
-   * Get all projects
+   * Get all projects (full list, no pagination) – used for dropdowns/filters
    */
-  getProjects: async (): Promise<Project[]> => {
-    const response = await axiosInstance.get<Project[]>(
+  getAllProjects: async (): Promise<ProjectsAllResponse> => {
+    const response = await axiosInstance.get<ProjectsAllResponse>(
+      ENDPOINTS.PROJECTS.LIST,
+    );
+    return response.data;
+  },
+
+  /**
+   * Get paginated projects list with optional filters – used for the Projects page
+   */
+  getProjectsPaginated: async (
+    params?: ProjectsPaginatedParams,
+  ): Promise<ProjectsPaginatedResponse> => {
+    const response = await axiosInstance.get<ProjectsPaginatedResponse>(
+      ENDPOINTS.PROJECTS.LIST,
+      { params },
+    );
+    return response.data;
+  },
+
+  /**
+   * Get project detail with members – used for project-based employee filtering
+   * GET /api/projects/:id?include_members=true
+   */
+  getProjectWithMembers: async (id: string): Promise<ProjectDetailResponse> => {
+    const response = await axiosInstance.get<ProjectDetailResponse>(
+      ENDPOINTS.PROJECTS.GET(id),
+      { params: { include_members: true } },
+    );
+    return response.data;
+  },
+
+  /**
+   * Add members to a project
+   * POST /api/projects/:id/members
+   */
+  addProjectMembers: async (
+    id: string,
+    payload: AddProjectMembersPayload,
+  ): Promise<AddProjectMembersResponse> => {
+    const response = await axiosInstance.post<AddProjectMembersResponse>(
+      ENDPOINTS.PROJECTS.MEMBERS(id),
+      payload,
+    );
+    return response.data;
+  },
+
+  /**
+   * Get all projects (legacy – kept for backward-compat)
+   */
+  getProjects: async (): Promise<ProjectsAllResponse> => {
+    const response = await axiosInstance.get<ProjectsAllResponse>(
       ENDPOINTS.PROJECTS.LIST,
     );
     return response.data;
