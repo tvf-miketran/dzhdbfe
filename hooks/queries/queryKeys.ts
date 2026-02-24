@@ -54,6 +54,9 @@ export const queryKeys = {
     all: ["projects"] as const,
     lists: () => [...queryKeys.projects.all, "list"] as const,
     list: () => [...queryKeys.projects.lists()] as const,
+    listAll: () => [...queryKeys.projects.all, "listAll"] as const,
+    listPaginated: (params?: Record<string, unknown> | undefined) =>
+      [...queryKeys.projects.all, "listPaginated", { params }] as const,
     details: () => [...queryKeys.projects.all, "detail"] as const,
     detail: (id: string) => [...queryKeys.projects.details(), id] as const,
     members: (id: string) =>

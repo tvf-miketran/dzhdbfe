@@ -14,6 +14,10 @@ import {
   CreateProjectData,
   UpdateProjectData,
 } from "../../services";
+import type {
+  AddProjectMembersPayload,
+  AddProjectMembersResponse,
+} from "../../types";
 import { queryKeys } from "../queries";
 
 /**
@@ -82,6 +86,33 @@ export const useDeleteProject = (
       // Invalidate projects list
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.lists() });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+    },
+    ...options,
+  });
+};
+
+/**
+ * Hook for adding members to a project
+ * POST /api/projects/:id/members
+ */
+export const useAddProjectMembers = (
+  options?: Omit<
+    UseMutationOptions<
+      AddProjectMembersResponse,
+      Error,
+      { projectId: string; payload: AddProjectMembersPayload }
+    >,
+    "mutationFn"
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ projectId, payload }) =>
+      projectsService.addProjectMembers(projectId, payload),
+    onSuccess: () => {
+      // Invalidate all project detail caches so withMembers queries refresh
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.details() });
     },
     ...options,
   });

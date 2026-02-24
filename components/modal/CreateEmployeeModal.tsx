@@ -91,34 +91,14 @@ const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
         setFormErrors(errors);
         toast.error("Please fix the validation errors");
       } else {
-        // Handle API errors
+        // Handle API errors (interceptor transforms to ApiError shape)
         const apiError = error as any;
-        const errorData = apiError?.response?.data;
-        
-        // Check if there are validation errors from the API
-        if (errorData?.errors && Array.isArray(errorData.errors) && errorData.errors.length > 0) {
-          // Display validation errors with context
-          const errorTitle = errorData?.message || "Validation failed";
-          toast.error(errorTitle, {
-            duration: 4000,
-          });
-          
-          // Display each specific error
-          errorData.errors.forEach((errorMsg: string, index: number) => {
-            setTimeout(() => {
-              toast.error(errorMsg, {
-                duration: 5000,
-                icon: '⚠️',
-              });
-            }, (index + 1) * 100);
+        if (Array.isArray(apiError?.errors) && apiError.errors.length > 0) {
+          apiError.errors.forEach((errorMsg: string) => {
+            toast.error(errorMsg, { duration: 5000 });
           });
         } else {
-          // Display generic error message
-          toast.error(
-            errorData?.message ||
-              apiError?.message ||
-              "Failed to create employee",
-          );
+          toast.error(apiError?.message || "Failed to create employee");
         }
       }
     } finally {
@@ -342,7 +322,7 @@ const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
                 htmlFor="description"
                 className="block text-sm font-medium text-slate-700 mb-2"
               >
-                Description{" "}<span className="text-red-500">*</span>
+                Description <span className="text-red-500">*</span>
               </label>
               <textarea
                 id="description"

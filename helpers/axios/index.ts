@@ -24,6 +24,7 @@ export interface ApiError {
   statusCode?: number;
   code?: string;
   details?: unknown;
+  errors?: string[];
 }
 
 /**
@@ -176,6 +177,7 @@ axiosInstance.interceptors.response.use(
       statusCode: error.response?.status,
       code: error.code,
       details: error.response?.data?.details,
+      errors: error.response?.data?.errors,
     };
 
     return Promise.reject(apiError);

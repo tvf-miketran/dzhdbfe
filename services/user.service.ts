@@ -153,4 +153,108 @@ export const userService = {
     const response = await axiosInstance.post(ENDPOINTS.EMPLOYEES.CREATE, data);
     return response.data;
   },
+
+  /**
+   * Get a single employee by ID
+   */
+  getEmployee: async (
+    id: string,
+  ): Promise<{
+    data: {
+      authorizeRole: "ADMIN" | "MEMBER";
+      createdAt: string;
+      description?: string;
+      email: string;
+      employeeId: string;
+      enFullName: string;
+      id: string;
+      status: boolean;
+      updatedAt: string;
+      vnFullName: string;
+    };
+    message: string;
+    success: boolean;
+  }> => {
+    const response = await axiosInstance.get(ENDPOINTS.EMPLOYEES.GET(id));
+    return response.data;
+  },
+
+  /**
+   * Update an existing employee
+   */
+  updateEmployee: async (
+    id: string,
+    data: {
+      vnFullName?: string;
+      enFullName?: string;
+      email?: string;
+      employeeId?: string;
+      description?: string;
+      authorizeRole?: "MEMBER" | "ADMIN";
+      status?: boolean;
+    },
+  ): Promise<{
+    data: {
+      authorizeRole: "ADMIN" | "MEMBER";
+      description?: string;
+      email: string;
+      employeeId: string;
+      enFullName: string;
+      id: string;
+      status: boolean;
+      updatedAt: string;
+      vnFullName: string;
+    };
+    message: string;
+    success: boolean;
+  }> => {
+    const response = await axiosInstance.put(
+      ENDPOINTS.EMPLOYEES.UPDATE(id),
+      data,
+    );
+    return response.data;
+  },
+
+  /**
+   * Reset employee password (resets to employee's email)
+   */
+  resetEmployeePassword: async (
+    employeeId: string,
+  ): Promise<{
+    data: null;
+    message: string;
+    success: boolean;
+  }> => {
+    const response = await axiosInstance.post(
+      ENDPOINTS.EMPLOYEES.RESET_PASSWORD,
+      { employeeId },
+    );
+    return response.data;
+  },
+
+  /**
+   * Toggle employee status (active <-> inactive)
+   */
+  toggleEmployeeStatus: async (
+    id: string,
+  ): Promise<{
+    data: {
+      authorizeRole: "ADMIN" | "MEMBER";
+      description?: string;
+      email: string;
+      employeeId: string;
+      enFullName: string;
+      id: string;
+      status: boolean;
+      updatedAt: string;
+      vnFullName: string;
+    };
+    message: string;
+    success: boolean;
+  }> => {
+    const response = await axiosInstance.patch(
+      ENDPOINTS.EMPLOYEES.TOGGLE_STATUS(id),
+    );
+    return response.data;
+  },
 };

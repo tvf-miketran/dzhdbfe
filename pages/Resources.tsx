@@ -1,8 +1,20 @@
 import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { useEmployees } from "../hooks/queries/useUserQueries";
+import { useProjectWithMembers } from "../hooks/queries/useProjectsQueries";
+import {
+  useToggleEmployeeStatus,
+  useResetEmployeePassword,
+} from "../hooks/mutations/useUserMutations";
 import type { Employee } from "../types";
 import CreateEmployeeModal from "../components/modal/CreateEmployeeModal";
+import EditEmployeeModal from "../components/modal/EditEmployeeModal";
+import {
+  ConfirmStatusModal,
+  ConfirmResetPasswordModal,
+} from "../components/modal/confirm";
+import { Pagination } from "../components/pagination";
+import ProjectFilter from "../components/ProjectFilter";
 
 interface Ticket {
   id: string;
@@ -26,6 +38,7 @@ interface User {
 
 const Resources: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editEmployeeId, setEditEmployeeId] = useState<string | null>(null);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>("All");
   const [statusConfirm, setStatusConfirm] = useState<null | {
@@ -34,6 +47,7 @@ const Resources: React.FC = () => {
   }>(null);
   const [resetConfirm, setResetConfirm] = useState<null | {
     id: string;
+    employeeId: string;
     name: string;
   }>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -44,6 +58,7 @@ const Resources: React.FC = () => {
   const [perPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedProject, setSelectedProject] = useState<string>("All");
 
   // Debounce search input
   useEffect(() => {
@@ -57,7 +72,7 @@ const Resources: React.FC = () => {
   // Fetch employees from API
   const {
     data: employeesData,
-    isLoading,
+    isLoading: isEmployeesLoading,
     isError,
     error,
   } = useEmployees({
@@ -71,6 +86,54 @@ const Resources: React.FC = () => {
           ? false
           : undefined,
   });
+
+  // Fetch project detail with members when a project filter is active
+  const { data: projectDetailData, isLoading: isProjectMembersLoading } =
+    useProjectWithMembers(selectedProject === "All" ? "" : selectedProject);
+
+  const isLoading = isEmployeesLoading || isProjectMembersLoading;
+
+  // Derive the employee rows shown in the table
+  const displayedEmployees: Employee[] = (() => {
+    if (selectedProject !== "All") {
+      // Map project members to Employee shape for the table
+      const members = projectDetailData?.data?.members ?? [];
+      return members
+        .filter((m) => {
+          if (selectedStatus === "Active") return m.status === true;
+          if (selectedStatus === "Inactive") return m.status === false;
+          return true;
+        })
+        .filter((m) => {
+          if (!debouncedSearch) return true;
+          const q = debouncedSearch.toLowerCase();
+          return (
+            m.enFullName.toLowerCase().includes(q) ||
+            m.vnFullName.toLowerCase().includes(q) ||
+            m.employeeId.toLowerCase().includes(q)
+          );
+        })
+        .map((m) => ({
+          id: m.userId,
+          employeeId: m.employeeId,
+          email: m.email,
+          vnFullName: m.vnFullName,
+          enFullName: m.enFullName,
+          authorizeRole: m.authorize_role,
+          status: m.status,
+          description: null,
+          createdAt: m.joinedAt,
+          updatedAt: m.joinedAt,
+        }));
+    }
+    return employeesData?.data?.items ?? [];
+  })();
+
+  // Toggle employee status mutation
+  const toggleStatusMutation = useToggleEmployeeStatus();
+
+  // Reset employee password mutation
+  const resetPasswordMutation = useResetEmployeePassword();
 
   // Debug logging
   useEffect(() => {
@@ -188,12 +251,24 @@ const Resources: React.FC = () => {
               )}
             </div>
 
+            {/* Project Filter */}
+            <ProjectFilter
+              selectedProject={selectedProject}
+              onChange={(projectId) => {
+                setSelectedProject(projectId);
+                setCurrentPage(1);
+              }}
+            />
+
             {/* Clear Filter Button */}
-            {(selectedStatus !== "All" || searchQuery) && (
+            {(selectedStatus !== "All" ||
+              searchQuery ||
+              selectedProject !== "All") && (
               <button
                 onClick={() => {
                   setSelectedStatus("All");
                   setSearchQuery("");
+                  setSelectedProject("All");
                   setCurrentPage(1);
                 }}
                 className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-300 rounded-lg text-[11px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
@@ -252,8 +327,7 @@ const Resources: React.FC = () => {
               </button>
             </div>
           </div>
-        ) : !employeesData?.data?.items ||
-          employeesData.data.items.length === 0 ? (
+        ) : !displayedEmployees.length ? (
           <div className="flex items-center justify-center py-20">
             <div className="flex flex-col items-center gap-3">
               <span className="material-symbols-outlined text-slate-400 text-[48px]">
@@ -289,7 +363,7 @@ const Resources: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-light">
-                  {employeesData.data.items.map((employee: Employee) => (
+                  {displayedEmployees.map((employee: Employee) => (
                     <tr
                       key={employee.id}
                       className="hover:bg-slate-50 transition-colors group"
@@ -350,19 +424,38 @@ const Resources: React.FC = () => {
                         </button>
                       </td>
                       <td className="py-4 px-6 text-center">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toast.success("Edit feature coming soon!");
-                          }}
-                          className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-primary text-primary text-xs font-semibold bg-white hover:bg-primary/10 transition-colors"
-                        >
-                          <span className="material-symbols-outlined text-[14px]">
-                            edit
-                          </span>
-                          Edit
-                        </button>
+                        <div className="inline-flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setResetConfirm({
+                                id: employee.id,
+                                employeeId: employee.employeeId,
+                                name: employee.enFullName,
+                              });
+                            }}
+                            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-amber-500 text-amber-600 text-xs font-semibold bg-white hover:bg-amber-50 transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">
+                              lock_reset
+                            </span>
+                            Reset
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditEmployeeId(employee.id);
+                            }}
+                            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-primary text-primary text-xs font-semibold bg-white hover:bg-primary/10 transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">
+                              edit
+                            </span>
+                            Edit
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -370,116 +463,16 @@ const Resources: React.FC = () => {
               </table>
             </div>
 
-            {/* Pagination */}
-            <div className="p-4 bg-slate-50 flex items-center justify-between border-t border-border-light">
-              <div className="text-sm text-slate-600 font-normal">
-                Showing{" "}
-                <span className="font-semibold text-slate-900">
-                  {(currentPage - 1) * perPage + 1}
-                </span>{" "}
-                to{" "}
-                <span className="font-semibold text-slate-900">
-                  {Math.min(currentPage * perPage, employeesData.data.total)}
-                </span>{" "}
-                of{" "}
-                <span className="font-semibold text-slate-900">
-                  {employeesData.data.total}
-                </span>{" "}
-                results
-              </div>
-              <div className="flex items-center gap-1">
-                {/* Previous Button */}
-                <button
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.max(1, prev - 1))
-                  }
-                  disabled={currentPage === 1}
-                  className="px-3 py-2 rounded-lg border border-border-light text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <span className="material-symbols-outlined text-[16px]">
-                    chevron_left
-                  </span>
-                </button>
-
-                {/* Page Numbers */}
-                {(() => {
-                  const totalPages = employeesData.data.pages;
-                  const pageNumbers: (number | string)[] = [];
-                  const maxVisiblePages = 5;
-
-                  if (totalPages <= maxVisiblePages + 2) {
-                    // Show all pages if total is small
-                    for (let i = 1; i <= totalPages; i++) {
-                      pageNumbers.push(i);
-                    }
-                  } else {
-                    // Always show first page
-                    pageNumbers.push(1);
-
-                    if (currentPage > 3) {
-                      pageNumbers.push("...");
-                    }
-
-                    // Show pages around current page
-                    const start = Math.max(2, currentPage - 1);
-                    const end = Math.min(totalPages - 1, currentPage + 1);
-
-                    for (let i = start; i <= end; i++) {
-                      pageNumbers.push(i);
-                    }
-
-                    if (currentPage < totalPages - 2) {
-                      pageNumbers.push("...");
-                    }
-
-                    // Always show last page
-                    pageNumbers.push(totalPages);
-                  }
-
-                  return pageNumbers.map((pageNum, idx) => {
-                    if (pageNum === "...") {
-                      return (
-                        <span
-                          key={`ellipsis-${idx}`}
-                          className="px-3 py-2 text-slate-400"
-                        >
-                          {pageNum}
-                        </span>
-                      );
-                    }
-
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum as number)}
-                        className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-                          currentPage === pageNum
-                            ? "bg-primary text-white shadow-lg shadow-primary/20"
-                            : "border border-border-light text-slate-600 hover:text-slate-900 hover:bg-slate-200"
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  });
-                })()}
-
-                {/* Next Button */}
-                <button
-                  onClick={() =>
-                    setCurrentPage((prev) =>
-                      Math.min(employeesData.data.pages, prev + 1),
-                    )
-                  }
-                  disabled={currentPage === employeesData.data.pages}
-                  className="px-3 py-2 rounded-lg border border-border-light text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <span className="material-symbols-outlined text-[16px]">
-                    chevron_right
-                  </span>
-                </button>
-              </div>
-            </div>
+            {/* Pagination – hidden when filtered by a specific project */}
+            {selectedProject === "All" && employeesData && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={employeesData.data.pages}
+                total={employeesData.data.total}
+                perPage={perPage}
+                onPageChange={setCurrentPage}
+              />
+            )}
           </>
         )}
       </div>
@@ -490,85 +483,64 @@ const Resources: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
       />
 
-      {statusConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm animate-in zoom-in-95 duration-200">
-            <div className="px-6 py-5 border-b border-slate-200">
-              <h3 className="text-lg font-semibold text-slate-900">
-                Confirm Status Change
-              </h3>
-              <p className="text-sm text-slate-500 mt-1">
-                Are you sure you want to set this user to{" "}
-                <span className="font-semibold">
-                  {statusConfirm.nextStatus}
-                </span>
-                ?
-              </p>
-            </div>
-            <div className="px-6 py-4 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setStatusConfirm(null)}
-                className="px-3 py-2 rounded-md border border-border-light text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  // TODO: Implement API mutation to update user status
-                  toast.success(
-                    `User status changed to ${statusConfirm.nextStatus}!`,
-                  );
-                  setStatusConfirm(null);
-                }}
-                className={`px-3 py-2 rounded-md text-xs font-semibold text-white shadow-md transition-colors ${
-                  statusConfirm.nextStatus === "Active"
-                    ? "bg-emerald-600 hover:bg-emerald-700"
-                    : "bg-slate-700 hover:bg-slate-800"
-                }`}
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal for editing an employee */}
+      <EditEmployeeModal
+        isOpen={!!editEmployeeId}
+        employeeId={editEmployeeId}
+        onClose={() => setEditEmployeeId(null)}
+      />
 
-      {resetConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm animate-in zoom-in-95 duration-200">
-            <div className="px-6 py-5 border-b border-slate-200">
-              <h3 className="text-lg font-semibold text-slate-900">
-                Confirm Reset
-              </h3>
-              <p className="text-sm text-slate-500 mt-1">
-                Are you sure you want to reset user{" "}
-                <span className="font-semibold">{resetConfirm.name}</span>?
-              </p>
-            </div>
-            <div className="px-6 py-4 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setResetConfirm(null)}
-                className="px-3 py-2 rounded-md border border-border-light text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  toast.success(`User ${resetConfirm.name} has been reset!`);
-                  setResetConfirm(null);
-                }}
-                className="px-3 py-2 rounded-md text-xs font-semibold text-white shadow-md transition-colors bg-red-600 hover:bg-red-700"
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmStatusModal
+        isOpen={!!statusConfirm}
+        nextStatus={statusConfirm?.nextStatus ?? "Active"}
+        isPending={toggleStatusMutation.isPending}
+        onCancel={() => setStatusConfirm(null)}
+        onConfirm={() => {
+          if (!statusConfirm) return;
+          toggleStatusMutation.mutate(statusConfirm.id, {
+            onSuccess: (res) => {
+              const newStatus = res.data.status ? "Active" : "Inactive";
+              toast.success(
+                res.message || `User status changed to ${newStatus}!`,
+              );
+              setStatusConfirm(null);
+            },
+            onError: (err: any) => {
+              toast.error(
+                err?.response?.data?.message ||
+                  "Failed to update status. Please try again.",
+              );
+              setStatusConfirm(null);
+            },
+          });
+        }}
+      />
+
+      <ConfirmResetPasswordModal
+        isOpen={!!resetConfirm}
+        name={resetConfirm?.name ?? ""}
+        isPending={resetPasswordMutation.isPending}
+        onCancel={() => setResetConfirm(null)}
+        onConfirm={() => {
+          if (!resetConfirm) return;
+          resetPasswordMutation.mutate(resetConfirm.employeeId, {
+            onSuccess: (res) => {
+              toast.success(
+                res.message ||
+                  `Password reset successfully for ${resetConfirm.name}.`,
+              );
+              setResetConfirm(null);
+            },
+            onError: (err: any) => {
+              toast.error(
+                err?.response?.data?.message ||
+                  "Failed to reset password. Please try again.",
+              );
+              setResetConfirm(null);
+            },
+          });
+        }}
+      />
 
       {/* User Detail Modal */}
       {isDetailModalOpen && selectedUser && (

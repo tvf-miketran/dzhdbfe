@@ -44,6 +44,8 @@ export const ENDPOINTS = {
     CREATE: "employees",
     UPDATE: (id: string) => `employees/${id}`,
     DELETE: (id: string) => `employees/${id}`,
+    TOGGLE_STATUS: (id: string) => `employees/${id}/toggle-status`,
+    RESET_PASSWORD: "employees/reset-password",
   },
 
   // Dashboard & Metrics endpoints
