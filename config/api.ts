@@ -39,6 +39,7 @@ export const ENDPOINTS = {
 
   // Employees endpoints
   EMPLOYEES: {
+    ME: "/employees/me",
     LIST: "employees",
     GET: (id: string) => `employees/${id}`,
     CREATE: "employees",

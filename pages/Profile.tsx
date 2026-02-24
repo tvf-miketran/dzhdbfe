@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useResetPassword } from "../hooks";
+import React, { useState, useEffect } from "react";
+import { useResetPassword, useUserProfile, useUpdateProfile } from "../hooks";
 import toast from "react-hot-toast";
 
 const Profile: React.FC = () => {
@@ -7,13 +7,46 @@ const Profile: React.FC = () => {
     "personal",
   );
   const [formState, setFormState] = useState({
-    fullName: "Alex Morgan",
-    role: "ODC Lead",
-    projectName: "Alpha ODC Platform",
-    pm: "Emily Blunt",
+    fullName: "",
+    vnFullName: "",
+    employeeId: "",
+    email: "",
+    role: "",
+    description: "",
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
+  });
+
+  // Fetch user profile on mount
+  const { data: userProfileData, isLoading: isProfileLoading } =
+    useUserProfile();
+
+  // Populate form with profile data when loaded
+  useEffect(() => {
+    if (userProfileData) {
+      setFormState((prev) => ({
+        ...prev,
+        fullName: userProfileData.enFullName || "",
+        vnFullName: userProfileData.vnFullName || "",
+        employeeId: userProfileData.employeeId || "",
+        email: userProfileData.email || "",
+        role: userProfileData.authorizeRole || "",
+        description: userProfileData.description || "",
+      }));
+    }
+  }, [userProfileData]);
+
+  // Update profile mutation
+  const updateProfileMutation = useUpdateProfile({
+    onSuccess: () => {
+      toast.success("Personal information updated successfully");
+    },
+    onError: (error) => {
+      toast.error(
+        error.message || "Failed to update personal information"
+      );
+    },
   });
 
   // Reset password mutation
@@ -61,8 +94,11 @@ const Profile: React.FC = () => {
         newPassword: formState.newPassword,
       });
     } else {
-      // Handle personal info save
-      toast.success("Personal information updated successfully");
+      // Update personal info via API
+      updateProfileMutation.mutate({
+        name: formState.fullName,
+        bio: formState.description,
+      });
     }
   };
 
@@ -87,9 +123,11 @@ const Profile: React.FC = () => {
             </div>
             <div>
               <p className="text-lg font-semibold text-slate-900">
-                Alex Morgan
+                {userProfileData?.name || "Loading..."}
               </p>
-              <p className="text-sm text-slate-500 font-light">ODC Lead</p>
+              <p className="text-sm text-slate-500 font-light">
+                {userProfileData?.position || userProfileData?.role || "User"}
+              </p>
             </div>
             <button className="px-4 py-2 rounded-full border border-slate-200 text-sm font-semibold text-slate-700 hover:border-slate-300 hover:bg-white shadow-sm">
               Change Avatar
@@ -133,10 +171,12 @@ const Profile: React.FC = () => {
             </div>
             <button
               onClick={handleSaveChanges}
-              disabled={resetPasswordMutation.isPending}
+              disabled={resetPasswordMutation.isPending || updateProfileMutation.isPending}
               className="px-5 py-2.5 rounded-full bg-primary text-white text-sm font-semibold shadow-lg shadow-primary/30 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {resetPasswordMutation.isPending ? "Saving..." : "Save Changes"}
+              {resetPasswordMutation.isPending || updateProfileMutation.isPending
+                ? "Saving..."
+                : "Save Changes"}
             </button>
           </div>
 
@@ -144,7 +184,7 @@ const Profile: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
                 <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
-                  Full Name
+                  English Full Name
                 </label>
                 <input
                   type="text"
@@ -160,7 +200,40 @@ const Profile: React.FC = () => {
               </div>
               <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
                 <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
-                  Title
+                  Vietnamese Full Name
+                </label>
+                <input
+                  type="text"
+                  readOnly
+                  value={formState.vnFullName}
+                  className="w-full h-11 rounded-lg border border-slate-200 bg-slate-100 px-3 text-sm text-slate-900 cursor-not-allowed"
+                />
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+                <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
+                  Employee ID
+                </label>
+                <input
+                  type="text"
+                  readOnly
+                  value={formState.employeeId}
+                  className="w-full h-11 rounded-lg border border-slate-200 bg-slate-100 px-3 text-sm text-slate-900 cursor-not-allowed"
+                />
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+                <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  readOnly
+                  value={formState.email}
+                  className="w-full h-11 rounded-lg border border-slate-200 bg-slate-100 px-3 text-sm text-slate-900 cursor-not-allowed"
+                />
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+                <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
+                  Role/Title
                 </label>
                 <input
                   type="text"
@@ -176,31 +249,15 @@ const Profile: React.FC = () => {
               </div>
               <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
                 <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
-                  Project Name
+                  Description
                 </label>
                 <input
                   type="text"
-                  value={formState.projectName}
+                  value={formState.description}
                   onChange={(event) =>
                     setFormState((prev) => ({
                       ...prev,
-                      projectName: event.target.value,
-                    }))
-                  }
-                  className="w-full h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                />
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
-                <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
-                  PM
-                </label>
-                <input
-                  type="text"
-                  value={formState.pm}
-                  onChange={(event) =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      pm: event.target.value,
+                      description: event.target.value,
                     }))
                   }
                   className="w-full h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"

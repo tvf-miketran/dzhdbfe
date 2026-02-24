@@ -10,13 +10,22 @@ import type { EmployeesResponse } from "../types";
 export interface UserProfile {
   id: string;
   email: string;
-  name: string;
-  role: string;
+  enFullName: string;
+  vnFullName: string;
+  employeeId: string;
+  authorizeRole: "ADMIN" | "MEMBER";
+  description?: string | null;
+  status: boolean;
+  createdAt: string;
+  updatedAt: string;
+  // Legacy fields for backward compatibility
+  name?: string;
+  role?: string;
   avatar?: string;
   phone?: string;
   department?: string;
   position?: string;
-  joinedAt: string;
+  joinedAt?: string;
   bio?: string;
 }
 
@@ -51,11 +60,11 @@ export interface UserPreferences {
  */
 export const userService = {
   /**
-   * Get user profile
+   * Get current user profile from /employees/me endpoint
    */
   getProfile: async (): Promise<UserProfile> => {
     const response = await axiosInstance.get<UserProfile>(
-      ENDPOINTS.USER.PROFILE,
+      ENDPOINTS.EMPLOYEES.ME,
     );
     return response.data;
   },
