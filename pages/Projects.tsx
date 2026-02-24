@@ -7,6 +7,7 @@ import {
 } from "../hooks/queries/useProjectsQueries";
 import { useEmployees } from "../hooks/queries/useUserQueries";
 import { useAddProjectMembers } from "../hooks/mutations/useProjectsMutations";
+import { useAuth } from "../context/AuthContext";
 import type { ProjectItem, Employee } from "../types";
 import { Pagination } from "../components/pagination";
 
@@ -26,6 +27,9 @@ const BANK_LIST: string[] = [
 ];
 
 const Projects: React.FC = () => {
+  const { user } = useAuth();
+  const isMember = user?.authorize_role === "MEMBER";
+  
   // Pagination & search
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage] = useState(10);
@@ -276,22 +280,26 @@ const Projects: React.FC = () => {
           )}
 
           <div className="flex items-center gap-2 sm:ml-auto">
-            <button
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors border border-emerald-200 text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50"
-              onClick={() => setIsAddMemberOpen(true)}
-            >
-              <span className="material-symbols-outlined text-[18px]">
-                person_add
-              </span>
-              Add Member
-            </button>
-            <button
-              className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-emerald-600 rounded-lg text-sm font-semibold transition-colors text-white shadow-md hover:shadow-lg"
-              onClick={() => setIsCreateOpen(true)}
-            >
-              <span className="material-symbols-outlined text-[18px]">add</span>
-              Create Project
-            </button>
+            {!isMember && (
+              <button
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors border border-emerald-200 text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50"
+                onClick={() => setIsAddMemberOpen(true)}
+              >
+                <span className="material-symbols-outlined text-[18px]">
+                  person_add
+                </span>
+                Add Member
+              </button>
+            )}
+            {!isMember && (
+              <button
+                className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-emerald-600 rounded-lg text-sm font-semibold transition-colors text-white shadow-md hover:shadow-lg"
+                onClick={() => setIsCreateOpen(true)}
+              >
+                <span className="material-symbols-outlined text-[18px]">add</span>
+                Create Project
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -339,9 +347,11 @@ const Projects: React.FC = () => {
                     <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">
                       Created At
                     </th>
-                    <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">
-                      Action
-                    </th>
+                    {!isMember && (
+                      <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">
+                        Action
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-light">
@@ -376,21 +386,23 @@ const Projects: React.FC = () => {
                           { day: "2-digit", month: "short", year: "numeric" },
                         )}
                       </td>
-                      <td className="py-4 px-6 text-center">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditProject(project);
-                          }}
-                          className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-colors"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">
-                            edit
-                          </span>
-                          Edit
-                        </button>
-                      </td>
+                      {!isMember && (
+                        <td className="py-4 px-6 text-center">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditProject(project);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">
+                              edit
+                            </span>
+                            Edit
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                   {tableProjects.length === 0 && (
@@ -1363,19 +1375,21 @@ const Projects: React.FC = () => {
               </div>
             </div>
             <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-end gap-2 shrink-0">
-              <button
-                onClick={() => {
-                  setIsDetailModalOpen(false);
-                  handleEditProject(selectedProject);
-                  setSelectedProject(null);
-                }}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary hover:bg-emerald-600 text-sm font-semibold text-white transition-colors"
-              >
-                <span className="material-symbols-outlined text-[18px]">
-                  edit
-                </span>
-                Edit
-              </button>
+              {!isMember && (
+                <button
+                  onClick={() => {
+                    setIsDetailModalOpen(false);
+                    handleEditProject(selectedProject);
+                    setSelectedProject(null);
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary hover:bg-emerald-600 text-sm font-semibold text-white transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[18px]">
+                    edit
+                  </span>
+                  Edit
+                </button>
+              )}
             </div>
           </div>
         </div>

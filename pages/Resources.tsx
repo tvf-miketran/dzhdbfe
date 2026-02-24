@@ -6,6 +6,7 @@ import {
   useToggleEmployeeStatus,
   useResetEmployeePassword,
 } from "../hooks/mutations/useUserMutations";
+import { useAuth } from "../context/AuthContext";
 import type { Employee } from "../types";
 import CreateEmployeeModal from "../components/modal/CreateEmployeeModal";
 import EditEmployeeModal from "../components/modal/EditEmployeeModal";
@@ -37,6 +38,9 @@ interface User {
 }
 
 const Resources: React.FC = () => {
+  const { user } = useAuth();
+  const isMember = user?.authorize_role === "MEMBER";
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editEmployeeId, setEditEmployeeId] = useState<string | null>(null);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -282,13 +286,15 @@ const Resources: React.FC = () => {
           </div>
 
           {/* Create User Button */}
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:bg-emerald-600 rounded-lg text-sm font-semibold transition-colors text-white shadow-md hover:shadow-lg sm:ml-auto"
-          >
-            <span className="material-symbols-outlined text-[18px]">add</span>
-            Create User
-          </button>
+          {!isMember && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:bg-emerald-600 rounded-lg text-sm font-semibold transition-colors text-white shadow-md hover:shadow-lg sm:ml-auto"
+            >
+              <span className="material-symbols-outlined text-[18px]">add</span>
+              Create User
+            </button>
+          )}
         </div>
       </div>
 
@@ -357,9 +363,11 @@ const Resources: React.FC = () => {
                     <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">
                       Status
                     </th>
-                    <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">
-                      Actions
-                    </th>
+                    {!isMember && (
+                      <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">
+                        Actions
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-light">
@@ -404,14 +412,21 @@ const Resources: React.FC = () => {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setStatusConfirm({
-                              id: employee.id,
-                              nextStatus: employee.status
-                                ? "Inactive"
-                                : "Active",
-                            });
+                            if (!isMember) {
+                              setStatusConfirm({
+                                id: employee.id,
+                                nextStatus: employee.status
+                                  ? "Inactive"
+                                  : "Active",
+                              });
+                            }
                           }}
+                          disabled={isMember}
                           className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-widest border transition-colors ${
+                            isMember
+                              ? "opacity-60 cursor-not-allowed"
+                              : ""
+                          } ${
                             employee.status
                               ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20"
                               : "bg-slate-200/30 text-slate-600 border-slate-300/30 hover:bg-slate-200/50"
@@ -423,8 +438,9 @@ const Resources: React.FC = () => {
                           {employee.status ? "Active" : "Inactive"}
                         </button>
                       </td>
-                      <td className="py-4 px-6 text-center">
-                        <div className="inline-flex items-center gap-2">
+                      {!isMember && (
+                        <td className="py-4 px-6 text-center">
+                          <div className="inline-flex items-center gap-2">
                           <button
                             type="button"
                             onClick={(e) => {
@@ -456,7 +472,8 @@ const Resources: React.FC = () => {
                             Edit
                           </button>
                         </div>
-                      </td>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
