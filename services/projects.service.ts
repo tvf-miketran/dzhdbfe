@@ -12,6 +12,10 @@ import type {
   ProjectDetailResponse,
   AddProjectMembersPayload,
   AddProjectMembersResponse,
+  CreateProjectPayload,
+  CreateProjectResponse,
+  UpdateProjectPayload,
+  UpdateProjectResponse,
 } from "../types";
 
 export interface Project {
@@ -116,6 +120,35 @@ export const projectsService = {
   ): Promise<AddProjectMembersResponse> => {
     const response = await axiosInstance.post<AddProjectMembersResponse>(
       ENDPOINTS.PROJECTS.MEMBERS(id),
+      payload,
+    );
+    return response.data;
+  },
+
+  /**
+   * Create a new project
+   * POST /api/projects
+   */
+  createNewProject: async (
+    payload: CreateProjectPayload,
+  ): Promise<CreateProjectResponse> => {
+    const response = await axiosInstance.post<CreateProjectResponse>(
+      ENDPOINTS.PROJECTS.CREATE,
+      payload,
+    );
+    return response.data;
+  },
+
+  /**
+   * Update an existing project (new API shape)
+   * PUT /api/projects/:id
+   */
+  updateNewProject: async (
+    id: string,
+    payload: UpdateProjectPayload,
+  ): Promise<UpdateProjectResponse> => {
+    const response = await axiosInstance.put<UpdateProjectResponse>(
+      ENDPOINTS.PROJECTS.UPDATE(id),
       payload,
     );
     return response.data;

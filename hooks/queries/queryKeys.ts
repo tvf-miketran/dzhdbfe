@@ -49,6 +49,12 @@ export const queryKeys = {
     entries: () => [...queryKeys.tickets.all, "entries"] as const,
   },
 
+  // Banks keys
+  banks: {
+    all: ["banks"] as const,
+    list: () => [...queryKeys.banks.all, "list"] as const,
+  },
+
   // Projects keys
   projects: {
     all: ["projects"] as const,

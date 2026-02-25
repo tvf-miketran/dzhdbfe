@@ -4,12 +4,14 @@ import {
   useProjectsPaginated,
   useAllProjects,
   useProjectWithMembers,
+  useBanks,
 } from "../hooks/queries/useProjectsQueries";
 import { useEmployees } from "../hooks/queries/useUserQueries";
 import { useAddProjectMembers } from "../hooks/mutations/useProjectsMutations";
 import { useAuth } from "../context/AuthContext";
 import type { ProjectItem, Employee } from "../types";
 import { Pagination } from "../components/pagination";
+import { CreateProjectModal, EditProjectModal } from "../components/modal";
 
 interface MemberAssignment {
   userId: string;
@@ -18,31 +20,24 @@ interface MemberAssignment {
   allocationPercent: string;
 }
 
-const BANK_LIST: string[] = [
-  "Vietcombank",
-  "BIDV",
-  "VietinBank",
-  "Techcombank",
-  "ACB",
-];
-
 const Projects: React.FC = () => {
   const { user } = useAuth();
   const isMember = user?.authorize_role === "MEMBER";
-  
+
   // Pagination & search
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
+  const [selectedBankId, setSelectedBankId] = useState("");
+
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
-  const [isMembersOpen, setIsMembersOpen] = useState(false);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [isAddMemberMembersOpen, setIsAddMemberMembersOpen] = useState(false);
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [addMemberProjectId, setAddMemberProjectId] = useState("");
   const [addMemberProjectName, setAddMemberProjectName] = useState("");
   const [memberDrafts, setMemberDrafts] = useState<MemberAssignment[]>([]);
@@ -53,14 +48,6 @@ const Projects: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(
     null,
   );
-  const [formState, setFormState] = useState({
-    bank: "",
-    projectRows: [{ name: "", code: "" }],
-    projectManager: "",
-    membersAssigned: [] as string[],
-    startDate: "",
-    endDate: "",
-  });
 
   // Debounce main search
   useEffect(() => {
@@ -79,6 +66,10 @@ const Projects: React.FC = () => {
     return () => clearTimeout(timer);
   }, [memberSearchTerm]);
 
+  // Fetch banks for filter dropdown
+  const { data: banksData } = useBanks();
+  const bankList = banksData?.data ?? [];
+
   // Fetch paginated projects list
   const {
     data: projectsData,
@@ -89,6 +80,7 @@ const Projects: React.FC = () => {
     page: currentPage,
     per_page: perPage,
     search: debouncedSearch || undefined,
+    bank_id: selectedBankId || undefined,
   });
 
   // Fetch full project list for dropdowns (Add Member modal)
@@ -100,6 +92,11 @@ const Projects: React.FC = () => {
   // Fetch full detail + members when the detail modal is open
   const { data: projectDetailData, isLoading: isDetailLoading } =
     useProjectWithMembers(selectedProject?.id ?? "");
+
+  // Fetch project detail (incl. existing members) when a project is selected in Add Member modal
+  const { data: addMemberProjectDetail, isLoading: isAddMemberProjectLoading } =
+    useProjectWithMembers(addMemberProjectId);
+  const existingProjectMembers = addMemberProjectDetail?.data?.members ?? [];
 
   // Fetch employees for Add Member modal — uses debounced search term
   const {
@@ -114,12 +111,6 @@ const Projects: React.FC = () => {
     ? (addMemberEmployeesData.data as Employee[])
     : (addMemberEmployeesData?.data?.items ?? []);
 
-  // All employees (no search filter) for the Create Project members picker
-  const { data: allEmployeesData } = useEmployees({ per_page: 100 });
-  const allEmployees = Array.isArray(allEmployeesData?.data)
-    ? (allEmployeesData.data as Employee[])
-    : (allEmployeesData?.data?.items ?? []);
-
   // Mutation: add members to a project
   const { mutate: addProjectMembers, isPending: isAddingMembers } =
     useAddProjectMembers();
@@ -130,19 +121,16 @@ const Projects: React.FC = () => {
       if (!target.closest(".filter-dropdown")) {
         setOpenDropdown(null);
       }
-      if (!target.closest(".members-select-dropdown")) {
-        setIsMembersOpen(false);
-      }
     };
 
-    if (openDropdown || isMembersOpen) {
+    if (openDropdown) {
       document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [openDropdown, isMembersOpen]);
+  }, [openDropdown]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -179,74 +167,6 @@ const Projects: React.FC = () => {
     setMemberDrafts([]);
     setMemberSearchTerm("");
     setDebouncedMemberSearch("");
-    setFormErrors({});
-  };
-
-  const handleCreate = (event: React.FormEvent) => {
-    event.preventDefault();
-    const bank = formState.bank.trim();
-    const projectManager = formState.projectManager.trim();
-    const membersAssigned = formState.membersAssigned;
-    const startDate = formState.startDate.trim();
-    const endDate = formState.endDate.trim();
-    const validRows = formState.projectRows
-      .map((row) => ({ name: row.name.trim(), code: row.code.trim() }))
-      .filter((row) => row.name && row.code);
-
-    // Validation
-    const errors: Record<string, string> = {};
-    if (!bank) errors.bank = "Bank is required";
-    if (!projectManager) errors.projectManager = "Project Manager is required";
-    if (validRows.length === 0)
-      errors.project = "At least one project with name and code is required";
-    if (membersAssigned.length === 0)
-      errors.members = "At least one member must be assigned";
-    if (!startDate) errors.startDate = "Start date is required";
-
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
-    setFormErrors({});
-
-    if (editingProjectId) {
-      // TODO: wire to PUT /api/projects/:id mutation
-      setEditingProjectId(null);
-      toast.success("Project updated successfully!");
-    } else {
-      // TODO: wire to POST /api/projects mutation
-      const count = validRows.length;
-      toast.success(
-        `${count} project${count > 1 ? "s" : ""} created successfully!`,
-      );
-    }
-    setFormState({
-      bank: "",
-      projectRows: [{ name: "", code: "" }],
-      projectManager: "",
-      membersAssigned: [],
-      startDate: "",
-      endDate: "",
-    });
-    setFormErrors({});
-    setIsCreateOpen(false);
-  };
-
-  const handleEditProject = (project: ProjectItem) => {
-    setEditingProjectId(project.id);
-    setFormState({
-      bank: project.bankName ?? "",
-      projectRows: [
-        { name: project.name, code: project.projectId ?? project.id },
-      ],
-      projectManager: project.pmName ?? "",
-      membersAssigned: [],
-      startDate: project.createdAt ? project.createdAt.split("T")[0] : "",
-      endDate: "",
-    });
-    setIsCreateOpen(true);
   };
 
   return (
@@ -266,10 +186,36 @@ const Projects: React.FC = () => {
             />
           </div>
 
-          {/* Clear Search Button */}
-          {searchTerm && (
+          {/* Bank filter dropdown */}
+          <div className="relative">
+            <select
+              value={selectedBankId}
+              onChange={(e) => {
+                setSelectedBankId(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-10 rounded-lg border border-border-light bg-white pl-3 pr-8 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-primary focus:border-primary appearance-none cursor-pointer min-w-[160px]"
+            >
+              <option value="">All Banks</option>
+              {bankList.map((bank) => (
+                <option key={bank.id} value={bank.id}>
+                  {bank.name}
+                </option>
+              ))}
+            </select>
+            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-[16px] pointer-events-none">
+              expand_more
+            </span>
+          </div>
+
+          {/* Clear filters button */}
+          {(searchTerm || selectedBankId) && (
             <button
-              onClick={() => setSearchTerm("")}
+              onClick={() => {
+                setSearchTerm("");
+                setSelectedBankId("");
+                setCurrentPage(1);
+              }}
               className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-300 rounded-lg text-[11px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
             >
               <span className="material-symbols-outlined text-[14px]">
@@ -296,7 +242,9 @@ const Projects: React.FC = () => {
                 className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-emerald-600 rounded-lg text-sm font-semibold transition-colors text-white shadow-md hover:shadow-lg"
                 onClick={() => setIsCreateOpen(true)}
               >
-                <span className="material-symbols-outlined text-[18px]">add</span>
+                <span className="material-symbols-outlined text-[18px]">
+                  add
+                </span>
                 Create Project
               </button>
             )}
@@ -392,7 +340,8 @@ const Projects: React.FC = () => {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleEditProject(project);
+                              setEditingProjectId(project.id);
+                              setIsEditOpen(true);
                             }}
                             className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-colors"
                           >
@@ -432,328 +381,23 @@ const Projects: React.FC = () => {
         )}
       </div>
 
-      {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-border-light h-[80vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-white">
-              <h2 className="text-lg font-semibold text-slate-900">
-                {editingProjectId ? "Edit Project" : "Create Project"}
-              </h2>
-              <button
-                className="text-slate-400 hover:text-slate-900"
-                onClick={() => setIsCreateOpen(false)}
-                aria-label="Close"
-              >
-                <span className="material-symbols-outlined text-[20px]">
-                  close
-                </span>
-              </button>
-            </div>
-            <form
-              onSubmit={handleCreate}
-              className="flex-1 flex flex-col min-h-0"
-            >
-              <div className="flex-1 overflow-y-auto min-h-0 px-6 py-5 flex flex-col gap-4">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
-                    Bank <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={formState.bank}
-                      onChange={(event) => {
-                        setFormState((prev) => ({
-                          ...prev,
-                          bank: event.target.value,
-                        }));
-                        if (formErrors.bank)
-                          setFormErrors((prev) => ({ ...prev, bank: "" }));
-                      }}
-                      className={`h-10 w-full rounded-md border bg-surface-light px-3 pr-9 text-sm text-slate-900 outline-none focus:ring-1 appearance-none cursor-pointer ${
-                        formErrors.bank
-                          ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-                          : "border-border-light focus:ring-primary focus:border-primary"
-                      }`}
-                    >
-                      <option value="" disabled>
-                        Select bank
-                      </option>
-                      {BANK_LIST.map((bank) => (
-                        <option key={bank} value={bank}>
-                          {bank}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[16px] pointer-events-none">
-                      expand_more
-                    </span>
-                  </div>
-                  {formErrors.bank && (
-                    <p className="text-xs text-red-600 mt-1">
-                      {formErrors.bank}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
-                    Project Manager <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formState.projectManager}
-                    onChange={(event) => {
-                      setFormState((prev) => ({
-                        ...prev,
-                        projectManager: event.target.value,
-                      }));
-                      if (formErrors.projectManager)
-                        setFormErrors((prev) => ({
-                          ...prev,
-                          projectManager: "",
-                        }));
-                    }}
-                    placeholder="Project manager name"
-                    className={`w-full h-10 rounded-md border bg-surface-light px-3 text-sm text-slate-900 placeholder-slate-400 outline-none focus:ring-1 ${
-                      formErrors.projectManager
-                        ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-                        : "border-border-light focus:ring-primary focus:border-primary"
-                    }`}
-                  />
-                  {formErrors.projectManager && (
-                    <p className="text-xs text-red-600 mt-1">
-                      {formErrors.projectManager}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
-                      Project <span className="text-red-500">*</span>
-                    </label>
-                    {!editingProjectId && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setFormState((prev) => ({
-                            ...prev,
-                            projectRows: [
-                              ...prev.projectRows,
-                              { name: "", code: "" },
-                            ],
-                          }))
-                        }
-                        className="text-xs font-semibold text-primary hover:underline"
-                      >
-                        Add
-                      </button>
-                    )}
-                  </div>
-                  <div className="space-y-3">
-                    {formState.projectRows.map((row, index) => (
-                      <div
-                        key={`${row.code}-${index}`}
-                        className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto] items-center"
-                      >
-                        <input
-                          type="text"
-                          value={row.name}
-                          onChange={(event) =>
-                            setFormState((prev) => {
-                              const nextRows = [...prev.projectRows];
-                              nextRows[index] = {
-                                ...nextRows[index],
-                                name: event.target.value,
-                              };
-                              return { ...prev, projectRows: nextRows };
-                            })
-                          }
-                          placeholder="Project name"
-                          className="w-full h-10 rounded-md border border-border-light bg-surface-light px-3 text-sm text-slate-900 placeholder-slate-400 outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                        />
-                        <input
-                          type="text"
-                          value={row.code}
-                          onChange={(event) =>
-                            setFormState((prev) => {
-                              const nextRows = [...prev.projectRows];
-                              nextRows[index] = {
-                                ...nextRows[index],
-                                code: event.target.value,
-                              };
-                              return { ...prev, projectRows: nextRows };
-                            })
-                          }
-                          placeholder="Project code"
-                          className="w-full h-10 rounded-md border border-border-light bg-surface-light px-3 text-sm text-slate-900 placeholder-slate-400 outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setFormState((prev) => {
-                              if (prev.projectRows.length === 1) return prev;
-                              const nextRows = prev.projectRows.filter(
-                                (_, rowIndex) => rowIndex !== index,
-                              );
-                              return { ...prev, projectRows: nextRows };
-                            })
-                          }
-                          className="h-10 w-10 flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors"
-                          aria-label="Remove project row"
-                          disabled={
-                            formState.projectRows.length === 1 ||
-                            Boolean(editingProjectId)
-                          }
-                        >
-                          <span className="material-symbols-outlined text-[18px]">
-                            close
-                          </span>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  {formErrors.project && (
-                    <p className="text-xs text-red-600 mt-1">
-                      {formErrors.project}
-                    </p>
-                  )}
-                </div>
-                <div className="members-select-dropdown relative">
-                  <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
-                    Member's Assigned <span className="text-red-500">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setIsMembersOpen((prev) => !prev)}
-                    className={`w-full h-10 rounded-md border bg-surface-light px-3 text-left text-sm text-slate-900 outline-none focus:ring-1 flex items-center justify-between ${
-                      formErrors.members
-                        ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-                        : "border-border-light focus:ring-primary focus:border-primary"
-                    }`}
-                  >
-                    <span className="truncate">
-                      {formState.membersAssigned.length === 0
-                        ? "Select members"
-                        : formState.membersAssigned.length === 1
-                          ? formState.membersAssigned[0]
-                          : `${formState.membersAssigned.length} members selected`}
-                    </span>
-                    <span className="material-symbols-outlined text-[16px] text-slate-400">
-                      {isMembersOpen ? "expand_less" : "expand_more"}
-                    </span>
-                  </button>
-                  {isMembersOpen && (
-                    <div className="absolute left-0 right-0 top-full mt-2 rounded-lg border border-slate-200 bg-white shadow-xl max-h-52 overflow-y-auto z-20">
-                      {allEmployees.map((emp) => {
-                        const isChecked = formState.membersAssigned.includes(
-                          emp.enFullName,
-                        );
-                        return (
-                          <label
-                            key={emp.id}
-                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() =>
-                                setFormState((prev) => {
-                                  const nextMembers = isChecked
-                                    ? prev.membersAssigned.filter(
-                                        (name) => name !== emp.enFullName,
-                                      )
-                                    : [...prev.membersAssigned, emp.enFullName];
-                                  if (formErrors.members)
-                                    setFormErrors((prevErrors) => ({
-                                      ...prevErrors,
-                                      members: "",
-                                    }));
-                                  return {
-                                    ...prev,
-                                    membersAssigned: nextMembers,
-                                  };
-                                })
-                              }
-                              className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
-                            />
-                            <div className="min-w-0">
-                              <span className="block truncate">
-                                {emp.enFullName}
-                              </span>
-                              <span className="block text-xs text-slate-400 font-mono">
-                                {emp.employeeId}
-                              </span>
-                            </div>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}{" "}
-                  {formErrors.members && (
-                    <p className="text-xs text-red-600 mt-1">
-                      {formErrors.members}
-                    </p>
-                  )}{" "}
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
-                    Start Date <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={formState.startDate}
-                    onChange={(event) => {
-                      setFormState((prev) => ({
-                        ...prev,
-                        startDate: event.target.value,
-                      }));
-                      if (formErrors.startDate)
-                        setFormErrors((prev) => ({ ...prev, startDate: "" }));
-                    }}
-                    className={`w-full h-10 rounded-md border bg-surface-light px-3 text-sm text-slate-900 outline-none focus:ring-1 ${
-                      formErrors.startDate
-                        ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-                        : "border-border-light focus:ring-primary focus:border-primary"
-                    }`}
-                  />
-                  {formErrors.startDate && (
-                    <p className="text-xs text-red-600 mt-1">
-                      {formErrors.startDate}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
-                    End Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formState.endDate}
-                    onChange={(event) =>
-                      setFormState((prev) => ({
-                        ...prev,
-                        endDate: event.target.value,
-                      }))
-                    }
-                    className="w-full h-10 rounded-md border border-border-light bg-surface-light px-3 text-sm text-slate-900 outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center justify-end px-6 py-4 border-t border-slate-200 bg-white">
-                <button
-                  type="submit"
-                  className="h-10 rounded-lg bg-primary px-8 text-white text-sm font-semibold shadow-md hover:shadow-lg hover:bg-emerald-600 transition-all"
-                >
-                  Create
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CreateProjectModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+      />
+
+      <EditProjectModal
+        isOpen={isEditOpen}
+        onClose={() => {
+          setIsEditOpen(false);
+          setEditingProjectId(null);
+        }}
+        projectId={editingProjectId ?? ""}
+      />
 
       {isAddMemberOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-border-light h-[80vh] overflow-hidden flex flex-col">
+          <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-border-light h-[80vh] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-white">
               <h2 className="text-lg font-semibold text-slate-900">
                 Add Member
@@ -822,7 +466,7 @@ const Projects: React.FC = () => {
                     onFocus={() => setIsAddMemberMembersOpen(true)}
                     placeholder={
                       addMemberProjectId
-                        ? "Search by name or employee ID..."
+                        ? "Search by name..."
                         : "Select a project first"
                     }
                     disabled={!addMemberProjectId}
@@ -871,11 +515,17 @@ const Projects: React.FC = () => {
                             const isChecked = memberDrafts.some(
                               (d) => d.userId === emp.id,
                             );
+                            const isAlreadyInProject =
+                              existingProjectMembers.some(
+                                (m) => m.userId === emp.id,
+                              );
                             return (
                               <li key={emp.id}>
                                 <button
                                   type="button"
+                                  disabled={isAlreadyInProject}
                                   onClick={() => {
+                                    if (isAlreadyInProject) return;
                                     setMemberDrafts((prev) =>
                                       isChecked
                                         ? prev.filter(
@@ -893,20 +543,24 @@ const Projects: React.FC = () => {
                                     );
                                   }}
                                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                                    isChecked
-                                      ? "bg-primary/5 hover:bg-primary/10"
-                                      : "hover:bg-slate-50"
+                                    isAlreadyInProject
+                                      ? "opacity-50 cursor-not-allowed bg-slate-50"
+                                      : isChecked
+                                        ? "bg-primary/5 hover:bg-primary/10"
+                                        : "hover:bg-slate-50"
                                   }`}
                                 >
                                   {/* Checkbox indicator */}
                                   <div
                                     className={`h-4 w-4 shrink-0 rounded border-2 flex items-center justify-center transition-colors ${
-                                      isChecked
-                                        ? "bg-primary border-primary"
-                                        : "border-slate-300"
+                                      isAlreadyInProject
+                                        ? "border-slate-300 bg-slate-100"
+                                        : isChecked
+                                          ? "bg-primary border-primary"
+                                          : "border-slate-300"
                                     }`}
                                   >
-                                    {isChecked && (
+                                    {isChecked && !isAlreadyInProject && (
                                       <span className="material-symbols-outlined text-white text-[12px] font-bold leading-none">
                                         check
                                       </span>
@@ -931,11 +585,15 @@ const Projects: React.FC = () => {
                                       {emp.employeeId}
                                     </p>
                                   </div>
-                                  {isChecked && (
+                                  {isAlreadyInProject ? (
+                                    <span className="shrink-0 text-[10px] font-semibold text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded">
+                                      In Project
+                                    </span>
+                                  ) : isChecked ? (
                                     <span className="shrink-0 text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
                                       Added
                                     </span>
-                                  )}
+                                  ) : null}
                                 </button>
                               </li>
                             );
@@ -947,99 +605,164 @@ const Projects: React.FC = () => {
                 )}
               </div>
 
-              {/* Selected Members with allocationPercent */}
-              <div>
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-                    Selected Members
-                  </p>
-                  {addMemberProjectName && (
-                    <span className="text-xs text-slate-500">
-                      {addMemberProjectName}
-                    </span>
-                  )}
-                </div>
-                <div className="mt-3 space-y-2">
-                  {memberDrafts.length === 0 ? (
-                    <div className="text-sm text-slate-500 border border-dashed border-slate-200 rounded-lg px-4 py-3">
-                      No members selected.
-                    </div>
-                  ) : (
-                    memberDrafts.map((entry) => {
-                      const allocVal = parseFloat(entry.allocationPercent);
-                      const hasAllocError =
-                        !entry.allocationPercent.trim() ||
-                        isNaN(allocVal) ||
-                        allocVal < 0 ||
-                        allocVal > 100;
-
-                      return (
+              {/* Current members (left) + Selected members (right) */}
+              <div className="flex gap-4 flex-1 min-h-0">
+                {/* Left: current project members */}
+                <div className="flex-1 min-w-0 flex flex-col">
+                  <div className="flex items-center gap-2 mb-3">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                      In Project
+                    </p>
+                    {existingProjectMembers.length > 0 && (
+                      <span className="text-[10px] font-semibold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">
+                        {existingProjectMembers.length}
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-2 overflow-y-auto custom-scrollbar pr-1">
+                    {!addMemberProjectId ? (
+                      <div className="text-sm text-slate-400 border border-dashed border-slate-200 rounded-lg px-4 py-3">
+                        Select a project to see current members.
+                      </div>
+                    ) : isAddMemberProjectLoading ? (
+                      <div className="flex items-center justify-center py-6">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
+                      </div>
+                    ) : existingProjectMembers.length === 0 ? (
+                      <div className="text-sm text-slate-400 border border-dashed border-slate-200 rounded-lg px-4 py-3">
+                        No members in this project yet.
+                      </div>
+                    ) : (
+                      existingProjectMembers.map((member) => (
                         <div
-                          key={entry.userId}
-                          className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2"
+                          key={member.id}
+                          className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
                         >
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-slate-900 truncate">
-                              {entry.enFullName}
-                            </p>
-                            <p className="text-xs font-mono text-slate-400">
-                              {entry.employeeId}
-                            </p>
-                          </div>
-                          <div className="flex flex-col items-end gap-0.5 shrink-0">
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              value={entry.allocationPercent}
-                              onChange={(event) => {
-                                let value = event.target.value;
-                                const numValue = parseFloat(value);
-                                if (!isNaN(numValue) && numValue > 100) {
-                                  value = "100";
-                                }
-                                setMemberDrafts((prev) =>
-                                  prev.map((item) =>
-                                    item.userId === entry.userId
-                                      ? { ...item, allocationPercent: value }
-                                      : item,
-                                  ),
-                                );
-                              }}
-                              placeholder="Alloc %"
-                              className={`h-9 w-24 rounded-md border ${
-                                hasAllocError && entry.allocationPercent !== ""
-                                  ? "border-red-400"
-                                  : "border-border-light"
-                              } bg-surface-light px-2 text-sm text-slate-900 outline-none focus:ring-1 focus:ring-primary focus:border-primary`}
-                            />
-                            {hasAllocError &&
-                              entry.allocationPercent !== "" && (
-                                <p className="text-[10px] text-red-500">
-                                  0–100
-                                </p>
-                              )}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setMemberDrafts((prev) =>
-                                prev.filter(
-                                  (item) => item.userId !== entry.userId,
-                                ),
-                              )
-                            }
-                            className="h-9 w-9 flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors"
-                            aria-label={`Remove ${entry.enFullName}`}
-                          >
-                            <span className="material-symbols-outlined text-[18px]">
-                              close
+                          <div className="h-7 w-7 shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span className="text-[10px] font-bold text-primary">
+                              {member.enFullName
+                                .split(" ")
+                                .slice(-2)
+                                .map((n: string) => n[0])
+                                .join("")
+                                .toUpperCase()}
                             </span>
-                          </button>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-slate-900 truncate">
+                              {member.enFullName}
+                            </p>
+                            <p className="text-[10px] font-mono text-slate-400">
+                              {member.employeeId}
+                            </p>
+                          </div>
+                          <span className="shrink-0 text-[10px] font-semibold text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded">
+                            {member.allocationPercent}%
+                          </span>
                         </div>
-                      );
-                    })
-                  )}
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <div className="w-px bg-slate-200 self-stretch" />
+
+                {/* Right: members being added */}
+                <div className="flex-1 min-w-0 flex flex-col">
+                  <div className="flex items-center gap-2 mb-3">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                      Selected Members
+                    </p>
+                    {memberDrafts.length > 0 && (
+                      <span className="text-[10px] font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
+                        {memberDrafts.length}
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-2 overflow-y-auto custom-scrollbar pr-1">
+                    {memberDrafts.length === 0 ? (
+                      <div className="text-sm text-slate-500 border border-dashed border-slate-200 rounded-lg px-4 py-3">
+                        No members selected.
+                      </div>
+                    ) : (
+                      memberDrafts.map((entry) => {
+                        const allocVal = parseFloat(entry.allocationPercent);
+                        const hasAllocError =
+                          !entry.allocationPercent.trim() ||
+                          isNaN(allocVal) ||
+                          allocVal < 0 ||
+                          allocVal > 100;
+
+                        return (
+                          <div
+                            key={entry.userId}
+                            className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-slate-900 truncate">
+                                {entry.enFullName}
+                              </p>
+                              <p className="text-xs font-mono text-slate-400">
+                                {entry.employeeId}
+                              </p>
+                            </div>
+                            <div className="flex flex-col items-end gap-0.5 shrink-0">
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={entry.allocationPercent}
+                                onChange={(event) => {
+                                  let value = event.target.value;
+                                  const numValue = parseFloat(value);
+                                  if (!isNaN(numValue) && numValue > 100) {
+                                    value = "100";
+                                  }
+                                  setMemberDrafts((prev) =>
+                                    prev.map((item) =>
+                                      item.userId === entry.userId
+                                        ? { ...item, allocationPercent: value }
+                                        : item,
+                                    ),
+                                  );
+                                }}
+                                placeholder="Alloc %"
+                                className={`h-9 w-24 rounded-md border ${
+                                  hasAllocError &&
+                                  entry.allocationPercent !== ""
+                                    ? "border-red-400"
+                                    : "border-border-light"
+                                } bg-surface-light px-2 text-sm text-slate-900 outline-none focus:ring-1 focus:ring-primary focus:border-primary`}
+                              />
+                              {hasAllocError &&
+                                entry.allocationPercent !== "" && (
+                                  <p className="text-[10px] text-red-500">
+                                    0–100
+                                  </p>
+                                )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setMemberDrafts((prev) =>
+                                  prev.filter(
+                                    (item) => item.userId !== entry.userId,
+                                  ),
+                                )
+                              }
+                              className="h-9 w-9 flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors"
+                              aria-label={`Remove ${entry.enFullName}`}
+                            >
+                              <span className="material-symbols-outlined text-[18px]">
+                                close
+                              </span>
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1159,14 +882,19 @@ const Projects: React.FC = () => {
                           handleCloseAddMember();
                         },
                         onError: (err: unknown) => {
-                          const message =
-                            (
-                              err as {
-                                response?: { data?: { message?: string } };
-                              }
-                            )?.response?.data?.message ||
-                            "Failed to add members. Please try again.";
-                          toast.error(message);
+                          const apiError = err as any;
+                          if (
+                            Array.isArray(apiError?.errors) &&
+                            apiError.errors.length > 0
+                          ) {
+                            apiError.errors.forEach((errorMsg: string) => {
+                              toast.error(errorMsg, { duration: 5000 });
+                            });
+                          } else {
+                            toast.error(
+                              apiError?.message || "Failed to create employee",
+                            );
+                          }
                           setIsConfirmAddMemberOpen(false);
                         },
                       },
@@ -1378,8 +1106,11 @@ const Projects: React.FC = () => {
               {!isMember && (
                 <button
                   onClick={() => {
+                    if (selectedProject) {
+                      setEditingProjectId(selectedProject.id);
+                      setIsEditOpen(true);
+                    }
                     setIsDetailModalOpen(false);
-                    handleEditProject(selectedProject);
                     setSelectedProject(null);
                   }}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary hover:bg-emerald-600 text-sm font-semibold text-white transition-colors"
