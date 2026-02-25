@@ -157,6 +157,10 @@ export interface ProjectMemberDetail {
 export interface ProjectDetailWithMembers extends ProjectItem {
   memberCount: number;
   members: ProjectMemberDetail[];
+  /** ISO datetime string as returned by the API, e.g. "2026-02-19T00:00:00+07:00" */
+  startDate?: string;
+  /** ISO datetime string as returned by the API, e.g. "2026-03-05T00:00:00+07:00" */
+  endDate?: string;
 }
 
 /** Response from GET /api/projects/:id?include_members=true */
@@ -194,6 +198,77 @@ export interface AddProjectMembersResponse {
   data: {
     count: number;
     members: AddProjectMembersResponseItem[];
+  };
+  message: string;
+  success: boolean;
+}
+
+// ─── Banks ────────────────────────────────────────────────────────────────────
+
+export interface BankItem {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
+/** Response from GET /api/banks */
+export interface BanksResponse {
+  data: BankItem[];
+  message: string;
+  success: boolean;
+}
+
+// ─── Create Project ───────────────────────────────────────────────────────────
+
+/** Payload for POST /api/projects */
+export interface CreateProjectPayload {
+  name: string;
+  pmName: string;
+  projectId: string;
+  bankId?: string;
+  projectLink?: string;
+  /** DDMMYYYY format */
+  startDate?: string;
+  /** DDMMYYYY format */
+  endDate?: string;
+}
+
+/** Response from POST /api/projects */
+export interface CreateProjectResponse {
+  data: ProjectItem & {
+    pmName: string;
+    projectId: string;
+    projectLink?: string;
+    startDate?: string;
+    endDate?: string;
+  };
+  message: string;
+  success: boolean;
+}
+
+// ─── Update Project ───────────────────────────────────────────────────────────
+
+/** Payload for PUT /api/projects/:id */
+export interface UpdateProjectPayload {
+  name?: string;
+  pmName?: string;
+  projectId?: string;
+  bankId?: string;
+  projectLink?: string;
+  /** DDMMYYYY format */
+  startDate?: string;
+  /** DDMMYYYY format */
+  endDate?: string;
+}
+
+/** Response from PUT /api/projects/:id */
+export interface UpdateProjectResponse {
+  data: ProjectItem & {
+    pmName?: string;
+    projectId?: string;
+    projectLink?: string;
+    startDate?: string;
+    endDate?: string;
   };
   message: string;
   success: boolean;

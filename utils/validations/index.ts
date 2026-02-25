@@ -13,3 +13,4 @@
  */
 
 export * from "./employeeValidation";
+export * from "./projectValidation";

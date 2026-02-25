@@ -4,14 +4,35 @@
  */
 
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
-import { projectsService, ProjectMember, ProjectStats } from "../../services";
+import {
+  projectsService,
+  ProjectMember,
+  ProjectStats,
+  banksService,
+} from "../../services";
 import { queryKeys } from "./queryKeys";
 import type {
   ProjectsAllResponse,
   ProjectsPaginatedResponse,
   ProjectsPaginatedParams,
   ProjectDetailResponse,
+  BanksResponse,
 } from "../../types";
+
+/**
+ * Hook to fetch all banks for dropdown selection
+ * GET /api/banks
+ */
+export const useBanks = (
+  options?: Omit<UseQueryOptions<BanksResponse, Error>, "queryKey" | "queryFn">,
+) => {
+  return useQuery({
+    queryKey: queryKeys.banks.list(),
+    queryFn: banksService.getBanks,
+    staleTime: 30 * 60 * 1000, // 30 minutes – banks rarely change
+    ...options,
+  });
+};
 
 /**
  * Hook to fetch the full projects list (no pagination) – for filter dropdowns

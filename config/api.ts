@@ -77,6 +77,11 @@ export const ENDPOINTS = {
     STATS: (id: string) => `/projects/${id}/stats`,
   },
 
+  // Banks endpoints
+  BANKS: {
+    LIST: "/banks",
+  },
+
   // Tickets endpoints
   TICKETS: {
     LIST: "/tickets",

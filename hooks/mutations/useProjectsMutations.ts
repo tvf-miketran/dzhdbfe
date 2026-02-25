@@ -8,34 +8,40 @@ import {
   useQueryClient,
   UseMutationOptions,
 } from "@tanstack/react-query";
-import {
-  projectsService,
-  Project,
-  CreateProjectData,
-  UpdateProjectData,
-} from "../../services";
+import { projectsService, Project, UpdateProjectData } from "../../services";
 import type {
   AddProjectMembersPayload,
   AddProjectMembersResponse,
+  CreateProjectPayload,
+  CreateProjectResponse,
+  UpdateProjectPayload,
+  UpdateProjectResponse,
 } from "../../types";
 import { queryKeys } from "../queries";
 
 /**
  * Hook for creating a new project
+ * POST /api/projects
  */
 export const useCreateProject = (
   options?: Omit<
-    UseMutationOptions<Project, Error, CreateProjectData>,
+    UseMutationOptions<CreateProjectResponse, Error, CreateProjectPayload>,
     "mutationFn"
   >,
 ) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: projectsService.createProject,
+    mutationFn: (payload: CreateProjectPayload) =>
+      projectsService.createNewProject(payload),
     onSuccess: () => {
-      // Invalidate projects list
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.lists() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.projects.listAll(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.projects.all,
+      });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
     },
     ...options,
@@ -113,6 +119,37 @@ export const useAddProjectMembers = (
     onSuccess: () => {
       // Invalidate all project detail caches so withMembers queries refresh
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.details() });
+    },
+    ...options,
+  });
+};
+
+/**
+ * Hook for updating a project with the new API payload shape
+ * PUT /api/projects/:id
+ */
+export const useUpdateNewProject = (
+  options?: Omit<
+    UseMutationOptions<
+      UpdateProjectResponse,
+      Error,
+      { id: string; payload: UpdateProjectPayload }
+    >,
+    "mutationFn"
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, payload }) =>
+      projectsService.updateNewProject(id, payload),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.projects.detail(variables.id),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.lists() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.listAll() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
     },
     ...options,
   });
