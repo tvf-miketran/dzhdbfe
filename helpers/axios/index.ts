@@ -122,7 +122,8 @@ axiosInstance.interceptors.response.use(
     // Handle 401 Unauthorized - Token expired or invalid
     if (
       error.response?.status === API_ERROR_CODES.UNAUTHORIZED &&
-      !originalRequest._retry
+      !originalRequest._retry &&
+      !originalRequest.url?.includes("/auth/login")
     ) {
       originalRequest._retry = true;
 
@@ -172,6 +173,7 @@ axiosInstance.interceptors.response.use(
     const apiError: ApiError = {
       message:
         error.response?.data?.message ||
+        error.response?.data?.msg ||
         error.message ||
         "An unexpected error occurred",
       statusCode: error.response?.status,
