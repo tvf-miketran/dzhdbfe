@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useLogin } from "../hooks";
 import { useAuth } from "../context/AuthContext";
+import { ApiError } from "../helpers/axios";
 import toast from "react-hot-toast";
 
 interface LoginProps {
@@ -24,11 +25,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       // Redirect to dashboard
       onLogin();
     },
-    onError: (error) => {
-      // Show error toast
-      toast.error(
-        error.message || "Login failed. Please check your credentials.",
-      );
+    onError: (error: ApiError) => {
+      // Show error toast with message from API response
+      // toast.error(
+      //   error.message || "Login failed. Please check your credentials.",
+      // );
       console.error("Login failed:", error);
     },
   });

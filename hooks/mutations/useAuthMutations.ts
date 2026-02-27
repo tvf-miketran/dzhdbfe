@@ -16,7 +16,7 @@ import {
   ForgotPasswordData,
   ResetPasswordData,
 } from "../../services";
-import { setAuthToken, removeAuthToken } from "../../helpers/axios";
+import { setAuthToken, removeAuthToken, ApiError } from "../../helpers/axios";
 import { queryKeys } from "../queries";
 import toast from "react-hot-toast";
 
@@ -57,6 +57,10 @@ export const useLogin = (
       // Invalidate auth queries
       queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.user.all });
+    },
+    onError: (error: ApiError) => {
+      // Show error toast with message from API response
+      toast.error(error.message || "Login failed. Please check your credentials.");
     },
     ...options,
   });
