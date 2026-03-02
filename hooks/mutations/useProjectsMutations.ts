@@ -9,6 +9,7 @@ import {
   UseMutationOptions,
 } from "@tanstack/react-query";
 import { projectsService, Project, UpdateProjectData } from "../../services";
+import { banksService } from "../../services/banks.service";
 import type {
   AddProjectMembersPayload,
   AddProjectMembersResponse,
@@ -16,6 +17,8 @@ import type {
   CreateProjectResponse,
   UpdateProjectPayload,
   UpdateProjectResponse,
+  CreateBankPayload,
+  CreateBankResponse,
 } from "../../types";
 import { queryKeys } from "../queries";
 
@@ -215,6 +218,29 @@ export const useUpdateProjectStatus = (
         queryKey: queryKeys.projects.detail(variables.id),
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.lists() });
+    },
+    ...options,
+  });
+};
+
+/**
+ * Hook for creating a new bank
+ * POST /api/banks
+ */
+export const useCreateBank = (
+  options?: Omit<
+    UseMutationOptions<CreateBankResponse, Error, CreateBankPayload>,
+    "mutationFn"
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreateBankPayload) =>
+      banksService.createBank(payload),
+    onSuccess: () => {
+      // Invalidate banks query to refetch the updated list
+      queryClient.invalidateQueries({ queryKey: queryKeys.banks.all });
     },
     ...options,
   });

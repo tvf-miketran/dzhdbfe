@@ -37,11 +37,13 @@ export interface TicketEntry {
   role: string;
   status: "Open" | "Closed" | "InQA";
   timestamp: string;
+  week?: number;
+  month?: number;
+  length?: number;
 }
 
 export interface Employee {
   id: string;
-  employeeId: string;
   email: string;
   vnFullName: string;
   enFullName: string;
@@ -79,7 +81,6 @@ export interface User {
   authorize_role: "ADMIN" | "MEMBER";
   description: string | null;
   email: string;
-  employeeId: string;
   en_full_name: string;
   status: boolean;
   vn_full_name: string;
@@ -209,6 +210,18 @@ export interface BankItem {
   id: string;
   name: string;
   createdAt: string;
+}
+
+/** Payload for POST /api/banks */
+export interface CreateBankPayload {
+  name: string;
+}
+
+/** Response from POST /api/banks */
+export interface CreateBankResponse {
+  data: BankItem;
+  message: string;
+  success: boolean;
 }
 
 /** Response from GET /api/banks */

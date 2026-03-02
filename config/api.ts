@@ -80,6 +80,7 @@ export const ENDPOINTS = {
   // Banks endpoints
   BANKS: {
     LIST: "/banks",
+    CREATE: "/banks",
   },
 
   // Tickets endpoints

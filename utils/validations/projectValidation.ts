@@ -26,7 +26,7 @@ export const createProjectSchema = z
     projectRows: z
       .array(projectRowSchema)
       .min(1, "At least one project with name and code is required"),
-    bankId: z.string().optional(),
+    bankId: z.string().min(1, "Bank selection is required"),
     projectLink: z
       .string()
       .url("Project link must be a valid URL")

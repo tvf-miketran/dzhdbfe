@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { z } from "zod";
 import toast from "react-hot-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { useUpdateNewProject } from "../../hooks/mutations/useProjectsMutations";
+import { useUpdateNewProject, useCreateBank } from "../../hooks/mutations/useProjectsMutations";
 import {
   useProjectWithMembers,
   useBanks,
@@ -60,6 +60,8 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [hasBeenPreFilled, setHasBeenPreFilled] = useState(false);
+  const [isAddBankModalOpen, setIsAddBankModalOpen] = useState(false);
+  const [newBankName, setNewBankName] = useState("");
 
   const { data: banksData } = useBanks();
   const bankList = banksData?.data ?? [];
@@ -70,6 +72,18 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({
   const queryClient = useQueryClient();
   const { mutateAsync: updateProject, isPending: isSaving } =
     useUpdateNewProject();
+  const { mutate: createBank, isPending: isCreatingBank } = useCreateBank({
+    onSuccess: (data) => {
+      toast.success(`Bank "${data.data.name}" created successfully!`);
+      setNewBankName("");
+      setIsAddBankModalOpen(false);
+      // Set the newly created bank as selected
+      setFormState((prev) => ({ ...prev, bankId: data.data.id }));
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to create bank");
+    },
+  });
 
   // Pre-fill form when project detail loads
   useEffect(() => {

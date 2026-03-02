@@ -8,8 +8,8 @@ const DEFAULT_TYPE = 'Feature';
 const ROLES: string[] = ['Senior Dev', 'Junior Dev', 'QA Lead', 'UX Designer', 'Team Lead'];
 
 const INITIAL_FINAL_ENTRIES: TicketEntry[] = [
-    { id: '1', ticketId: 'ODC-120', projectName: 'Alpha Banking Portal', type: 'Feature', role: 'Senior Dev', status: 'InQA', timestamp: '2023-10-01' },
-    { id: '2', ticketId: 'ODC-341', projectName: 'Mobile App Refresh', type: 'Bug Fix', role: 'QA Lead', status: 'Closed', timestamp: '2023-10-02' },
+    { id: '1', ticketId: 'ODC-120', projectName: 'Alpha Banking Portal', type: 'Feature', role: 'Senior Dev', status: 'InQA', timestamp: '2023-10-01', week: 1, month: 10, length: 5 },
+    { id: '2', ticketId: 'ODC-341', projectName: 'Mobile App Refresh', type: 'Bug Fix', role: 'QA Lead', status: 'Closed', timestamp: '2023-10-02', week: 2, month: 10, length: 3 },
 ];
 
 const LogTickets: React.FC = () => {
@@ -22,7 +22,8 @@ const LogTickets: React.FC = () => {
     ticketId: '',
     project: PROJECT_LIST[0],
     type: DEFAULT_TYPE,
-    role: ROLES[0]
+    role: ROLES[0],
+    length: 0
   });
 
   const handleAddTicket = (e: React.FormEvent) => {
@@ -50,7 +51,10 @@ const LogTickets: React.FC = () => {
       type: formData.type,
       role: formData.role,
       status: 'Open',
-      timestamp: new Date().toISOString().split('T')[0]
+      timestamp: new Date().toISOString().split('T')[0],
+      week: 1,
+      month: new Date().getMonth() + 1,
+      length: formData.length
     }));
 
     setDraftEntries(prev => [...prev, ...newEntries]);
@@ -81,6 +85,18 @@ const LogTickets: React.FC = () => {
   const updateDraftStatus = (id: string, newStatus: 'Open' | 'Closed' | 'InQA') => {
     setDraftEntries(prev => prev.map(entry => 
       entry.id === id ? { ...entry, status: newStatus } : entry
+    ));
+  };
+
+  const updateDraftWeek = (id: string, newWeek: number) => {
+    setDraftEntries(prev => prev.map(entry => 
+      entry.id === id ? { ...entry, week: newWeek } : entry
+    ));
+  };
+
+  const updateDraftMonth = (id: string, newMonth: number) => {
+    setDraftEntries(prev => prev.map(entry => 
+      entry.id === id ? { ...entry, month: newMonth } : entry
     ));
   };
 
@@ -152,8 +168,8 @@ const LogTickets: React.FC = () => {
               <h3 className="text-xs font-semibold text-slate-900 uppercase tracking-widest">Draft Ticket Entry</h3>
             </div>
             
-            <form onSubmit={handleAddTicket} className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="flex flex-col gap-2">
+            <form onSubmit={handleAddTicket} className="p-6 flex flex-wrap items-end gap-4">
+              <div className="flex flex-col gap-2 flex-1 min-w-[200px]">
                 <label className="text-[11px] font-semibold text-slate-700 uppercase tracking-widest">Ticket ID(s)</label>
                 <input 
                   type="text" 
@@ -175,7 +191,7 @@ const LogTickets: React.FC = () => {
                 )}
               </div>
 
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 flex-1 min-w-[180px]">
                 <label className="text-[11px] font-semibold text-slate-700 uppercase tracking-widest">Project</label>
                 <div className="relative">
                   <select 
@@ -189,7 +205,7 @@ const LogTickets: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 flex-1 min-w-[150px]">
                 <label className="text-[11px] font-semibold text-slate-700 uppercase tracking-widest">Role</label>
                 <div className="relative">
                   <select 
@@ -203,16 +219,26 @@ const LogTickets: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2">
-                <span className="text-[11px] font-semibold text-transparent select-none" aria-hidden="true">Action</span>
-                <button 
-                  type="submit"
-                  className="h-10 w-full bg-primary hover:bg-emerald-600 text-white text-sm font-semibold rounded-lg transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-                >
-                  <span className="material-symbols-outlined text-[16px]">add</span>
-                  Add to Draft
-                </button>
+              <div className="flex flex-col gap-2 w-[130px]">
+                <label className="text-[11px] font-semibold text-slate-700 uppercase tracking-widest">Length (days)</label>
+                <input 
+                  type="number" 
+                  value={formData.length}
+                  onChange={(e) => setFormData({...formData, length: parseFloat(e.target.value) || 0})}
+                  placeholder="e.g. 5"
+                  min="0"
+                  step="0.5"
+                  className="h-10 px-3 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                />
               </div>
+
+              <button 
+                type="submit"
+                className="h-10 px-6 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-sm font-bold rounded-lg transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 transform hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                Add to Draft
+              </button>
             </form>
           </div>
 
@@ -233,14 +259,16 @@ const LogTickets: React.FC = () => {
                     <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Type</th>
                     <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Role</th>
                     <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Status</th>
-                    <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Date</th>
+                    <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Week</th>
+                    <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Month</th>
+                    <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Length</th>
                     <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-light">
                   {draftEntries.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center">
+                      <td colSpan={9} className="py-12 text-center">
                         <div className="flex flex-col items-center justify-center">
                           <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">inbox</span>
                           <p className="text-slate-500 font-medium">No draft tickets yet</p>
@@ -290,7 +318,37 @@ const LogTickets: React.FC = () => {
                             <span className="material-symbols-outlined absolute right-1.5 top-1/2 -translate-y-1/2 text-[14px] pointer-events-none text-slate-500">expand_more</span>
                           </div>
                         </td>
-                        <td className="py-4 px-6 text-center text-xs text-slate-600">{entry.timestamp}</td>
+                        <td className="py-4 px-6 text-center">
+                          <div className="relative inline-block w-full max-w-[100px]">
+                            <select 
+                              value={entry.week || 1}
+                              onChange={(e) => updateDraftWeek(entry.id, parseInt(e.target.value))}
+                              className="w-full h-8 pl-2 pr-7 rounded border border-slate-300 bg-slate-50 text-xs font-semibold text-slate-700 appearance-none outline-none cursor-pointer transition-all hover:bg-slate-100"
+                            >
+                              {Array.from({length: 5}, (_, i) => i + 1).map(w => <option key={w} value={w}>Week {w}</option>)}
+                            </select>
+                            <span className="material-symbols-outlined absolute right-1.5 top-1/2 -translate-y-1/2 text-[14px] pointer-events-none text-slate-500">expand_more</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <div className="relative inline-block w-full max-w-[130px]">
+                            <select 
+                              value={entry.month || new Date().getMonth() + 1}
+                              onChange={(e) => updateDraftMonth(entry.id, parseInt(e.target.value))}
+                              className="w-full h-8 pl-2 pr-7 rounded border border-slate-300 bg-slate-50 text-xs text-slate-700 appearance-none outline-none cursor-pointer transition-all hover:bg-slate-100"
+                            >
+                              {Array.from({length: 12}, (_, i) => i + 1).map(m => (
+                                <option key={m} value={m}>
+                                  {new Date(2000, m - 1).toLocaleString('default', { month: 'long' })}
+                                </option>
+                              ))}
+                            </select>
+                            <span className="material-symbols-outlined absolute right-1.5 top-1/2 -translate-y-1/2 text-[14px] pointer-events-none text-slate-500">expand_more</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <span className="text-xs font-semibold text-slate-900">{entry.length ? `${entry.length} days` : '-'}</span>
+                        </td>
                         <td className="py-4 px-6 text-center">
                           <button 
                             onClick={() => {
@@ -331,13 +389,15 @@ const LogTickets: React.FC = () => {
                   <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Type</th>
                   <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Role</th>
                   <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Status</th>
-                  <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Date</th>
+                  <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Week</th>
+                  <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Month</th>
+                  <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Length</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-light">
                 {finalEntries.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center">
+                    <td colSpan={8} className="py-12 text-center">
                       <div className="flex flex-col items-center justify-center">
                         <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">inbox</span>
                         <p className="text-slate-500 font-medium">No final tickets yet</p>
@@ -367,7 +427,17 @@ const LogTickets: React.FC = () => {
                           {entry.status}
                         </span>
                       </td>
-                      <td className="py-4 px-6 text-center text-xs text-slate-600">{entry.timestamp}</td>
+                      <td className="py-4 px-6 text-center">
+                        <span className="text-xs font-semibold text-slate-700">Week {entry.week || '-'}</span>
+                      </td>
+                      <td className="py-4 px-6 text-center">
+                        <span className="text-xs text-slate-700">
+                          {entry.month ? new Date(2000, entry.month - 1).toLocaleString('default', { month: 'long' }) : '-'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-center">
+                        <span className="text-xs font-semibold text-slate-900">{entry.length ? `${entry.length} days` : '-'}</span>
+                      </td>
                     </tr>
                   ))
                 )}

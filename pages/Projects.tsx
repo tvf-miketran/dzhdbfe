@@ -7,7 +7,7 @@ import {
   useBanks,
 } from "../hooks/queries/useProjectsQueries";
 import { useEmployees } from "../hooks/queries/useUserQueries";
-import { useAddProjectMembers } from "../hooks/mutations/useProjectsMutations";
+import { useAddProjectMembers, useCreateBank } from "../hooks/mutations/useProjectsMutations";
 import { useAuth } from "../context/AuthContext";
 import type { ProjectItem, Employee } from "../types";
 import { Pagination } from "../components/pagination";
@@ -16,7 +16,6 @@ import { CreateProjectModal, EditProjectModal } from "../components/modal";
 interface MemberAssignment {
   userId: string;
   enFullName: string;
-  employeeId: string;
   allocationPercent: string;
 }
 
@@ -48,6 +47,8 @@ const Projects: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(
     null,
   );
+  const [isAddBankModalOpen, setIsAddBankModalOpen] = useState(false);
+  const [newBankName, setNewBankName] = useState("");
 
   // Debounce main search
   useEffect(() => {
@@ -115,6 +116,20 @@ const Projects: React.FC = () => {
   const { mutate: addProjectMembers, isPending: isAddingMembers } =
     useAddProjectMembers();
 
+  // Mutation: create a new bank
+  const { mutate: createBank, isPending: isCreatingBank } = useCreateBank({
+    onSuccess: (data) => {
+      toast.success(`Bank "${data.data.name}" created successfully!`);
+      setNewBankName("");
+      setIsAddBankModalOpen(false);
+      // Set the newly created bank as selected
+      setSelectedBankId(data.data.id);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to create bank");
+    },
+  });
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
@@ -169,6 +184,29 @@ const Projects: React.FC = () => {
     setDebouncedMemberSearch("");
   };
 
+  const handleBankSelectChange = (value: string) => {
+    if (value === "__add_new_bank__") {
+      setIsAddBankModalOpen(true);
+    } else {
+      setSelectedBankId(value);
+      setCurrentPage(1);
+    }
+  };
+
+  const handleCreateBank = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBankName.trim()) {
+      toast.error("Please enter a bank name");
+      return;
+    }
+    createBank({ name: newBankName.trim() });
+  };
+
+  const handleCloseAddBankModal = () => {
+    setIsAddBankModalOpen(false);
+    setNewBankName("");
+  };
+
   return (
     <div className="flex flex-col gap-8 p-6 md:p-8 animate-in fade-in duration-500">
       <div className="flex flex-col gap-6">
@@ -190,10 +228,7 @@ const Projects: React.FC = () => {
           <div className="relative">
             <select
               value={selectedBankId}
-              onChange={(e) => {
-                setSelectedBankId(e.target.value);
-                setCurrentPage(1);
-              }}
+              onChange={(e) => handleBankSelectChange(e.target.value)}
               className="h-10 rounded-lg border border-border-light bg-white pl-3 pr-8 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-primary focus:border-primary appearance-none cursor-pointer min-w-[160px]"
             >
               <option value="">All Banks</option>
@@ -202,6 +237,9 @@ const Projects: React.FC = () => {
                   {bank.name}
                 </option>
               ))}
+              <option value="__add_new_bank__" className="font-semibold text-primary">
+                + Add Bank
+              </option>
             </select>
             <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-[16px] pointer-events-none">
               expand_more
@@ -536,7 +574,6 @@ const Projects: React.FC = () => {
                                             {
                                               userId: emp.id,
                                               enFullName: emp.enFullName,
-                                              employeeId: emp.employeeId,
                                               allocationPercent: "",
                                             },
                                           ],
@@ -581,8 +618,8 @@ const Projects: React.FC = () => {
                                     <p className="text-sm font-semibold text-slate-900 truncate">
                                       {emp.enFullName}
                                     </p>
-                                    <p className="text-xs text-slate-400 font-mono">
-                                      {emp.employeeId}
+                                    <p className="text-xs text-slate-400">
+                                      {emp.vnFullName}
                                     </p>
                                   </div>
                                   {isAlreadyInProject ? (
@@ -652,9 +689,6 @@ const Projects: React.FC = () => {
                             <p className="text-xs font-semibold text-slate-900 truncate">
                               {member.enFullName}
                             </p>
-                            <p className="text-[10px] font-mono text-slate-400">
-                              {member.employeeId}
-                            </p>
                           </div>
                           <span className="shrink-0 text-[10px] font-semibold text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded">
                             {member.allocationPercent}%
@@ -702,9 +736,6 @@ const Projects: React.FC = () => {
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-semibold text-slate-900 truncate">
                                 {entry.enFullName}
-                              </p>
-                              <p className="text-xs font-mono text-slate-400">
-                                {entry.employeeId}
                               </p>
                             </div>
                             <div className="flex flex-col items-end gap-0.5 shrink-0">
@@ -1056,9 +1087,6 @@ const Projects: React.FC = () => {
                               {member.vnFullName}
                             </p>
                             <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-[10px] font-mono text-slate-400">
-                                {member.employeeId}
-                              </span>
                               <span
                                 className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${
                                   member.authorize_role === "ADMIN"
@@ -1122,6 +1150,81 @@ const Projects: React.FC = () => {
                 </button>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Bank Modal */}
+      {isAddBankModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-primary text-[20px]">
+                  account_balance
+                </span>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Add New Bank
+                </h3>
+              </div>
+              <button
+                onClick={handleCloseAddBankModal}
+                disabled={isCreatingBank}
+                className="text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[20px]">
+                  close
+                </span>
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateBank} className="p-6">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-slate-700">
+                  Bank Name
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newBankName}
+                  onChange={(e) => setNewBankName(e.target.value)}
+                  placeholder="Enter bank name"
+                  disabled={isCreatingBank}
+                  autoFocus
+                  className="h-11 px-4 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all disabled:bg-slate-50 disabled:text-slate-500"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 mt-6 pt-4 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={handleCloseAddBankModal}
+                  disabled={isCreatingBank}
+                  className="flex-1 h-10 px-4 rounded-lg border border-slate-300 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingBank || !newBankName.trim()}
+                  className="flex-1 h-10 px-4 rounded-lg bg-primary hover:bg-emerald-600 text-sm font-semibold text-white shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isCreatingBank ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-[18px]">
+                        add
+                      </span>
+                      Add Bank
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

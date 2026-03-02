@@ -26,7 +26,6 @@ interface Ticket {
 interface User {
   id: string;
   name: string;
-  employeeId: string;
   project: string;
   role: "PM" | "QA" | "BA" | "DEV";
   ee: number;
@@ -51,7 +50,6 @@ const Resources: React.FC = () => {
   }>(null);
   const [resetConfirm, setResetConfirm] = useState<null | {
     id: string;
-    employeeId: string;
     name: string;
   }>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -113,13 +111,11 @@ const Resources: React.FC = () => {
           const q = debouncedSearch.toLowerCase();
           return (
             m.enFullName.toLowerCase().includes(q) ||
-            m.vnFullName.toLowerCase().includes(q) ||
-            m.employeeId.toLowerCase().includes(q)
+            m.vnFullName.toLowerCase().includes(q)
           );
         })
         .map((m) => ({
           id: m.userId,
-          employeeId: m.employeeId,
           email: m.email,
           vnFullName: m.vnFullName,
           enFullName: m.enFullName,
@@ -351,9 +347,6 @@ const Resources: React.FC = () => {
                     <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-left">
                       Employee Name
                     </th>
-                    <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">
-                      Employee ID
-                    </th>
                     <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-left">
                       Email
                     </th>
@@ -385,11 +378,6 @@ const Resources: React.FC = () => {
                             {employee.vnFullName}
                           </div>
                         </div>
-                      </td>
-                      <td className="py-4 px-6 text-center">
-                        <span className="text-sm font-mono text-slate-700">
-                          {employee.employeeId}
-                        </span>
                       </td>
                       <td className="py-4 px-6 text-left">
                         <span className="text-sm text-slate-900">
@@ -447,7 +435,7 @@ const Resources: React.FC = () => {
                               e.stopPropagation();
                               setResetConfirm({
                                 id: employee.id,
-                                employeeId: employee.employeeId,
+
                                 name: employee.enFullName,
                               });
                             }}
@@ -591,9 +579,6 @@ const Resources: React.FC = () => {
                   <h4 className="text-xl font-bold text-slate-900">
                     {selectedUser.name}
                   </h4>
-                  <p className="text-sm text-slate-500 font-mono">
-                    {selectedUser.employeeId}
-                  </p>
                 </div>
               </div>
 
