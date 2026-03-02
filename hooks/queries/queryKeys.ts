@@ -99,6 +99,13 @@ export const queryKeys = {
     detail: (id: string) => [...queryKeys.timesheets.details(), id] as const,
   },
 
+  // Logworks keys
+  logworks: {
+    all: ["logworks"] as const,
+    adminAll: (filters?: object | undefined) =>
+      [...queryKeys.logworks.all, "adminAll", { filters }] as const,
+  },
+
   // Formula keys
   formula: {
     all: ["formula"] as const,
