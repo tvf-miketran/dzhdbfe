@@ -9,3 +9,4 @@ export * from "./projects.service";
 export * from "./dashboard.service";
 export * from "./user.service";
 export * from "./banks.service";
+export * from "./logworks.service";

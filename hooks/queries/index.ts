@@ -9,3 +9,4 @@ export * from "./useUserQueries";
 export * from "./useDashboardQueries";
 export * from "./useTicketsQueries";
 export * from "./useProjectsQueries";
+export * from "./useLogworksQueries";

@@ -123,6 +123,13 @@ export const ENDPOINTS = {
     VALIDATE: "/formulas/validate",
   },
 
+  // Logworks endpoints
+  LOGWORKS: {
+    ADMIN_ALL: "/logworks/admin/all",
+    USER_OWN: "/logworks",
+    UPSERT: "/logworks",
+  },
+
   // Settings endpoints
   SETTINGS: {
     GET: "/settings",
