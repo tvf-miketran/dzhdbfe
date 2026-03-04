@@ -15,7 +15,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onLogout }) =
     { id: Page.RESOURCES, label: 'Users', icon: 'group' },
     { id: Page.PROJECTS, label: 'Projects', icon: 'work' },
     { id: Page.LOGTICKETS, label: 'Log Tickets', icon: 'description' },
-    { id: Page.TIMESHEETS, label: 'Timesheets', icon: 'schedule' },
+    { id: Page.TIMESHEETS, label: 'Logworks', icon: 'schedule' },
   ];
 
   return (
@@ -39,11 +39,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onLogout }) =
                 onNavigate(item.id);
                 window.location.hash = item.id === Page.SETTINGS ? 'settings-performance' : item.id === Page.TIMESHEETS ? 'timesheets-logwork' : item.id;
               }}
-              className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all ${
-                activePage === item.id
-                  ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                  : 'text-slate-600 hover:bg-surface-dark hover:text-slate-900'
-              }`}
+              className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all ${activePage === item.id
+                ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                : 'text-slate-600 hover:bg-surface-dark hover:text-slate-900'
+                }`}
             >
               <span className={`material-symbols-outlined ${activePage === item.id ? 'fill-1' : ''}`}>
                 {item.icon}
@@ -54,37 +53,35 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onLogout }) =
         </nav>
 
         <div>
-           <p className="text-[10px] font-light text-slate-400 uppercase tracking-widest px-3 mb-2">System Settings</p>
-           <button 
-             onClick={() => { onNavigate(Page.SETTINGS); window.location.hash = 'settings-performance'; }}
-             className={`w-full group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all ${
-                activePage === Page.SETTINGS
-                  ? 'bg-primary/10 text-primary border border-primary/20'
-                  : 'text-slate-600 hover:bg-surface-dark hover:text-slate-900'
+          <p className="text-[10px] font-light text-slate-400 uppercase tracking-widest px-3 mb-2">System Settings</p>
+          <button
+            onClick={() => { onNavigate(Page.SETTINGS); window.location.hash = 'settings-performance'; }}
+            className={`w-full group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all ${activePage === Page.SETTINGS
+              ? 'bg-primary/10 text-primary border border-primary/20'
+              : 'text-slate-600 hover:bg-surface-dark hover:text-slate-900'
               }`}
-           >
-             <span className="material-symbols-outlined">settings</span>
-             <p className="text-sm font-medium">Configuration</p>
-           </button>
-           <button 
-             onClick={() => { onNavigate(Page.FORMULACONFIG); window.location.hash = Page.FORMULACONFIG; }}
-             className={`w-full group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all ${
-                activePage === Page.FORMULACONFIG
-                  ? 'bg-primary/10 text-primary border border-primary/20'
-                  : 'text-slate-600 hover:bg-surface-dark hover:text-slate-900'
+          >
+            <span className="material-symbols-outlined">settings</span>
+            <p className="text-sm font-medium">Configuration</p>
+          </button>
+          <button
+            onClick={() => { onNavigate(Page.FORMULACONFIG); window.location.hash = Page.FORMULACONFIG; }}
+            className={`w-full group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all ${activePage === Page.FORMULACONFIG
+              ? 'bg-primary/10 text-primary border border-primary/20'
+              : 'text-slate-600 hover:bg-surface-dark hover:text-slate-900'
               }`}
-           >
-             <span className="material-symbols-outlined">functions</span>
-             <p className="text-sm font-medium">Formula Config</p>
-           </button>
+          >
+            <span className="material-symbols-outlined">functions</span>
+            <p className="text-sm font-medium">Formula Config</p>
+          </button>
         </div>
       </div>
 
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-3 border-t border-border-light pt-4 px-1">
-          <img 
-            src="https://picsum.photos/seed/user/80/80" 
-            alt="Profile" 
+          <img
+            src="https://picsum.photos/seed/user/80/80"
+            alt="Profile"
             className="h-10 w-10 rounded-full border border-border-light object-cover"
           />
           <div className="flex flex-col min-w-0">
@@ -99,7 +96,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onLogout }) =
               aria-expanded={isProfileMenuOpen}
               aria-label="Open profile menu"
             >
-            <span className="material-symbols-outlined text-[18px]">more_vert</span>
+              <span className="material-symbols-outlined text-[18px]">more_vert</span>
             </button>
             {isProfileMenuOpen && (
               <div

@@ -17,6 +17,7 @@ import type {
   ProjectsPaginatedParams,
   ProjectDetailResponse,
   BanksResponse,
+  ProjectRoleOption,
 } from "../../types";
 
 /**
@@ -30,6 +31,24 @@ export const useBanks = (
     queryKey: queryKeys.banks.list(),
     queryFn: banksService.getBanks,
     staleTime: 30 * 60 * 1000, // 30 minutes – banks rarely change
+    ...options,
+  });
+};
+
+/**
+ * Hook to fetch project roles for Add Member role select
+ * GET /api/roles
+ */
+export const useProjectRoles = (
+  options?: Omit<
+    UseQueryOptions<ProjectRoleOption[], Error>,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: ["roles", "list"] as const,
+    queryFn: projectsService.getRoles,
+    staleTime: 30 * 60 * 1000,
     ...options,
   });
 };

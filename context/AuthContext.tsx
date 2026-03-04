@@ -13,6 +13,8 @@ import React, {
 } from "react";
 import { getAuthToken, removeAuthToken, setAuthToken } from "../helpers/axios";
 import { User } from "../types";
+import axiosInstance from "../helpers/axios";
+import { ENDPOINTS } from "../config/api";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -93,6 +95,49 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  // Periodic check for user status (every 10 seconds)
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
+    const checkUserStatus = async () => {
+      try {
+        // Use shared axios instance and /employees/me so we only check current logged-in account
+        const response = await axiosInstance.get(ENDPOINTS.EMPLOYEES.ME);
+
+        // Support both response shapes: { status: false, ... } and { data: { status: false, ... } }
+        const profile = response?.data?.data ?? response?.data;
+        const accountStatus = profile?.status;
+
+        if (accountStatus === false) {
+          console.warn(
+            "[AuthContext] Current user account is inactive, logging out...",
+          );
+          logout();
+          window.location.href = "/";
+        }
+      } catch (error) {
+        const statusCode = (error as any)?.statusCode;
+
+        // Unauthorized / forbidden means token or session is no longer valid
+        if (statusCode === 401 || statusCode === 403) {
+          logout();
+          window.location.href = "/";
+          return;
+        }
+
+        console.error("[AuthContext] Error checking user status:", error);
+      }
+    };
+
+    // Check immediately on mount
+    checkUserStatus();
+
+    // Then check every 10 seconds
+    const interval = setInterval(checkUserStatus, 10000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, user, logout]);
 
   const value: AuthContextType = {
     isAuthenticated,

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { z } from "zod";
 import toast from "react-hot-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { useUpdateNewProject, useCreateBank } from "../../hooks/mutations/useProjectsMutations";
+import { useUpdateNewProject, useCreateBank, useRemoveProjectMember } from "../../hooks/mutations/useProjectsMutations";
 import {
   useProjectWithMembers,
   useBanks,
@@ -62,11 +62,16 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({
   const [hasBeenPreFilled, setHasBeenPreFilled] = useState(false);
   const [isAddBankModalOpen, setIsAddBankModalOpen] = useState(false);
   const [newBankName, setNewBankName] = useState("");
+  const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
+  const [confirmRemoveMember, setConfirmRemoveMember] = useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
 
   const { data: banksData } = useBanks();
   const bankList = banksData?.data ?? [];
 
-  const { data: projectDetail, isLoading: isDetailLoading } =
+  const { data: projectDetail, isLoading: isDetailLoading, refetch: refetchProject } =
     useProjectWithMembers(isOpen ? projectId : "");
 
   const queryClient = useQueryClient();
@@ -82,6 +87,21 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({
     },
     onError: (error) => {
       toast.error(error.message || "Failed to create bank");
+    },
+  });
+
+  const { mutate: removeMember, isPending: isRemovingMember } = useRemoveProjectMember({
+    onSuccess: async (data) => {
+      toast.success(data.message || "Member removed from project successfully!");
+      setRemovingMemberId(null);
+      setConfirmRemoveMember(null);
+      // Refetch project details to update members list
+      await refetchProject();
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || "Failed to remove member");
+      setRemovingMemberId(null);
+      setConfirmRemoveMember(null);
     },
   });
 
@@ -107,7 +127,19 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({
     setFormErrors({});
     setIsConfirmOpen(false);
     setHasBeenPreFilled(false);
+    setRemovingMemberId(null);
+    setConfirmRemoveMember(null);
     onClose();
+  };
+
+  const handleRemoveMember = (userId: string, memberName: string) => {
+    setConfirmRemoveMember({ userId, name: memberName });
+  };
+
+  const handleConfirmRemoveMember = () => {
+    if (!confirmRemoveMember) return;
+    setRemovingMemberId(confirmRemoveMember.userId);
+    removeMember({ projectId, userId: confirmRemoveMember.userId });
   };
 
   const handleSubmit = (event: React.FormEvent) => {
@@ -392,57 +424,111 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({
                   )}
                 </div>
 
-                {/* Start Date */}
+                {/* Start Date & End Date */}
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
-                    Start Date
+                    Project Duration
                   </label>
-                  <DateInput
-                    value={formState.startDate}
-                    onChange={(val) => {
-                      setFormState((prev) => ({ ...prev, startDate: val }));
-                      if (formErrors.startDate) {
-                        setFormErrors((prev) => ({ ...prev, startDate: "" }));
-                      }
-                    }}
-                    className={`w-full h-10 rounded-md border bg-surface-light px-3 text-sm text-slate-900 outline-none focus:ring-1 ${
-                      formErrors.startDate
-                        ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-                        : "border-border-light focus:ring-primary focus:border-primary"
-                    }`}
-                  />
-                  {formErrors.startDate && (
-                    <p className="text-xs text-red-600 mt-1">
-                      {formErrors.startDate}
-                    </p>
-                  )}
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <DateInput
+                        value={formState.startDate}
+                        onChange={(val) => {
+                          setFormState((prev) => ({ ...prev, startDate: val }));
+                          if (formErrors.startDate) {
+                            setFormErrors((prev) => ({ ...prev, startDate: "" }));
+                          }
+                        }}
+                        placeholder="Start date"
+                        className={`w-full h-10 rounded-md border bg-surface-light px-3 text-sm text-slate-900 outline-none focus:ring-1 ${
+                          formErrors.startDate
+                            ? "border-red-300 focus:ring-red-500 focus:border-red-500"
+                            : "border-border-light focus:ring-primary focus:border-primary"
+                        }`}
+                      />
+                      {formErrors.startDate && (
+                        <p className="text-xs text-red-600 mt-1">
+                          {formErrors.startDate}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <DateInput
+                        value={formState.endDate}
+                        onChange={(val) => {
+                          setFormState((prev) => ({ ...prev, endDate: val }));
+                          if (formErrors.endDate) {
+                            setFormErrors((prev) => ({ ...prev, endDate: "" }));
+                          }
+                        }}
+                        placeholder="End date"
+                        className={`w-full h-10 rounded-md border bg-surface-light px-3 text-sm text-slate-900 outline-none focus:ring-1 ${
+                          formErrors.endDate
+                            ? "border-red-300 focus:ring-red-500 focus:border-red-500"
+                            : "border-border-light focus:ring-primary focus:border-primary"
+                        }`}
+                      />
+                      {formErrors.endDate && (
+                        <p className="text-xs text-red-600 mt-1">
+                          {formErrors.endDate}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                {/* End Date */}
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
-                    End Date
-                  </label>
-                  <DateInput
-                    value={formState.endDate}
-                    onChange={(val) => {
-                      setFormState((prev) => ({ ...prev, endDate: val }));
-                      if (formErrors.endDate) {
-                        setFormErrors((prev) => ({ ...prev, endDate: "" }));
-                      }
-                    }}
-                    className={`w-full h-10 rounded-md border bg-surface-light px-3 text-sm text-slate-900 outline-none focus:ring-1 ${
-                      formErrors.endDate
-                        ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-                        : "border-border-light focus:ring-primary focus:border-primary"
-                    }`}
-                  />
-                  {formErrors.endDate && (
-                    <p className="text-xs text-red-600 mt-1">
-                      {formErrors.endDate}
-                    </p>
-                  )}
-                </div>
+                {/* Members List */}
+                {projectDetail?.data?.members && projectDetail.data.members.length > 0 && (
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
+                      Project Members ({projectDetail.data.members.length})
+                    </label>
+                    <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                      {projectDetail.data.members.map((member) => (
+                        <div
+                          key={member.userId}
+                          className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-sm text-slate-900 truncate">
+                              {member.enFullName}
+                            </div>
+                            <div className="text-xs text-slate-500 truncate">
+                              {member.email}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              {member.roleId && (
+                                <div className="text-xs text-slate-600">
+                                  <span className="font-medium">Role ID:</span> {member.roleId}
+                                </div>
+                              )}
+                              {member.allocationPercent > 0 && (
+                                <div className="text-xs text-primary font-medium">
+                                  • Allocation: {member.allocationPercent}%
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMember(member.userId, member.enFullName)}
+                            disabled={isRemovingMember && removingMemberId === member.userId}
+                            className="ml-3 flex items-center justify-center w-7 h-7 rounded-full bg-white border border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Remove member"
+                          >
+                            {isRemovingMember && removingMemberId === member.userId ? (
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600" />
+                            ) : (
+                              <span className="material-symbols-outlined text-[16px]">
+                                close
+                              </span>
+                            )}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-end px-6 py-4 border-t border-slate-200 bg-white">
@@ -554,6 +640,55 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
                 )}
                 Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Remove Member Modal */}
+      {confirmRemoveMember && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-5 flex flex-col gap-5">
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 shrink-0 rounded-full bg-red-50 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-red-500 text-[20px]">
+                    person_remove
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900">
+                    Remove Member?
+                  </h3>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Are you sure you want to remove{" "}
+                    <strong className="text-slate-900">{confirmRemoveMember.name}</strong>{" "}
+                    from this project? This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 px-6 pb-5">
+              <button
+                type="button"
+                onClick={() => setConfirmRemoveMember(null)}
+                disabled={isRemovingMember}
+                className="h-10 rounded-lg border border-slate-200 px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRemoveMember}
+                disabled={isRemovingMember}
+                className="h-10 rounded-lg bg-red-500 px-6 text-white text-sm font-semibold hover:bg-red-600 transition-colors shadow-md disabled:opacity-60 flex items-center gap-2"
+              >
+                {isRemovingMember && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                )}
+                Remove Member
               </button>
             </div>
           </div>

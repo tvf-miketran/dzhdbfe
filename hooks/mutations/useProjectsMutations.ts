@@ -119,6 +119,7 @@ export const useAddProjectMembers = (
   return useMutation({
     mutationFn: ({ projectId, payload }) =>
       projectsService.addProjectMembers(projectId, payload),
+    retry: 0, // Disable automatic retry for add members
     onSuccess: () => {
       // Invalidate all project detail caches so withMembers queries refresh
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.details() });
@@ -241,6 +242,45 @@ export const useCreateBank = (
     onSuccess: () => {
       // Invalidate banks query to refetch the updated list
       queryClient.invalidateQueries({ queryKey: queryKeys.banks.all });
+    },
+    ...options,
+  });
+};
+
+/**
+ * Hook for removing a member from a project
+ * DELETE /api/projects/:projectId/members/:userId
+ */
+export const useRemoveProjectMember = (
+  options?: Omit<
+    UseMutationOptions<
+      { message: string; success: boolean },
+      Error,
+      { projectId: string; userId: string }
+    >,
+    "mutationFn"
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ projectId, userId }) =>
+      projectsService.removeMember(projectId, userId),
+    onSuccess: async (_, variables) => {
+      // Invalidate project detail to refresh members list
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.projects.detail(variables.projectId),
+      });
+      // Invalidate all project details queries
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.projects.details(),
+      });
+      // Also invalidate employees list since their projects may have changed
+      await queryClient.invalidateQueries({ queryKey: queryKeys.employees.lists() });
+      // Refetch immediately
+      await queryClient.refetchQueries({
+        queryKey: queryKeys.projects.detail(variables.projectId),
+      });
     },
     ...options,
   });

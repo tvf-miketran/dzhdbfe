@@ -8,6 +8,9 @@ import {
   ticketsService,
   TicketsListResponse,
   TicketFilters,
+  TicketTypeOption,
+  TicketStatusOption,
+  WeekOption,
 } from "../../services";
 import { Ticket, TicketEntry } from "../../types";
 import { queryKeys } from "./queryKeys";
@@ -58,6 +61,56 @@ export const useTicketEntries = (
     queryKey: queryKeys.tickets.entries(),
     queryFn: ticketsService.getTicketEntries,
     staleTime: 2 * 60 * 1000, // 2 minutes
+    ...options,
+  });
+};
+
+/**
+ * Hook to fetch ticket types for dropdown selection
+ */
+export const useTicketTypes = (
+  options?: Omit<
+    UseQueryOptions<TicketTypeOption[], Error>,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: [...queryKeys.tickets.all, "types"] as const,
+    queryFn: ticketsService.getTicketTypes,
+    staleTime: 10 * 60 * 1000,
+    ...options,
+  });
+};
+
+/**
+ * Hook to fetch ticket statuses for dropdown selection
+ */
+export const useTicketStatuses = (
+  options?: Omit<
+    UseQueryOptions<TicketStatusOption[], Error>,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: [...queryKeys.tickets.all, "statuses"] as const,
+    queryFn: ticketsService.getTicketStatuses,
+    staleTime: 10 * 60 * 1000,
+    ...options,
+  });
+};
+
+/**
+ * Hook to fetch available weeks for a specific month
+ */
+export const useWeeks = (
+  month: number | null | undefined,
+  options?: Omit<UseQueryOptions<WeekOption[], Error>, "queryKey" | "queryFn">,
+) => {
+  return useQuery({
+    queryKey: [...queryKeys.tickets.all, "weeks", month] as const,
+    queryFn: () => ticketsService.getWeeks(month!),
+    staleTime: 10 * 60 * 1000,
+    enabled: month !== null && month !== undefined,
     ...options,
   });
 };

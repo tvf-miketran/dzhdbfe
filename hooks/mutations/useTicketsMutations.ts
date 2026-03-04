@@ -13,6 +13,8 @@ import {
   CreateTicketData,
   UpdateTicketData,
   CreateTicketEntryData,
+  BulkCreateTicketsPayload,
+  BulkCreateTicketsResponse,
 } from "../../services";
 import { Ticket, TicketEntry } from "../../types";
 import { queryKeys } from "../queries";
@@ -151,6 +153,28 @@ export const useCreateTicketEntry = (
     onSuccess: () => {
       // Invalidate ticket entries
       queryClient.invalidateQueries({ queryKey: queryKeys.tickets.entries() });
+    },
+    ...options,
+  });
+};
+
+/**
+ * Hook for bulk creating tickets
+ */
+export const useBulkCreateTickets = (
+  options?: Omit<
+    UseMutationOptions<BulkCreateTicketsResponse, Error, BulkCreateTicketsPayload>,
+    "mutationFn"
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ticketsService.bulkCreateTickets,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tickets.lists() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tickets.entries() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
     },
     ...options,
   });

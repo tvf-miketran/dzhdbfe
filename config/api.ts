@@ -83,9 +83,19 @@ export const ENDPOINTS = {
     CREATE: "/banks",
   },
 
+  // Roles endpoints
+  ROLES: {
+    LIST: "/roles",
+  },
+
   // Tickets endpoints
   TICKETS: {
     LIST: "/tickets",
+    BULK: "/tickets/bulk",
+    BULK_UPDATE: (id: string) => `/tickets/${id}`,
+    TYPES: "/ticket-types",
+    STATUSES: "/ticket-statuses",
+    WEEKS: "/tickets/weeks",
     GET: (id: string) => `/tickets/${id}`,
     CREATE: "/tickets",
     UPDATE: (id: string) => `/tickets/${id}`,
@@ -122,6 +132,13 @@ export const ENDPOINTS = {
     UPDATE: (id: string) => `/formulas/${id}`,
     DELETE: (id: string) => `/formulas/${id}`,
     VALIDATE: "/formulas/validate",
+  },
+
+  // Logworks endpoints
+  LOGWORKS: {
+    ADMIN_ALL: "/logworks/admin/all",
+    USER_OWN: "/logworks",
+    UPSERT: "/logworks",
   },
 
   // Settings endpoints
