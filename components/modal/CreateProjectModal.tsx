@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { z } from "zod";
 import toast from "react-hot-toast";
-import { useCreateProject } from "../../hooks/mutations/useProjectsMutations";
+import { useCreateProject, useCreateBank } from "../../hooks/mutations/useProjectsMutations";
 import { useBanks } from "../../hooks/queries/useProjectsQueries";
 import { createProjectSchema } from "../../utils/validations";
 import DateInput from "../DateInput";
@@ -34,17 +34,47 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   const [formState, setFormState] = useState(initialFormState);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isAddBankModalOpen, setIsAddBankModalOpen] = useState(false);
+  const [newBankName, setNewBankName] = useState("");
 
   const { data: banksData } = useBanks();
   const bankList = banksData?.data ?? [];
 
   const { mutate: createProject, isPending: isCreating } = useCreateProject();
+  const { mutate: createBank, isPending: isCreatingBank } = useCreateBank({
+    onSuccess: (data) => {
+      toast.success(`Bank "${data.data.name}" created successfully!`);
+      setNewBankName("");
+      setIsAddBankModalOpen(false);
+      // Set the newly created bank as selected
+      setFormState((prev) => ({ ...prev, bankId: data.data.id }));
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to create bank");
+    },
+  });
 
   const handleClose = () => {
     setFormState(initialFormState);
     setFormErrors({});
     setIsConfirmOpen(false);
+    setIsAddBankModalOpen(false);
+    setNewBankName("");
     onClose();
+  };
+
+  const handleCreateBank = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBankName.trim()) {
+      toast.error("Please enter a bank name");
+      return;
+    }
+    createBank({ name: newBankName.trim() });
+  };
+
+  const handleCloseAddBankModal = () => {
+    setIsAddBankModalOpen(false);
+    setNewBankName("");
   };
 
   const handleSubmit = (event: React.FormEvent) => {
@@ -58,7 +88,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
         projectRows: formState.projectRows
           .map((row) => ({ name: row.name.trim(), code: row.code.trim() }))
           .filter((row) => row.name && row.code),
-        bankId: formState.bankId || undefined,
+        bankId: formState.bankId,
         projectLink: formState.projectLink.trim() || undefined,
         startDate: formState.startDate || undefined,
         endDate: formState.endDate || undefined,
@@ -179,30 +209,43 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
               {/* Bank */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
-                  Bank
+                  Bank <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <select
                     value={formState.bankId}
-                    onChange={(e) =>
-                      setFormState((prev) => ({
-                        ...prev,
-                        bankId: e.target.value,
-                      }))
-                    }
-                    className="h-10 w-full rounded-md border border-border-light bg-surface-light px-3 pr-9 text-sm text-slate-900 outline-none focus:ring-1 focus:ring-primary focus:border-primary appearance-none cursor-pointer"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "__add_new_bank__") {
+                        setIsAddBankModalOpen(true);
+                      } else {
+                        setFormState((prev) => ({
+                          ...prev,
+                          bankId: value,
+                        }));
+                      }
+                    }}
+                    className={`h-10 w-full rounded-md border bg-surface-light px-3 pr-9 text-sm text-slate-900 outline-none focus:ring-1 focus:ring-primary focus:border-primary appearance-none cursor-pointer ${
+                      formErrors.bankId ? "border-red-500" : "border-border-light"
+                    }`}
                   >
-                    <option value="">Select bank (optional)</option>
+                    <option value="">Select bank</option>
                     {bankList.map((bank) => (
                       <option key={bank.id} value={bank.id}>
                         {bank.name}
                       </option>
                     ))}
+                    <option value="__add_new_bank__" className="font-semibold text-primary">
+                      + Add Bank
+                    </option>
                   </select>
                   <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[16px] pointer-events-none">
                     expand_more
                   </span>
                 </div>
+                {formErrors.bankId && (
+                  <p className="text-xs text-red-600 mt-1">{formErrors.bankId}</p>
+                )}
               </div>
 
               {/* Project Manager */}
@@ -526,6 +569,81 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                 Confirm Create
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Bank Modal */}
+      {isAddBankModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-primary text-[20px]">
+                  account_balance
+                </span>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Add New Bank
+                </h3>
+              </div>
+              <button
+                onClick={handleCloseAddBankModal}
+                disabled={isCreatingBank}
+                className="text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[20px]">
+                  close
+                </span>
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateBank} className="p-6">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-slate-700">
+                  Bank Name
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newBankName}
+                  onChange={(e) => setNewBankName(e.target.value)}
+                  placeholder="Enter bank name"
+                  disabled={isCreatingBank}
+                  autoFocus
+                  className="h-11 px-4 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all disabled:bg-slate-50 disabled:text-slate-500"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 mt-6 pt-4 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={handleCloseAddBankModal}
+                  disabled={isCreatingBank}
+                  className="flex-1 h-10 px-4 rounded-lg border border-slate-300 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingBank || !newBankName.trim()}
+                  className="flex-1 h-10 px-4 rounded-lg bg-primary hover:bg-emerald-600 text-sm font-semibold text-white shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isCreatingBank ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-[18px]">
+                        add
+                      </span>
+                      Add Bank
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

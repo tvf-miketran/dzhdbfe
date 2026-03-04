@@ -10,6 +10,7 @@ import type {
   ProjectsPaginatedResponse,
   ProjectsPaginatedParams,
   ProjectDetailResponse,
+  ProjectRoleOption,
   AddProjectMembersPayload,
   AddProjectMembersResponse,
   CreateProjectPayload,
@@ -76,6 +77,50 @@ export interface ProjectStats {
  */
 export const projectsService = {
   /**
+   * Get available project roles
+   * GET /api/roles
+   */
+  getRoles: async (): Promise<ProjectRoleOption[]> => {
+    const response = await axiosInstance.get(ENDPOINTS.ROLES.LIST);
+    const payload = response.data;
+
+    const normalizeRole = (item: any): ProjectRoleOption | null => {
+      if (!item) return null;
+      if (typeof item === "string") {
+        return { id: item, name: item };
+      }
+
+      const roleId =
+        item.id ?? item.role_id ?? item.roleId ?? item.value ?? item.code;
+      const roleName =
+        item.name ?? item.roleName ?? item.role ?? item.label ?? item.code;
+      const roleUuid = item.roleUuid ?? item.role_uuid ?? item.uuid;
+
+      if (!roleId || !roleName) return null;
+      return {
+        id: String(roleId),
+        name: String(roleName),
+        roleUuid: roleUuid ? String(roleUuid) : undefined,
+      };
+    };
+
+    if (Array.isArray(payload)) {
+      return payload
+        .map(normalizeRole)
+        .filter((item): item is ProjectRoleOption => Boolean(item));
+    }
+
+    const data = payload?.data;
+    if (Array.isArray(data)) {
+      return data
+        .map(normalizeRole)
+        .filter((item): item is ProjectRoleOption => Boolean(item));
+    }
+
+    return [];
+  },
+
+  /**
    * Get all projects (full list, no pagination) – used for dropdowns/filters
    */
   getAllProjects: async (): Promise<ProjectsAllResponse> => {
@@ -118,6 +163,21 @@ export const projectsService = {
     id: string,
     payload: AddProjectMembersPayload,
   ): Promise<AddProjectMembersResponse> => {
+    console.log("[ProjectsService] addProjectMembers called");
+    console.log("Project ID:", id);
+    console.log("Payload to send:", JSON.stringify(payload, null, 2));
+    
+    // Validate payload has members with role_id
+    const hasInvalidMembers = (payload.members || []).some(
+      (m) => !m.role_id || m.role_id === undefined || m.role_id === null,
+    );
+    if (hasInvalidMembers) {
+      console.warn("[ProjectsService] WARNING: Some members missing role_id!");
+      (payload.members || []).forEach((m, idx) => {
+        console.warn(`  Member ${idx}: userId=${m.userId}, role_id=${m.role_id}`);
+      });
+    }
+
     const response = await axiosInstance.post<AddProjectMembersResponse>(
       ENDPOINTS.PROJECTS.MEMBERS(id),
       payload,
@@ -223,6 +283,19 @@ export const projectsService = {
   getProjectStats: async (id: string): Promise<ProjectStats> => {
     const response = await axiosInstance.get<ProjectStats>(
       ENDPOINTS.PROJECTS.STATS(id),
+    );
+    return response.data;
+  },
+
+  /**
+   * Remove a member from a project
+   * DELETE /api/projects/:projectId/members
+   * Body: { members: [{ userId: string }] }
+   */
+  removeMember: async (projectId: string, userId: string): Promise<{ message: string; success: boolean }> => {
+    const response = await axiosInstance.delete(
+      ENDPOINTS.PROJECTS.MEMBERS(projectId),
+      { data: { members: [{ userId }] } },
     );
     return response.data;
   },

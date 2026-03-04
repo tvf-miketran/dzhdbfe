@@ -33,15 +33,32 @@ export interface TicketEntry {
   id: string;
   ticketId: string;
   projectName: string;
+  projectId?: string;
   type: string;
-  role: string;
-  status: "Open" | "Closed" | "InQA";
+  ticketTypeId?: string;
+  roles: string[];
+  roleUuids?: string[];
+  status: string;
+  ticketStatusId?: string;
   timestamp: string;
+  week?: number;
+  weekLabel?: string;
+  month?: number;
+  length?: number;
+}
+
+export interface EmployeeProject {
+  projectId: string;
+  projectName: string | null;
+  projectKey?: string | null;
+  roleId: string | null;
+  roleName: string | null;
+  allocationPercent: number;
+  joinedAt: string;
 }
 
 export interface Employee {
   id: string;
-  employeeId: string;
   email: string;
   vnFullName: string;
   enFullName: string;
@@ -50,6 +67,8 @@ export interface Employee {
   description?: string | null;
   createdAt: string;
   updatedAt: string;
+  projects?: EmployeeProject[];
+  employeeId?: string;
 }
 
 export interface EmployeesFilters {
@@ -79,7 +98,6 @@ export interface User {
   authorize_role: "ADMIN" | "MEMBER";
   description: string | null;
   email: string;
-  employeeId: string;
   en_full_name: string;
   status: boolean;
   vn_full_name: string;
@@ -152,6 +170,8 @@ export interface ProjectMemberDetail {
   status: boolean;
   allocationPercent: number;
   joinedAt: string;
+  roleId?: string | null;
+  roleName?: string | null;
 }
 
 export interface ProjectDetailWithMembers extends ProjectItem {
@@ -175,6 +195,7 @@ export interface ProjectDetailResponse {
 export interface AddProjectMemberItem {
   userId: string;
   allocationPercent: number;
+  role_id: string;
 }
 
 /** Payload for POST /api/projects/:id/members */
@@ -203,12 +224,30 @@ export interface AddProjectMembersResponse {
   success: boolean;
 }
 
+export interface ProjectRoleOption {
+  id: string;
+  name: string;
+  roleUuid?: string;
+}
+
 // ─── Banks ────────────────────────────────────────────────────────────────────
 
 export interface BankItem {
   id: string;
   name: string;
   createdAt: string;
+}
+
+/** Payload for POST /api/banks */
+export interface CreateBankPayload {
+  name: string;
+}
+
+/** Response from POST /api/banks */
+export interface CreateBankResponse {
+  data: BankItem;
+  message: string;
+  success: boolean;
 }
 
 /** Response from GET /api/banks */

@@ -80,11 +80,22 @@ export const ENDPOINTS = {
   // Banks endpoints
   BANKS: {
     LIST: "/banks",
+    CREATE: "/banks",
+  },
+
+  // Roles endpoints
+  ROLES: {
+    LIST: "/roles",
   },
 
   // Tickets endpoints
   TICKETS: {
     LIST: "/tickets",
+    BULK: "/tickets/bulk",
+    BULK_UPDATE: (id: string) => `/tickets/${id}`,
+    TYPES: "/ticket-types",
+    STATUSES: "/ticket-statuses",
+    WEEKS: "/tickets/weeks",
     GET: (id: string) => `/tickets/${id}`,
     CREATE: "/tickets",
     UPDATE: (id: string) => `/tickets/${id}`,

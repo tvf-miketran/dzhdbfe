@@ -23,7 +23,6 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({
     vnFullName: "",
     enFullName: "",
     email: "",
-    employeeId: "",
     description: "",
     authorizeRole: "MEMBER" as "MEMBER" | "ADMIN",
     status: true,
@@ -51,7 +50,6 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({
         vnFullName: d.vnFullName ?? "",
         enFullName: d.enFullName ?? "",
         email: d.email ?? "",
-        employeeId: d.employeeId ?? "",
         description: d.description ?? "",
         authorizeRole: d.authorizeRole ?? "MEMBER",
         status: d.status ?? true,
@@ -80,7 +78,6 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({
         vnFullName: formData.vnFullName.trim(),
         enFullName: formData.enFullName.trim(),
         email: formData.email.trim(),
-        employeeId: formData.employeeId.trim(),
         description: formData.description.trim(),
       };
 
@@ -280,36 +277,6 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({
                 {formErrors.email && (
                   <p className="text-xs text-red-600 mt-1">
                     {formErrors.email}
-                  </p>
-                )}
-              </div>
-
-              {/* Employee ID */}
-              <div>
-                <label
-                  htmlFor="edit-employeeId"
-                  className="block text-sm font-medium text-slate-700 mb-2"
-                >
-                  Employee ID <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="edit-employeeId"
-                  type="text"
-                  value={formData.employeeId}
-                  onChange={(e) =>
-                    handleInputChange("employeeId", e.target.value)
-                  }
-                  disabled={isSubmitting}
-                  className={`w-full h-11 px-4 rounded-lg border bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 transition-all font-mono disabled:opacity-50 disabled:cursor-not-allowed ${
-                    formErrors.employeeId
-                      ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-                      : "border-slate-300 focus:ring-primary focus:border-primary"
-                  }`}
-                  placeholder="T0762"
-                />
-                {formErrors.employeeId && (
-                  <p className="text-xs text-red-600 mt-1">
-                    {formErrors.employeeId}
                   </p>
                 )}
               </div>

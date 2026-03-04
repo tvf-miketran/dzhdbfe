@@ -1,13 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import toast from "react-hot-toast";
 import {
   useProjectsPaginated,
   useAllProjects,
   useProjectWithMembers,
   useBanks,
+  useProjectRoles,
 } from "../hooks/queries/useProjectsQueries";
 import { useEmployees } from "../hooks/queries/useUserQueries";
-import { useAddProjectMembers } from "../hooks/mutations/useProjectsMutations";
+import { useAddProjectMembers, useCreateBank } from "../hooks/mutations/useProjectsMutations";
 import { useAuth } from "../context/AuthContext";
 import type { ProjectItem, Employee } from "../types";
 import { Pagination } from "../components/pagination";
@@ -16,8 +17,9 @@ import { CreateProjectModal, EditProjectModal } from "../components/modal";
 interface MemberAssignment {
   userId: string;
   enFullName: string;
-  employeeId: string;
   allocationPercent: string;
+  roleId: string;
+  projectRole: string;
 }
 
 const Projects: React.FC = () => {
@@ -48,6 +50,11 @@ const Projects: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(
     null,
   );
+  const [isAddBankModalOpen, setIsAddBankModalOpen] = useState(false);
+  const [newBankName, setNewBankName] = useState("");
+
+  // Ref to prevent double submission
+  const isSubmittingRef = useRef(false);
 
   // Debounce main search
   useEffect(() => {
@@ -111,9 +118,35 @@ const Projects: React.FC = () => {
     ? (addMemberEmployeesData.data as Employee[])
     : (addMemberEmployeesData?.data?.items ?? []);
 
+  // Fetch project roles for role select in Add Member
+  const { data: projectRolesData } = useProjectRoles();
+  const projectMemberRoles =
+    projectRolesData && projectRolesData.length > 0
+      ? projectRolesData
+      : [
+          { id: "PM", name: "PM" },
+          { id: "QA", name: "QA" },
+          { id: "BA", name: "BA" },
+          { id: "DEV", name: "DEV" },
+        ];
+
   // Mutation: add members to a project
   const { mutate: addProjectMembers, isPending: isAddingMembers } =
     useAddProjectMembers();
+
+  // Mutation: create a new bank
+  const { mutate: createBank, isPending: isCreatingBank } = useCreateBank({
+    onSuccess: (data) => {
+      toast.success(`Bank "${data.data.name}" created successfully!`);
+      setNewBankName("");
+      setIsAddBankModalOpen(false);
+      // Set the newly created bank as selected
+      setSelectedBankId(data.data.id);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to create bank");
+    },
+  });
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -159,6 +192,7 @@ const Projects: React.FC = () => {
   };
 
   const handleCloseAddMember = () => {
+    isSubmittingRef.current = false;
     setIsAddMemberOpen(false);
     setIsAddMemberMembersOpen(false);
     setIsConfirmAddMemberOpen(false);
@@ -167,6 +201,29 @@ const Projects: React.FC = () => {
     setMemberDrafts([]);
     setMemberSearchTerm("");
     setDebouncedMemberSearch("");
+  };
+
+  const handleBankSelectChange = (value: string) => {
+    if (value === "__add_new_bank__") {
+      setIsAddBankModalOpen(true);
+    } else {
+      setSelectedBankId(value);
+      setCurrentPage(1);
+    }
+  };
+
+  const handleCreateBank = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBankName.trim()) {
+      toast.error("Please enter a bank name");
+      return;
+    }
+    createBank({ name: newBankName.trim() });
+  };
+
+  const handleCloseAddBankModal = () => {
+    setIsAddBankModalOpen(false);
+    setNewBankName("");
   };
 
   return (
@@ -190,10 +247,7 @@ const Projects: React.FC = () => {
           <div className="relative">
             <select
               value={selectedBankId}
-              onChange={(e) => {
-                setSelectedBankId(e.target.value);
-                setCurrentPage(1);
-              }}
+              onChange={(e) => handleBankSelectChange(e.target.value)}
               className="h-10 rounded-lg border border-border-light bg-white pl-3 pr-8 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-primary focus:border-primary appearance-none cursor-pointer min-w-[160px]"
             >
               <option value="">All Banks</option>
@@ -202,6 +256,9 @@ const Projects: React.FC = () => {
                   {bank.name}
                 </option>
               ))}
+              <option value="__add_new_bank__" className="font-semibold text-primary">
+                + Add Bank
+              </option>
             </select>
             <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-[16px] pointer-events-none">
               expand_more
@@ -526,6 +583,18 @@ const Projects: React.FC = () => {
                                   disabled={isAlreadyInProject}
                                   onClick={() => {
                                     if (isAlreadyInProject) return;
+                                    
+                                    // Get default role - ensure it always has a value
+                                    let defaultRole =
+                                      projectMemberRoles.find(
+                                        (role) => role.name === "DEV",
+                                      ) ?? projectMemberRoles[0];
+                                    
+                                    // Fallback if projectMemberRoles is empty
+                                    if (!defaultRole) {
+                                      defaultRole = { id: "DEV", name: "DEV" };
+                                    }
+
                                     setMemberDrafts((prev) =>
                                       isChecked
                                         ? prev.filter(
@@ -536,8 +605,9 @@ const Projects: React.FC = () => {
                                             {
                                               userId: emp.id,
                                               enFullName: emp.enFullName,
-                                              employeeId: emp.employeeId,
                                               allocationPercent: "",
+                                              roleId: defaultRole.id,
+                                              projectRole: defaultRole.name,
                                             },
                                           ],
                                     );
@@ -581,8 +651,8 @@ const Projects: React.FC = () => {
                                     <p className="text-sm font-semibold text-slate-900 truncate">
                                       {emp.enFullName}
                                     </p>
-                                    <p className="text-xs text-slate-400 font-mono">
-                                      {emp.employeeId}
+                                    <p className="text-xs text-slate-400">
+                                      {emp.vnFullName}
                                     </p>
                                   </div>
                                   {isAlreadyInProject ? (
@@ -608,7 +678,7 @@ const Projects: React.FC = () => {
               {/* Current members (left) + Selected members (right) */}
               <div className="flex gap-4 flex-1 min-h-0">
                 {/* Left: current project members */}
-                <div className="flex-1 min-w-0 flex flex-col">
+                <div className="basis-[38%] max-w-[38%] min-w-0 flex flex-col">
                   <div className="flex items-center gap-2 mb-3">
                     <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                       In Project
@@ -652,9 +722,6 @@ const Projects: React.FC = () => {
                             <p className="text-xs font-semibold text-slate-900 truncate">
                               {member.enFullName}
                             </p>
-                            <p className="text-[10px] font-mono text-slate-400">
-                              {member.employeeId}
-                            </p>
                           </div>
                           <span className="shrink-0 text-[10px] font-semibold text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded">
                             {member.allocationPercent}%
@@ -669,7 +736,7 @@ const Projects: React.FC = () => {
                 <div className="w-px bg-slate-200 self-stretch" />
 
                 {/* Right: members being added */}
-                <div className="flex-1 min-w-0 flex flex-col">
+                <div className="basis-[62%] min-w-0 flex flex-col">
                   <div className="flex items-center gap-2 mb-3">
                     <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                       Selected Members
@@ -703,11 +770,38 @@ const Projects: React.FC = () => {
                               <p className="text-sm font-semibold text-slate-900 truncate">
                                 {entry.enFullName}
                               </p>
-                              <p className="text-xs font-mono text-slate-400">
-                                {entry.employeeId}
-                              </p>
                             </div>
-                            <div className="flex flex-col items-end gap-0.5 shrink-0">
+                            <div className="flex items-start gap-2 shrink-0">
+                              <select
+                                value={entry.roleId}
+                                onChange={(event) => {
+                                  const selectedRole =
+                                    projectMemberRoles.find(
+                                      (role) => role.id === event.target.value,
+                                    ) ?? projectMemberRoles[0];
+
+                                  setMemberDrafts((prev) =>
+                                    prev.map((item) =>
+                                      item.userId === entry.userId
+                                        ? {
+                                            ...item,
+                                            roleId: selectedRole.id,
+                                            projectRole: selectedRole.name,
+                                          }
+                                        : item,
+                                    ),
+                                  );
+                                }}
+                                className="h-9 w-[84px] rounded-md border border-border-light bg-surface-light px-2 text-sm font-semibold text-slate-700 outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                              >
+                                {projectMemberRoles.map((role) => (
+                                  <option key={role.id} value={role.id}>
+                                    {role.name}
+                                  </option>
+                                ))}
+                              </select>
+
+                              <div className="flex flex-col items-end gap-0.5">
                               <input
                                 type="number"
                                 min="0"
@@ -741,6 +835,7 @@ const Projects: React.FC = () => {
                                     0–100
                                   </p>
                                 )}
+                              </div>
                             </div>
                             <button
                               type="button"
@@ -779,6 +874,11 @@ const Projects: React.FC = () => {
                     toast.error("Please select at least one member");
                     return;
                   }
+                  const missingRole = memberDrafts.find((m) => !m.roleId);
+                  if (missingRole) {
+                    toast.error("Please select role for all members");
+                    return;
+                  }
                   const invalidAlloc = memberDrafts.find((m) => {
                     const v = parseFloat(m.allocationPercent);
                     return (
@@ -808,99 +908,177 @@ const Projects: React.FC = () => {
       {/* Confirm Add Members Modal */}
       {isConfirmAddMemberOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm animate-in zoom-in-95 duration-200">
-            <div className="px-6 py-5 flex flex-col gap-5">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-200 overflow-hidden border border-slate-200">
+            <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/80">
               <div className="flex items-start gap-3">
-                <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
+                <div className="h-10 w-10 shrink-0 rounded-xl bg-primary/10 flex items-center justify-center">
                   <span className="material-symbols-outlined text-primary text-[20px]">
                     group_add
                   </span>
                 </div>
-                <div>
-                  <h3 className="text-base font-semibold text-slate-900">
+                <div className="min-w-0">
+                  <h3 className="text-base font-semibold text-slate-900 leading-6">
                     Confirm Add Members
                   </h3>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Add{" "}
-                    <span className="font-semibold text-slate-700">
-                      {memberDrafts.length} member
-                      {memberDrafts.length !== 1 ? "s" : ""}
-                    </span>{" "}
-                    to{" "}
-                    <span className="font-semibold text-slate-700">
-                      {addMemberProjectName}
-                    </span>
-                    ?
+                  <p className="text-sm text-slate-600 mt-1">
+                    Add selected members into this project?
                   </p>
-                  {/* Summary list */}
-                  <ul className="mt-2 space-y-1 max-h-32 overflow-y-auto custom-scrollbar">
-                    {memberDrafts.map((m) => (
-                      <li
-                        key={m.userId}
-                        className="flex items-center justify-between text-xs"
-                      >
-                        <span className="text-slate-700 truncate">
-                          {m.enFullName}
-                        </span>
-                        <span className="ml-2 shrink-0 font-semibold text-primary">
-                          {m.allocationPercent}%
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
                 </div>
               </div>
-              <div className="flex items-center justify-end gap-2">
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <div className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
+                  <span>Project</span>
+                  <span className="text-primary">{memberDrafts.length} member{memberDrafts.length !== 1 ? "s" : ""}</span>
+                </div>
+                <p className="mt-1.5 text-sm font-semibold text-slate-800 truncate">
+                  {addMemberProjectName}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                    Members, Role & Allocation
+                  </p>
+                </div>
+                <ul className="max-h-44 overflow-y-auto custom-scrollbar divide-y divide-slate-100">
+                  {memberDrafts.map((m) => (
+                    <li
+                      key={m.userId}
+                      className="px-4 py-2.5 flex items-center justify-between gap-3"
+                    >
+                      <span className="text-sm text-slate-700 truncate">
+                        {m.enFullName}
+                      </span>
+                      <div className="shrink-0 flex items-center gap-2">
+                        <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-[11px] font-semibold border border-blue-100">
+                          {m.projectRole}
+                        </span>
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-primary/10 text-primary text-xs font-semibold">
+                          {m.allocationPercent}%
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => setIsConfirmAddMemberOpen(false)}
                   disabled={isAddingMembers}
-                  className="h-9 px-4 rounded-lg border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors disabled:opacity-50"
+                  className="h-10 px-4 rounded-lg border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
-                  disabled={isAddingMembers}
+                  disabled={isAddingMembers || isSubmittingRef.current}
                   onClick={() => {
-                    addProjectMembers(
-                      {
-                        projectId: addMemberProjectId,
-                        payload: {
-                          members: memberDrafts.map((m) => ({
+                    // Prevent double submission
+                    if (isSubmittingRef.current) return;
+
+                    console.log("[Add Members] Confirm button clicked");
+                    console.log("Project ID:", addMemberProjectId);
+                    console.log("Member Drafts:", memberDrafts);
+
+                    // Validate project is selected
+                    if (!addMemberProjectId || !addMemberProjectId.trim()) {
+                      toast.error("Please select a project", { duration: 5000 });
+                      return;
+                    }
+
+                    // Validate at least one member is selected
+                    if (memberDrafts.length === 0) {
+                      toast.error("Please add at least one member", { duration: 5000 });
+                      return;
+                    }
+
+                    // Validate all members have allocation and roleId
+                    const invalidMembers = memberDrafts.filter((m) => {
+                      const allocVal = parseFloat(m.allocationPercent);
+                      const hasValidAlloc =
+                        m.allocationPercent.trim() &&
+                        !isNaN(allocVal) &&
+                        allocVal >= 0 &&
+                        allocVal <= 100;
+                      const hasValidRole = m.roleId && m.roleId.trim();
+                      
+                      if (!hasValidAlloc || !hasValidRole) {
+                        console.warn(
+                          `Invalid member: ${m.enFullName}, allocation: "${m.allocationPercent}", roleId: "${m.roleId}", valid: ${hasValidAlloc && hasValidRole}`,
+                        );
+                      }
+                      
+                      return !hasValidAlloc || !hasValidRole;
+                    });
+
+                    if (invalidMembers.length > 0) {
+                      toast.error(
+                        invalidMembers.length === memberDrafts.length
+                          ? "All members must have valid allocation and role"
+                          : `${invalidMembers.length} member(s) have invalid allocation or role`,
+                        { duration: 5000 },
+                      );
+                      return;
+                    }
+
+                    isSubmittingRef.current = true;
+
+                    // Build payload with fallback to "DEV" if roleId is somehow empty
+                    const payload = {
+                      projectId: addMemberProjectId,
+                      payload: {
+                        members: memberDrafts.map((m) => {
+                          const roleId = m.roleId || "DEV"; // Fallback to DEV
+                          return {
                             userId: m.userId,
                             allocationPercent: parseFloat(m.allocationPercent),
-                          })),
-                        },
+                            role_id: roleId,
+                          };
+                        }),
                       },
-                      {
-                        onSuccess: (data) => {
-                          toast.success(
-                            data.message ||
-                              `${memberDrafts.length} member${memberDrafts.length !== 1 ? "s" : ""} added successfully!`,
+                    };
+
+                    // Log payload for debugging
+                    console.log("=== Add Members Payload ===");
+                    console.log("Project ID:", payload.projectId);
+                    console.log("Members:", JSON.stringify(payload.payload.members, null, 2));
+                    console.log("===========================");
+
+                    addProjectMembers(payload, {
+                      onSuccess: (data) => {
+                        isSubmittingRef.current = false;
+                        toast.success(
+                          data.message ||
+                            `${memberDrafts.length} member${memberDrafts.length !== 1 ? "s" : ""} added successfully!`,
+                        );
+                        handleCloseAddMember();
+                      },
+                      onError: (err: unknown) => {
+                        isSubmittingRef.current = false;
+                        const apiError = err as any;
+                        if (
+                          Array.isArray(apiError?.errors) &&
+                          apiError.errors.length > 0
+                        ) {
+                          apiError.errors.forEach((errorMsg: string) => {
+                            toast.error(errorMsg, { duration: 5000 });
+                          });
+                        } else {
+                          toast.error(
+                            apiError?.message || "Failed to add members",
                           );
-                          handleCloseAddMember();
-                        },
-                        onError: (err: unknown) => {
-                          const apiError = err as any;
-                          if (
-                            Array.isArray(apiError?.errors) &&
-                            apiError.errors.length > 0
-                          ) {
-                            apiError.errors.forEach((errorMsg: string) => {
-                              toast.error(errorMsg, { duration: 5000 });
-                            });
-                          } else {
-                            toast.error(
-                              apiError?.message || "Failed to create employee",
-                            );
-                          }
-                          setIsConfirmAddMemberOpen(false);
-                        },
+                        }
+                        setIsConfirmAddMemberOpen(false);
                       },
-                    );
+                    });
                   }}
-                  className="h-9 px-5 rounded-lg bg-primary hover:bg-emerald-600 text-sm font-semibold text-white transition-colors disabled:opacity-60 flex items-center gap-1.5"
+                  className="h-10 px-5 rounded-lg bg-primary hover:bg-emerald-600 text-sm font-semibold text-white transition-colors disabled:opacity-60 flex items-center gap-1.5 shadow-sm"
                 >
                   {isAddingMembers ? (
                     <>
@@ -1056,9 +1234,6 @@ const Projects: React.FC = () => {
                               {member.vnFullName}
                             </p>
                             <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-[10px] font-mono text-slate-400">
-                                {member.employeeId}
-                              </span>
                               <span
                                 className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${
                                   member.authorize_role === "ADMIN"
@@ -1122,6 +1297,81 @@ const Projects: React.FC = () => {
                 </button>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Bank Modal */}
+      {isAddBankModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-primary text-[20px]">
+                  account_balance
+                </span>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Add New Bank
+                </h3>
+              </div>
+              <button
+                onClick={handleCloseAddBankModal}
+                disabled={isCreatingBank}
+                className="text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[20px]">
+                  close
+                </span>
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateBank} className="p-6">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-slate-700">
+                  Bank Name
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newBankName}
+                  onChange={(e) => setNewBankName(e.target.value)}
+                  placeholder="Enter bank name"
+                  disabled={isCreatingBank}
+                  autoFocus
+                  className="h-11 px-4 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all disabled:bg-slate-50 disabled:text-slate-500"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 mt-6 pt-4 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={handleCloseAddBankModal}
+                  disabled={isCreatingBank}
+                  className="flex-1 h-10 px-4 rounded-lg border border-slate-300 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingBank || !newBankName.trim()}
+                  className="flex-1 h-10 px-4 rounded-lg bg-primary hover:bg-emerald-600 text-sm font-semibold text-white shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isCreatingBank ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-[18px]">
+                        add
+                      </span>
+                      Add Bank
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

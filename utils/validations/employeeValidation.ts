@@ -17,10 +17,6 @@ export const createEmployeeSchema = z.object({
     .min(1, "Email is required")
     .email("Invalid email format")
     .toLowerCase(),
-  employeeId: z
-    .string()
-    .min(1, "Employee ID is required")
-    .max(50, "Employee ID is too long"),
   description: z
     .string()
     .min(1, "Description is required")
@@ -58,11 +54,6 @@ export const updateEmployeeSchema = z.object({
     .email("Invalid email format")
     .toLowerCase()
     .optional(),
-  employeeId: z
-    .string()
-    .max(50, "Employee ID is too long")
-    .optional()
-    .transform((val) => val?.trim() || undefined),
   description: z
     .string()
     .max(500, "Description is too long")

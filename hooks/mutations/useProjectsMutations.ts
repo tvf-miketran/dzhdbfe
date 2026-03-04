@@ -9,6 +9,7 @@ import {
   UseMutationOptions,
 } from "@tanstack/react-query";
 import { projectsService, Project, UpdateProjectData } from "../../services";
+import { banksService } from "../../services/banks.service";
 import type {
   AddProjectMembersPayload,
   AddProjectMembersResponse,
@@ -16,6 +17,8 @@ import type {
   CreateProjectResponse,
   UpdateProjectPayload,
   UpdateProjectResponse,
+  CreateBankPayload,
+  CreateBankResponse,
 } from "../../types";
 import { queryKeys } from "../queries";
 
@@ -116,6 +119,7 @@ export const useAddProjectMembers = (
   return useMutation({
     mutationFn: ({ projectId, payload }) =>
       projectsService.addProjectMembers(projectId, payload),
+    retry: 0, // Disable automatic retry for add members
     onSuccess: () => {
       // Invalidate all project detail caches so withMembers queries refresh
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.details() });
@@ -215,6 +219,68 @@ export const useUpdateProjectStatus = (
         queryKey: queryKeys.projects.detail(variables.id),
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.lists() });
+    },
+    ...options,
+  });
+};
+
+/**
+ * Hook for creating a new bank
+ * POST /api/banks
+ */
+export const useCreateBank = (
+  options?: Omit<
+    UseMutationOptions<CreateBankResponse, Error, CreateBankPayload>,
+    "mutationFn"
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreateBankPayload) =>
+      banksService.createBank(payload),
+    onSuccess: () => {
+      // Invalidate banks query to refetch the updated list
+      queryClient.invalidateQueries({ queryKey: queryKeys.banks.all });
+    },
+    ...options,
+  });
+};
+
+/**
+ * Hook for removing a member from a project
+ * DELETE /api/projects/:projectId/members/:userId
+ */
+export const useRemoveProjectMember = (
+  options?: Omit<
+    UseMutationOptions<
+      { message: string; success: boolean },
+      Error,
+      { projectId: string; userId: string }
+    >,
+    "mutationFn"
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ projectId, userId }) =>
+      projectsService.removeMember(projectId, userId),
+    onSuccess: async (_, variables) => {
+      // Invalidate project detail to refresh members list
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.projects.detail(variables.projectId),
+      });
+      // Invalidate all project details queries
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.projects.details(),
+      });
+      // Also invalidate employees list since their projects may have changed
+      await queryClient.invalidateQueries({ queryKey: queryKeys.employees.lists() });
+      // Refetch immediately
+      await queryClient.refetchQueries({
+        queryKey: queryKeys.projects.detail(variables.projectId),
+      });
     },
     ...options,
   });
