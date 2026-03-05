@@ -340,20 +340,20 @@ const Projects: React.FC = () => {
               <table className="w-full text-left border-collapse">
                 <thead className="bg-slate-50 border-b border-border-light">
                   <tr>
-                    <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">
+                    <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-left">
                       Project
                     </th>
-                    <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">
+                    <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-left">
                       Project Manager
                     </th>
-                    <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">
+                    <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-left">
                       Bank
                     </th>
-                    <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">
+                    <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-left">
                       Created At
                     </th>
                     {!isMember && (
-                      <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">
+                      <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-left">
                         Action
                       </th>
                     )}
@@ -369,7 +369,7 @@ const Projects: React.FC = () => {
                         setIsDetailModalOpen(true);
                       }}
                     >
-                      <td className="py-4 px-6 text-center">
+                      <td className="py-4 px-6 text-left">
                         <div className="flex flex-col">
                           <span className="text-sm font-semibold text-slate-900">
                             {project.name}
@@ -379,20 +379,20 @@ const Projects: React.FC = () => {
                           </span>
                         </div>
                       </td>
-                      <td className="py-4 px-6 text-center text-sm text-slate-700 font-normal">
+                      <td className="py-4 px-6 text-left text-sm text-slate-700 font-normal">
                         {project.pmName}
                       </td>
-                      <td className="py-4 px-6 text-center text-sm text-slate-700">
+                      <td className="py-4 px-6 text-left text-sm text-slate-700">
                         {project.bankName}
                       </td>
-                      <td className="py-4 px-6 text-center text-sm text-slate-500 font-light">
+                      <td className="py-4 px-6 text-left text-sm text-slate-500 font-light">
                         {new Date(project.createdAt).toLocaleDateString(
                           "en-GB",
                           { day: "2-digit", month: "short", year: "numeric" },
                         )}
                       </td>
                       {!isMember && (
-                        <td className="py-4 px-6 text-center">
+                        <td className="py-4 px-6 text-left">
                           <button
                             type="button"
                             onClick={(e) => {
