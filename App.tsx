@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import Resources from "./pages/Resources";
 import Projects from "./pages/Projects";
 import LogTickets from "./pages/LogTickets";
+import OTicket from "./pages/OTicket";
 import Performance from "./pages/Performance";
 import Logwork from "./pages/Logwork";
 import Profile from "./pages/Profile";
@@ -79,6 +80,8 @@ const App: React.FC = () => {
         return <Projects />;
       case Page.LOGTICKETS:
         return <LogTickets />;
+      case Page.OTICKET:
+        return <OTicket />;
       case Page.TIMESHEETS:
         return <Logwork />;
       case Page.SETTINGS:

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTicketTypes, useTicketStatuses } from '../hooks/queries/useTicketsQueries';
 
 export interface FilterState {
   search: string;
@@ -23,6 +24,9 @@ const FilterDialog: React.FC<FilterDialogProps> = ({
   onFilterChange,
   onReset,
 }) => {
+  const { data: ticketTypes = [] } = useTicketTypes();
+  const { data: ticketStatuses = [] } = useTicketStatuses();
+
   if (!isOpen) return null;
 
   const handleWeekToggle = (week: number) => {
@@ -60,11 +64,11 @@ const FilterDialog: React.FC<FilterDialogProps> = ({
             className="h-9 px-3 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 appearance-none outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all cursor-pointer"
           >
             <option value="">All Types</option>
-            <option value="feature">Feature</option>
-            <option value="bug">Bug Fix</option>
-            <option value="refactor">Refactor</option>
-            <option value="hotfix">Hotfix</option>
-            <option value="research">Research</option>
+            {ticketTypes.map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.name || type.code}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -79,9 +83,11 @@ const FilterDialog: React.FC<FilterDialogProps> = ({
             className="h-9 px-3 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 appearance-none outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all cursor-pointer"
           >
             <option value="">All Statuses</option>
-            <option value="open">Open</option>
-            <option value="inqa">In QA</option>
-            <option value="closed">Closed</option>
+            {ticketStatuses.map((status) => (
+              <option key={status.id} value={status.id}>
+                {status.name || status.code}
+              </option>
+            ))}
           </select>
         </div>
 
