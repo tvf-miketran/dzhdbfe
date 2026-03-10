@@ -58,8 +58,8 @@ const LogTickets: React.FC = () => {
     ticketStatusId: '',
     sortBy: '',
     sortOrder: '',
-    weeks: [1, 2, 3, 4, 5, 6] as number[],
-    month: 13,
+    weeks: [] as number[],
+    month: 0,
   });
 
   // Fetch roles from API
@@ -70,6 +70,10 @@ const LogTickets: React.FC = () => {
   const { data: weeks = [] } = useWeeks(draftMonth);
   const { data: userProfile } = useUserProfile();
   const { mutateAsync: submitTicketsBulk, isPending: isSubmittingFinal } = useBulkCreateTickets();
+
+  // For Final tab: Fetch my own tickets with specific project IDs
+  const [isLoadingFinalTab, setIsLoadingFinalTab] = useState(false);
+  const [finalTabMyTickets, setFinalTabMyTickets] = useState<TicketEntry[]>([]);
 
   const draftTypeOptions = ticketTypes.length > 0
     ? ticketTypes.map((ticketType) => ticketType.name || ticketType.code).filter(Boolean)
@@ -172,44 +176,66 @@ const LogTickets: React.FC = () => {
     return '';
   };
 
-  // Fetch final tickets with specific filters
-  const { data: ticketsData, isLoading } = useTickets(
-    {
-      page: 1,
-      limit: 50,
-      projectId: '',
-      employeeId: '',
-      search: filters.search || '',
-      ticketTypeId: filters.ticketTypeId || '',
-      ticketStatusId: filters.ticketStatusId || '',
-      week: filters.weeks,
-      month: filters.month === 13 ? '' : filters.month,
-      sortBy: filters.sortBy || '',
-      sortOrder: filters.sortOrder || '',
-    },
-    {
-      enabled: activeTab === 'final',
-    }
-  );
+  // Fetch final tickets from API with specific project IDs
+  const fetchMyTickets = async () => {
+    setIsLoadingFinalTab(true);
+    try {
+      let response;
+      
+      // Use search API if search query exists
+      if (filters.search && filters.search.trim()) {
+        response = await ticketsService.searchTickets(filters.search.trim());
+      } else {
+        response = await ticketsService.getTicketsForMe({
+          page: 1,
+          perPage: 50,
+          projectId: '',
+          search: filters.search || '',
+          ticketTypeId: filters.ticketTypeId || '',
+          ticketStatusId: filters.ticketStatusId || '',
+          week: filters.weeks && filters.weeks.length > 0 ? filters.weeks : undefined,
+          month: filters.month === 0 ? null : filters.month,
+          sortBy: filters.sortBy || '',
+          sortOrder: filters.sortOrder || '',
+        });
+      }
 
-  // Load final tickets from API when component mounts or final tab becomes active
-  useEffect(() => {
-    if (ticketsData?.data?.items && activeTab === 'final') {
-      const transformedEntries: TicketEntry[] = ticketsData.data.items.map((ticket: any) => ({
-        id: ticket.id || Math.random().toString(36).substr(2, 9),
-        ticketId: ticket.ticketId || ticket.code || ticket.id,
-        projectName: ticket.projectName || 'Unknown Project',
-        type: ticket.ticketTypeName || ticket.type || '',
-        roles: Array.isArray(ticket.roleNames) ? ticket.roleNames : [],
-        status: ticket.ticketStatusName || ticket.status || '',
-        timestamp: ticket.createdAt || ticket.created_at || new Date().toISOString().split('T')[0],
-        week: ticket.week || 1,
-        month: ticket.month || new Date().getMonth() + 1,
-        length: 0
-      }));
-      setFinalEntries(transformedEntries);
+      if (response.success) {
+        const items = response.data?.items || [];
+        const transformedEntries: TicketEntry[] = Array.isArray(items) ? items.map((ticket: any) => ({
+          id: ticket.id || Math.random().toString(36).substr(2, 9),
+          ticketId: ticket.ticketId || ticket.code || ticket.id,
+          projectName: ticket.projectName || 'Unknown Project',
+          projectId: ticket.projectId || '',
+          type: ticket.ticketTypeName || ticket.type || '',
+          ticketTypeId: ticket.ticketTypeId || '',
+          roles: Array.isArray(ticket.roleNames) ? ticket.roleNames : [],
+          roleUuids: Array.isArray(ticket.roleUuids) ? ticket.roleUuids : [],
+          status: ticket.ticketStatusName || ticket.status || '',
+          ticketStatusId: ticket.ticketStatusId || '',
+          timestamp: ticket.createdAt || ticket.created_at || new Date().toISOString().split('T')[0],
+          week: ticket.week || 1,
+          month: ticket.month || new Date().getMonth() + 1,
+          length: 0
+        })) : [];
+        setFinalTabMyTickets(transformedEntries);
+      } else {
+        setFinalTabMyTickets([]);
+      }
+    } catch (error: any) {
+      console.error('Failed to fetch my tickets:', error);
+      toast.error(error?.response?.data?.message || 'Failed to fetch your tickets');
+      setFinalTabMyTickets([]);
+    } finally {
+      setIsLoadingFinalTab(false);
     }
-  }, [ticketsData, activeTab]);
+  };
+
+  // Fetch tickets when entering Final tab or when filters change
+  useEffect(() => {
+    if (activeTab !== 'final') return;
+    fetchMyTickets();
+  }, [activeTab, filters]);
 
   const [formData, setFormData] = useState({
     ticketId: '',
@@ -462,10 +488,11 @@ const LogTickets: React.FC = () => {
           setLastSubmittedPayload(payload);
           setShowExistingModal(true);
         } else {
-          // No existing tickets, go to final tab
-          setFinalEntries(prev => [...prev, ...draftEntries]);
+          // No existing tickets, clear draft and go to final tab
           setDraftEntries([]);
           setActiveTab('final');
+          // Refetch tickets from API
+          fetchMyTickets();
         }
       })
       .catch((error: any) => {
@@ -571,9 +598,10 @@ const LogTickets: React.FC = () => {
       setShowExistingModal(false);
       setExistingTickets([]);
       setLastSubmittedPayload(null);
-      setFinalEntries(prev => [...prev, ...draftEntries]);
       setDraftEntries([]);
       setActiveTab('final');
+      // Refetch tickets from API
+      fetchMyTickets();
     } catch (error: any) {
       const message = error?.response?.data?.message || 'Failed to update existing tickets.';
       toast.error(message);
@@ -587,9 +615,10 @@ const LogTickets: React.FC = () => {
     setShowExistingModal(false);
     setExistingTickets([]);
     setLastSubmittedPayload(null);
-    setFinalEntries(prev => [...prev, ...draftEntries]);
     setDraftEntries([]);
     setActiveTab('final');
+    // Refetch tickets from API
+    fetchMyTickets();
   };
 
   const handleUpdateAlreadyExistTickets = async () => {
@@ -622,9 +651,10 @@ const LogTickets: React.FC = () => {
       setShowAlreadyExistModal(false);
       setAlreadyExistTickets([]);
       setLastSubmittedPayload(null);
-      setFinalEntries(prev => [...prev, ...draftEntries]);
       setDraftEntries([]);
       setActiveTab('final');
+      // Refetch tickets from API
+      fetchMyTickets();
     } catch (error: any) {
       const message = error?.response?.data?.message || 'Failed to update existing tickets.';
       toast.error(message);
@@ -638,9 +668,10 @@ const LogTickets: React.FC = () => {
     setShowAlreadyExistModal(false);
     setAlreadyExistTickets([]);
     setLastSubmittedPayload(null);
-    setFinalEntries(prev => [...prev, ...draftEntries]);
     setDraftEntries([]);
     setActiveTab('final');
+    // Refetch tickets from API
+    fetchMyTickets();
   };
 
   const updateDraftWeek = (id: string, newWeek: number) => {
@@ -938,7 +969,7 @@ const LogTickets: React.FC = () => {
                 : 'text-slate-500 hover:text-slate-700'
             }`}
           >
-            Final ({finalEntries.length})
+            Final ({finalTabMyTickets.length})
           </button>
         </div>
 
@@ -1254,7 +1285,7 @@ const LogTickets: React.FC = () => {
           <div className="px-6 py-4 border-b border-border-light bg-slate-50 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-widest">Final Tickets</h3>
-              {isLoading && (
+              {isLoadingFinalTab && (
                 <span className="text-xs text-slate-500 flex items-center gap-1">
                   <span className="inline-flex w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
                   Loading...
@@ -1271,7 +1302,7 @@ const LogTickets: React.FC = () => {
                 Filters
               </button>
               <span className="text-xs font-semibold py-1 px-3 bg-primary/10 text-primary border border-primary/20 rounded-full">
-                {finalEntries.length} {finalEntries.length === 1 ? 'Entry' : 'Entries'}
+                {finalTabMyTickets.length} {finalTabMyTickets.length === 1 ? 'Entry' : 'Entries'}
               </span>
             </div>
 
@@ -1288,8 +1319,8 @@ const LogTickets: React.FC = () => {
                 ticketStatusId: '',
                 sortBy: '',
                 sortOrder: '',
-                weeks: [1, 2, 3, 4, 5, 6],
-                month: 13,
+                weeks: [],
+                month: 0,
               });
             }}
           />
@@ -1299,67 +1330,72 @@ const LogTickets: React.FC = () => {
                 <tr>
                   <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Ticket ID</th>
                   <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-left">Project</th>
+                  <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-left">Employee</th>
                   <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Type</th>
-                  <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Role</th>
                   <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Status</th>
+                  <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Roles</th>
                   <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Week</th>
                   <th className="py-4 px-6 text-[11px] font-semibold uppercase tracking-widest text-slate-600 text-center">Month</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-light">
-                {finalEntries.length === 0 ? (
+                {finalTabMyTickets.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center">
+                    <td colSpan={8} className="py-12 text-center">
                       <div className="flex flex-col items-center justify-center">
                         <span className="material-symbols-outlined text-4xl text-slate-300 mb-3">inbox</span>
                         <p className="text-slate-500 font-medium">No final tickets yet</p>
-                        <p className="text-slate-400 text-sm">Submit draft entries to publish</p>
+                        <p className="text-slate-400 text-sm">You have no assigned tickets</p>
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  finalEntries.map((entry) => (
-                    <tr key={entry.id} className="hover:bg-slate-50 transition-colors group">
-                      <td className="py-4 px-6 text-center">
-                        <span className="font-mono font-bold text-slate-900 text-sm">{entry.ticketId}</span>
-                      </td>
-                      <td className="py-4 px-6 text-left">
-                        <span className="text-sm font-medium text-slate-700">{entry.projectName}</span>
-                      </td>
-                      <td className="py-4 px-6 text-center">
-                        <span className={`inline-flex px-2.5 py-1 rounded border text-xs font-semibold uppercase tracking-tight ${getTypeColor(entry.type)}`}>
-                          {entry.type}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6 text-center">
-                        <div className="flex flex-wrap gap-2 justify-center items-center">
-                          {entry.roles.length === 0 ? (
-                            <span className="text-xs text-slate-400">No roles</span>
-                          ) : (
-                            entry.roles.map((role, index) => (
-                              <div key={index} className="inline-flex items-center bg-primary/10 text-primary border border-primary/20 rounded-full px-2 py-1 text-xs font-medium">
-                                <span>{role}</span>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-4 px-6 text-center">
-                        <span className={`inline-flex px-2.5 py-1 rounded border text-xs font-semibold uppercase tracking-tight ${getStatusColor(entry.status)}`}>
-                          {entry.status}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6 text-center">
-                        <span className="text-xs font-semibold text-slate-700">Week {entry.week || '-'}</span>
-                      </td>
-                      <td className="py-4 px-6 text-center">
-                        <span className="text-xs text-slate-700">
-                          {entry.month ? new Date(2000, entry.month - 1).toLocaleString('default', { month: 'long' }) : '-'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                )}
+                  finalTabMyTickets.map((entry) => (
+                      <tr key={entry.id} className="hover:bg-slate-50 transition-colors group">
+                        <td className="py-4 px-6 text-center">
+                          <span className="font-mono font-bold text-slate-900 text-sm">{entry.ticketId}</span>
+                        </td>
+                        <td className="py-4 px-6 text-left">
+                          <span className="text-sm font-medium text-slate-700">{entry.projectName}</span>
+                        </td>
+                        <td className="py-4 px-6 text-left">
+                          <span className="text-sm text-slate-600">{entry.roles?.length > 0 ? entry.roles[0] : '-'}</span>
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <span className={`inline-flex px-2.5 py-1 rounded border text-xs font-semibold uppercase tracking-tight ${getTypeColor(entry.type)}`}>
+                            {entry.type}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <span className={`inline-flex px-2.5 py-1 rounded border text-xs font-semibold uppercase tracking-tight ${getStatusColor(entry.status)}`}>
+                            {entry.status}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <div className="flex flex-wrap gap-1 justify-center items-center">
+                            {entry.roles && entry.roles.length === 0 ? (
+                              <span className="text-xs text-slate-400">No roles</span>
+                            ) : (
+                              entry.roles?.map((role, index) => (
+                                <span key={index} className="inline-flex px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium">
+                                  {role}
+                                </span>
+                              ))
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <span className="text-xs font-semibold text-slate-700">{entry.week || '-'}</span>
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <span className="text-xs text-slate-700">
+                            {entry.month ? new Date(2000, entry.month - 1).toLocaleString('default', { month: 'long' }) : '-'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )
+                }
               </tbody>
             </table>
           </div>

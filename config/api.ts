@@ -91,6 +91,8 @@ export const ENDPOINTS = {
   // Tickets endpoints
   TICKETS: {
     LIST: "/tickets",
+    MY: "/tickets/my",
+    SEARCH: "/tickets/search",
     BULK: "/tickets/bulk",
     BULK_UPDATE: (id: string) => `/tickets/${id}`,
     TYPES: "/ticket-types",

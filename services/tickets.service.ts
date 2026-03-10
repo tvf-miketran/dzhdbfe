@@ -186,6 +186,39 @@ export const ticketsService = {
   },
 
   /**
+   * Get my own tickets (employee's tickets) with optional filters
+   */
+  getTicketsForMe: async (filters?: TicketFilters): Promise<TicketsListResponse> => {
+    const params = {
+      page: filters?.page ?? 1,
+      per_page: filters?.perPage ?? filters?.limit ?? 50,
+      project_id: filters?.projectId ?? "",
+      employee_id: filters?.employeeId ?? filters?.assigneeId ?? "",
+      ticket_type_id: filters?.ticketTypeId ?? "",
+      ticket_status_id: filters?.ticketStatusId ?? "",
+      week: (filters?.week && filters.week.length > 0
+        ? filters.week
+        : []
+      ).join(","),
+      month:
+        filters?.month === undefined || filters?.month === null
+          ? ""
+          : String(filters.month),
+      search: filters?.search ?? "",
+      sort_by: filters?.sortBy ?? "",
+      sort_order: filters?.sortOrder ?? "",
+    };
+
+    const response = await axiosInstance.get<TicketsListResponse>(
+      ENDPOINTS.TICKETS.MY,
+      {
+        params,
+      },
+    );
+    return response.data;
+  },
+
+  /**
    * Get single ticket by ID
    */
   getTicket: async (id: string): Promise<Ticket> => {
@@ -334,6 +367,19 @@ export const ticketsService = {
     }
 
     return [];
+  },
+
+  /**
+   * Search tickets with query string
+   */
+  searchTickets: async (query: string): Promise<TicketsListResponse> => {
+    const response = await axiosInstance.get<TicketsListResponse>(
+      ENDPOINTS.TICKETS.SEARCH,
+      {
+        params: { query },
+      },
+    );
+    return response.data;
   },
 
   /**

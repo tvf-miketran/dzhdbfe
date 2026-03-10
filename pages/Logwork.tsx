@@ -15,6 +15,7 @@ const Logwork: React.FC = () => {
 
   // ─── Filter States ──────────────────────────────────────────────────────────
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedQuarter, setSelectedQuarter] = useState<string>('');
   const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
   const [searchName, setSearchName] = useState<string>('');
 
@@ -148,8 +149,31 @@ const Logwork: React.FC = () => {
 
   const isSingleMonthView = selectedMonths.length === 1;
 
+  // ─── Quarter filter helpers ───────────────────────────────────────────────────
+  const getQuarterMonths = (quarter: string): number[] => {
+    switch (quarter) {
+      case 'Q1': return [1, 2, 3];
+      case 'Q2': return [4, 5, 6];
+      case 'Q3': return [7, 8, 9];
+      case 'Q4': return [10, 11, 12];
+      default: return [];
+    }
+  };
+
+  const handleQuarterChange = (quarter: string) => {
+    if (quarter === '') {
+      setSelectedQuarter('');
+      setSelectedMonths([]);
+    } else {
+      setSelectedQuarter(quarter);
+      setSelectedMonths(getQuarterMonths(quarter));
+    }
+    setChangedCells(new Map());
+  };
+
   // ─── Month filter helpers ─────────────────────────────────────────────────────
   const toggleMonth = (month: number) => {
+    setSelectedQuarter(''); // Clear quarter selection when manually selecting months
     setSelectedMonths((prev) =>
       prev.includes(month) ? prev.filter((m) => m !== month) : [...prev, month],
     );
@@ -267,6 +291,25 @@ const Logwork: React.FC = () => {
             </div>
           </div>
 
+          {/* Quarter */}
+          <div className="flex-1 min-w-0 lg:w-40">
+            <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Quarter</label>
+            <div className="relative">
+              <select
+                value={selectedQuarter}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleQuarterChange(e.target.value)}
+                className="w-full h-11 pl-4 pr-10 bg-background-light border border-border-light rounded-xl text-sm font-semibold text-slate-900 appearance-none focus:ring-2 focus:ring-primary/20 outline-none"
+              >
+                <option value="">All Quarters</option>
+                <option value="Q1">Q1 (Jan-Mar)</option>
+                <option value="Q2">Q2 (Apr-Jun)</option>
+                <option value="Q3">Q3 (Jul-Sep)</option>
+                <option value="Q4">Q4 (Oct-Dec)</option>
+              </select>
+              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">date_range</span>
+            </div>
+          </div>
+
           {/* Month multi-select */}
           <div className="flex-1 min-w-0 lg:w-52">
             <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Month</label>
@@ -341,7 +384,7 @@ const Logwork: React.FC = () => {
               ))}
             {selectedMonths.length > 1 && (
               <button
-                onClick={() => { setSelectedMonths([]); setChangedCells(new Map()); }}
+                onClick={() => { setSelectedQuarter(''); setSelectedMonths([]); setChangedCells(new Map()); }}
                 className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold border border-slate-200 hover:bg-slate-200 transition-colors"
               >
                 Clear all

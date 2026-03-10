@@ -15,6 +15,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onLogout }) =
     { id: Page.RESOURCES, label: 'Users', icon: 'group' },
     { id: Page.PROJECTS, label: 'Projects', icon: 'work' },
     { id: Page.LOGTICKETS, label: 'Log Tickets', icon: 'description' },
+    { id: Page.OTICKET, label: 'OTicket', icon: 'assignment' },
     { id: Page.TIMESHEETS, label: 'Logworks', icon: 'schedule' },
   ];
 
