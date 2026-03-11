@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
+import { LineChart, Line, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
 import { useCalculateKPI } from '../hooks/mutations/useKPIMutations';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -15,7 +15,7 @@ interface KPIData {
   };
 }
 
-const Dashboard: React.FC = () => {
+const ODashboard: React.FC = () => {
   const { user } = useAuth();
   const userId = user?.UUID || '';
 
@@ -23,33 +23,41 @@ const Dashboard: React.FC = () => {
   const calculateKPIMutation = useCalculateKPI();
   
   // Mock KPI data - replace with actual API data
-  const [personalKPI, setPersonalKPI] = useState<KPIData>({
+  const [odcKPI, setOdcKPI] = useState<KPIData>({
     standardKPI: 8.5,
-    currentKPI: 7.8,
-    lastCalculated: '2 hours ago',
+    currentKPI: 8.1,
+    lastCalculated: '1 hour ago',
     breakdown: {
-      tickets: 3.5,
-      logwork: 2.0,
-      quality: 2.3,
+      tickets: 3.2,
+      logwork: 2.1,
+      quality: 2.8,
     }
   });
 
   // KPI Trend data
   const kpiTrendData = [
-    { date: 'Jan', personal: 7.2 },
-    { date: 'Feb', personal: 7.5 },
-    { date: 'Mar', personal: 7.8 },
-    { date: 'Apr', personal: 8.0 },
-    { date: 'May', personal: 7.9 },
-    { date: 'Jun', personal: 7.8 },
+    { date: 'Jan', odc: 7.8 },
+    { date: 'Feb', odc: 7.9 },
+    { date: 'Mar', odc: 8.1 },
+    { date: 'Apr', odc: 8.0 },
+    { date: 'May', odc: 8.2 },
+    { date: 'Jun', odc: 8.1 },
+  ];
+
+  // Team composition data
+  const teamData = [
+    { role: 'Developer', count: 12, kpi: 8.2 },
+    { role: 'QA', count: 8, kpi: 8.0 },
+    { role: 'BA', count: 5, kpi: 8.4 },
+    { role: 'DevOps', count: 3, kpi: 7.9 },
   ];
 
   // Handle Calculate KPI
   const handleCalculateKPI = async () => {
     try {
       const response = await calculateKPIMutation.mutateAsync({
-        viewType: 'personal',
-        userId: userId,
+        viewType: 'odc',
+        userId: undefined,
       });
 
       // Update KPI state with API response
@@ -60,7 +68,7 @@ const Dashboard: React.FC = () => {
         breakdown: response.data.breakdown,
       };
 
-      setPersonalKPI(kpiData);
+      setOdcKPI(kpiData);
     } catch (error) {
       console.error('Failed to calculate KPI:', error);
     }
@@ -72,10 +80,10 @@ const Dashboard: React.FC = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900">
-            Your KPI Dashboard
+            ODC KPI Dashboard
           </h1>
           <p className="text-sm text-slate-600 mt-2">
-            Track your individual performance metrics
+            Monitor overall ODC performance metrics
           </p>
         </div>
 
@@ -89,25 +97,25 @@ const Dashboard: React.FC = () => {
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-baseline gap-3">
                     <span className="text-6xl font-bold text-primary">
-                      {personalKPI.currentKPI.toFixed(1)}
+                      {odcKPI.currentKPI.toFixed(1)}
                     </span>
-                    <span className="text-lg font-semibold text-slate-500">/ {personalKPI.standardKPI.toFixed(1)}</span>
+                    <span className="text-lg font-semibold text-slate-500">/ {odcKPI.standardKPI.toFixed(1)}</span>
                   </div>
                   
                   <div className="flex flex-col items-end gap-2">
                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-200">
                       <span className="material-symbols-outlined text-sm text-emerald-600">trending_up</span>
                       <span className="text-sm font-semibold text-emerald-700">
-                        {Math.abs(personalKPI.currentKPI - personalKPI.standardKPI).toFixed(1)}
+                        {Math.abs(odcKPI.currentKPI - odcKPI.standardKPI).toFixed(1)}
                       </span>
                     </div>
                     <p className="text-xs text-slate-500">↑ vs Standard</p>
                   </div>
                 </div>
-                <p className="text-xs text-slate-400 mb-6">Last calculated: <span className="font-medium text-slate-600">{personalKPI.lastCalculated}</span></p>
+                <p className="text-xs text-slate-400 mb-6">Last calculated: <span className="font-medium text-slate-600">{odcKPI.lastCalculated}</span></p>
 
                 {/* KPI Breakdown */}
-                {personalKPI.breakdown && (
+                {odcKPI.breakdown && (
                   <div className="space-y-3">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">Breakdown</p>
                     <div className="space-y-5">
@@ -117,12 +125,12 @@ const Dashboard: React.FC = () => {
                             <span className="material-symbols-outlined text-sm text-blue-500">assignment_turned_in</span>
                             Ticket Completion
                           </span>
-                          <span className="text-sm font-bold text-blue-600">{personalKPI.breakdown.tickets.toFixed(1)}</span>
+                          <span className="text-sm font-bold text-blue-600">{odcKPI.breakdown.tickets.toFixed(1)}</span>
                         </div>
                         <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
                           <div 
                             className="h-2 rounded-full bg-gradient-to-r from-blue-400 to-blue-600"
-                            style={{ width: `${Math.min((personalKPI.breakdown.tickets / personalKPI.standardKPI) * 100, 100)}%` }}
+                            style={{ width: `${Math.min((odcKPI.breakdown.tickets / odcKPI.standardKPI) * 100, 100)}%` }}
                           ></div>
                         </div>
                       </div>
@@ -133,12 +141,12 @@ const Dashboard: React.FC = () => {
                             <span className="material-symbols-outlined text-sm text-purple-500">schedule</span>
                             Logwork Compliance
                           </span>
-                          <span className="text-sm font-bold text-purple-600">{personalKPI.breakdown.logwork.toFixed(1)}</span>
+                          <span className="text-sm font-bold text-purple-600">{odcKPI.breakdown.logwork.toFixed(1)}</span>
                         </div>
                         <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
                           <div 
                             className="h-2 rounded-full bg-gradient-to-r from-purple-400 to-purple-600"
-                            style={{ width: `${Math.min((personalKPI.breakdown.logwork / personalKPI.standardKPI) * 100, 100)}%` }}
+                            style={{ width: `${Math.min((odcKPI.breakdown.logwork / odcKPI.standardKPI) * 100, 100)}%` }}
                           ></div>
                         </div>
                       </div>
@@ -149,12 +157,12 @@ const Dashboard: React.FC = () => {
                             <span className="material-symbols-outlined text-sm text-emerald-500">code</span>
                             Code Quality
                           </span>
-                          <span className="text-sm font-bold text-emerald-600">{personalKPI.breakdown.quality.toFixed(1)}</span>
+                          <span className="text-sm font-bold text-emerald-600">{odcKPI.breakdown.quality.toFixed(1)}</span>
                         </div>
                         <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
                           <div 
                             className="h-2 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600"
-                            style={{ width: `${Math.min((personalKPI.breakdown.quality / personalKPI.standardKPI) * 100, 100)}%` }}
+                            style={{ width: `${Math.min((odcKPI.breakdown.quality / odcKPI.standardKPI) * 100, 100)}%` }}
                           ></div>
                         </div>
                       </div>
@@ -204,7 +212,7 @@ const Dashboard: React.FC = () => {
                     fill="none" 
                     stroke="url(#gradient)" 
                     strokeWidth="2.5"
-                    strokeDasharray={`${(personalKPI.currentKPI / 10) * 100}, 100`}
+                    strokeDasharray={`${(odcKPI.currentKPI / 10) * 100}, 100`}
                     strokeLinecap="round"
                     transform="rotate(-90 18 18)"
                   />
@@ -227,7 +235,7 @@ const Dashboard: React.FC = () => {
                     fontWeight="700"
                     fill="#3b82f6"
                   >
-                    {personalKPI.currentKPI.toFixed(1)}
+                    {odcKPI.currentKPI.toFixed(1)}
                   </text>
                   <text 
                     x="50%" 
@@ -238,7 +246,7 @@ const Dashboard: React.FC = () => {
                     fontWeight="500"
                     fill="#64748b"
                   >
-                    of {personalKPI.standardKPI.toFixed(1)}
+                    of {odcKPI.standardKPI.toFixed(1)}
                   </text>
                 </svg>
               </div>
@@ -267,10 +275,10 @@ const Dashboard: React.FC = () => {
                   <Legend />
                   <Line 
                     type="monotone" 
-                    dataKey="personal" 
-                    stroke="#3b82f6" 
+                    dataKey="odc" 
+                    stroke="#8b5cf6" 
                     strokeWidth={2}
-                    dot={{ r: 4, fill: '#3b82f6' }}
+                    dot={{ r: 4, fill: '#8b5cf6' }}
                     activeDot={{ r: 6 }}
                   />
                 </LineChart>
@@ -278,45 +286,25 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Personal Stat Cards */}
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-border-light bg-white shadow-lg p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest">Tickets This Month</p>
-                  <p className="text-3xl font-bold text-slate-900 mt-2">24</p>
-                  <p className="text-xs text-emerald-600 mt-1">↑ 8% from last month</p>
-                </div>
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <span className="material-symbols-outlined text-blue-600 text-[32px]">assignment</span>
-                </div>
-              </div>
+          {/* Team Performance */}
+          <div className="rounded-2xl border border-border-light bg-white shadow-lg p-8">
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-slate-900">Team Performance</h3>
+              <p className="text-sm text-slate-600 mt-1">By role</p>
             </div>
-
-            <div className="rounded-2xl border border-border-light bg-white shadow-lg p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest">Logwork Hours</p>
-                  <p className="text-3xl font-bold text-slate-900 mt-2">156</p>
-                  <p className="text-xs text-slate-600 mt-1">This month</p>
-                </div>
-                <div className="p-3 bg-purple-50 rounded-lg">
-                  <span className="material-symbols-outlined text-purple-600 text-[32px]">schedule</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-border-light bg-white shadow-lg p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest">Code Reviews</p>
-                  <p className="text-3xl font-bold text-slate-900 mt-2">18</p>
-                  <p className="text-xs text-slate-600 mt-1">Completed</p>
-                </div>
-                <div className="p-3 bg-emerald-50 rounded-lg">
-                  <span className="material-symbols-outlined text-emerald-600 text-[32px]">done_all</span>
-                </div>
-              </div>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={teamData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="role" stroke="#94a3b8" style={{ fontSize: '12px' }} />
+                  <YAxis stroke="#94a3b8" style={{ fontSize: '12px' }} yAxisId="left" />
+                  <YAxis stroke="#94a3b8" style={{ fontSize: '12px' }} yAxisId="right" orientation="right" />
+                  <Tooltip contentStyle={{ backgroundColor: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '8px' }} />
+                  <Legend />
+                  <Bar yAxisId="left" dataKey="count" fill="#3b82f6" name="Team Size" />
+                  <Bar yAxisId="right" dataKey="kpi" fill="#8b5cf6" name="Avg KPI" />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
@@ -326,7 +314,7 @@ const Dashboard: React.FC = () => {
           <div className="px-8 py-5 border-b border-slate-200 flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold text-slate-900">KPI Contribution Detail</h3>
-              <p className="text-sm text-slate-500 mt-0.5">Your performance breakdown by week</p>
+              <p className="text-sm text-slate-500 mt-0.5">Team performance breakdown by week</p>
             </div>
           </div>
           <div className="overflow-x-auto">
@@ -335,7 +323,7 @@ const Dashboard: React.FC = () => {
                 <tr className="bg-slate-50 border-b border-slate-200">
                   <th rowSpan={2} className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">Member's Name</th>
                   <th rowSpan={2} className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">Weight Role</th>
-                  {['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'].map((w) => (
+                  {(['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'] as string[]).map((w) => (
                     <th key={w} colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">{w}</th>
                   ))}
                   <th rowSpan={2} className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">Ticket Contribution Point</th>
@@ -346,7 +334,7 @@ const Dashboard: React.FC = () => {
                   <th rowSpan={2} className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Status</th>
                 </tr>
                 <tr className="bg-slate-50 border-b border-slate-200">
-                  {['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'].map((w) => (
+                  {(['w1','w2','w3','w4','w5'] as string[]).map((w) => (
                     <>
                       <th key={`${w}-task`} className="text-center px-3 py-2 font-medium text-blue-600 whitespace-nowrap border-r border-slate-100 text-xs">Task</th>
                       <th key={`${w}-bug`} className="text-center px-3 py-2 font-medium text-red-500 whitespace-nowrap border-r border-slate-200 text-xs">Bug</th>
@@ -355,41 +343,45 @@ const Dashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-3 border-r border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <img src="https://picsum.photos/seed/user/40/40" alt="" className="w-7 h-7 rounded-full border border-slate-200" />
-                      <span className="font-medium text-slate-800 whitespace-nowrap">{user?.fullname || 'You'}</span>
-                    </div>
-                  </td>
-                  <td className="text-center px-4 py-3 text-slate-700 border-r border-slate-100">1.0</td>
-                  {/* Week 1 */}
-                  <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-100">5</td>
-                  <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-200">1</td>
-                  {/* Week 2 */}
-                  <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-100">6</td>
-                  <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-200">0</td>
-                  {/* Week 3 */}
-                  <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-100">4</td>
-                  <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-200">2</td>
-                  {/* Week 4 */}
-                  <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-100">7</td>
-                  <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-200">1</td>
-                  {/* Week 5 */}
-                  <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-100">5</td>
-                  <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-200">0</td>
-                  {/* Summary */}
-                  <td className="text-center px-4 py-3 font-semibold text-blue-600 border-r border-slate-100">3.5</td>
-                  <td className="text-center px-4 py-3 font-semibold text-purple-600 border-r border-slate-100">2.0</td>
-                  <td className="text-center px-4 py-3 font-bold text-primary border-r border-slate-100">7.8</td>
-                  <td className="text-center px-4 py-3 border-r border-slate-100">
-                    <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">Yes</span>
-                  </td>
-                  <td className="text-center px-4 py-3 text-slate-700 border-r border-slate-100">95%</td>
-                  <td className="text-center px-4 py-3">
-                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">Active</span>
-                  </td>
-                </tr>
+                {[
+                  { name: 'Alex Morgan', avatar: 'alex', weight: '1.0', weeks: [[5,1],[6,0],[4,2],[7,1],[5,0]], ticket: 3.5, logwork: 2.0, member: 7.8, billable: true, ee: '95%', status: 'Active' },
+                  { name: 'Sarah Johnson', avatar: 'sarah', weight: '0.9', weeks: [[4,0],[5,1],[6,0],[5,2],[4,1]], ticket: 3.2, logwork: 2.1, member: 7.5, billable: true, ee: '92%', status: 'Active' },
+                  { name: 'Mike Chen', avatar: 'mike', weight: '1.0', weeks: [[7,0],[6,1],[7,0],[8,0],[6,1]], ticket: 3.8, logwork: 2.2, member: 8.2, billable: true, ee: '100%', status: 'Active' },
+                  { name: 'Emily Davis', avatar: 'emily', weight: '0.8', weeks: [[3,2],[4,1],[3,0],[4,1],[3,2]], ticket: 2.9, logwork: 1.8, member: 7.1, billable: false, ee: '88%', status: 'On Leave' },
+                  { name: 'Tom Wilson', avatar: 'tom', weight: '1.0', weeks: [[6,0],[5,0],[7,1],[6,0],[7,0]], ticket: 3.6, logwork: 2.3, member: 8.4, billable: true, ee: '98%', status: 'Active' },
+                ].map((row, idx) => (
+                  <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <td className="px-4 py-3 border-r border-slate-100">
+                      <div className="flex items-center gap-2">
+                        <img src={`https://picsum.photos/seed/${row.avatar}/40/40`} alt="" className="w-7 h-7 rounded-full border border-slate-200" />
+                        <span className="font-medium text-slate-800 whitespace-nowrap">{row.name}</span>
+                      </div>
+                    </td>
+                    <td className="text-center px-4 py-3 text-slate-700 border-r border-slate-100">{row.weight}</td>
+                    {row.weeks.map(([task, bug], wi) => (
+                      <>
+                        <td key={`task-${wi}`} className="text-center px-3 py-3 text-slate-700 border-r border-slate-100">{task}</td>
+                        <td key={`bug-${wi}`} className={`text-center px-3 py-3 border-r border-slate-200 ${bug > 0 ? 'text-red-500 font-medium' : 'text-slate-400'}`}>{bug}</td>
+                      </>
+                    ))}
+                    <td className="text-center px-4 py-3 font-semibold text-blue-600 border-r border-slate-100">{row.ticket.toFixed(1)}</td>
+                    <td className="text-center px-4 py-3 font-semibold text-purple-600 border-r border-slate-100">{row.logwork.toFixed(1)}</td>
+                    <td className={`text-center px-4 py-3 font-bold border-r border-slate-100 ${row.member >= 8 ? 'text-emerald-600' : row.member >= 7.5 ? 'text-blue-600' : 'text-amber-600'}`}>{row.member.toFixed(1)}</td>
+                    <td className="text-center px-4 py-3 border-r border-slate-100">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${row.billable ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                        {row.billable ? 'Yes' : 'No'}
+                      </span>
+                    </td>
+                    <td className="text-center px-4 py-3 text-slate-700 border-r border-slate-100">{row.ee}</td>
+                    <td className="text-center px-4 py-3">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                        row.status === 'Active' ? 'bg-blue-100 text-blue-700' :
+                        row.status === 'On Leave' ? 'bg-amber-100 text-amber-700' :
+                        'bg-slate-100 text-slate-600'
+                      }`}>{row.status}</span>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -434,4 +426,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default ODashboard;
