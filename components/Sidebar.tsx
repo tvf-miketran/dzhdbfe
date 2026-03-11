@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Page } from '../types';
+import axiosInstance from '../helpers/axios';
 
 interface SidebarProps {
   activePage: Page;
@@ -10,6 +11,41 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onLogout }) => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [employeeName, setEmployeeName] = useState('');
+  const [employeeRole, setEmployeeRole] = useState('');
+  const [employeeLoading, setEmployeeLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchEmployeeInfo = async () => {
+      setEmployeeLoading(true);
+      try {
+        const storedUserRaw = localStorage.getItem('user');
+        const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null;
+        const employeeUuid = storedUser?.UUID || storedUser?.id;
+
+        if (!employeeUuid) {
+          setEmployeeName('Unknown User');
+          setEmployeeRole('Member');
+          return;
+        }
+
+        const response = await axiosInstance.get(`/employees/${employeeUuid}`);
+        const employee = response?.data?.data ?? response?.data;
+
+        setEmployeeName(employee?.enFullName || employee?.vnFullName || 'Unknown User');
+        setEmployeeRole(employee?.authorizeRole || employee?.description || 'Member');
+      } catch (error) {
+        console.error('Failed to fetch sidebar employee info:', error);
+        setEmployeeName('Unknown User');
+        setEmployeeRole('Member');
+      } finally {
+        setEmployeeLoading(false);
+      }
+    };
+
+    fetchEmployeeInfo();
+  }, []);
+
   const menuItems = [
     { id: Page.DASHBOARD, label: 'Dashboard', icon: 'dashboard' },
     { id: Page.ODASHBOARD, label: 'ODashboard', icon: 'analytics' },
@@ -77,8 +113,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onLogout }) =
             className="h-10 w-10 rounded-full border border-border-light object-cover"
           />
           <div className="flex flex-col min-w-0">
-            <p className="text-sm font-bold text-slate-900 truncate">Alex Morgan</p>
-            <p className="text-xs text-slate-500">ODC Lead</p>
+            <p className="text-sm font-bold text-slate-900 truncate">{employeeLoading ? 'Loading...' : employeeName || 'Unknown User'}</p>
+            <p className="text-xs text-slate-500">{employeeLoading ? 'Loading...' : employeeRole || 'Member'}</p>
           </div>
           <div className="ml-auto relative">
             <button

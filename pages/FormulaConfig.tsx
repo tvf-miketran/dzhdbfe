@@ -75,9 +75,9 @@ const FormulaConfig: React.FC = () => {
   const ticketTypes = [
     { id: 'task', label: 'Task', paramKey: 'TASK_WEIGHT' },
     { id: 'bug', label: 'Bug', paramKey: 'BUG_WEIGHT' },
-    { id: 'story', label: 'Story', paramKey: null },
-    { id: 'epic', label: 'Epic', paramKey: null },
-    { id: 'subtask', label: 'Sub-task', paramKey: null },
+    { id: 'story', label: 'Story', paramKey: 'STORY_WEIGHT' },
+    { id: 'epic', label: 'Epic', paramKey: 'EPIC_WEIGHT' },
+    { id: 'subtask', label: 'Sub-task', paramKey: 'SUBTASK_WEIGHT' },
   ];
 
   useEffect(() => {
@@ -220,9 +220,7 @@ const FormulaConfig: React.FC = () => {
 
   const handleTicketEditStart = () => {
     const vals = ticketTypes.reduce((acc, type) => {
-      if (type.paramKey && ticketTypeWeights[type.id] !== undefined) {
-        acc[type.id] = ticketTypeWeights[type.id].toString();
-      }
+      acc[type.id] = ticketTypeWeights[type.id] !== undefined ? ticketTypeWeights[type.id].toString() : '0';
       return acc;
     }, {} as Record<string, string>);
     setTicketEditValues(vals);
@@ -233,7 +231,6 @@ const FormulaConfig: React.FC = () => {
   const handleTicketEditSave = async () => {
     let valid = true;
     for (const type of ticketTypes) {
-      if (!type.paramKey) continue; // skip types without paramKey
       const value = ticketEditValues[type.id];
       if (value === undefined) continue;
       const num = parseFloat(value);
@@ -245,7 +242,6 @@ const FormulaConfig: React.FC = () => {
     // Find only changed items (compare as numbers to avoid float string mismatch)
     const changedItems: ConfirmItem[] = ticketTypes
       .filter(type =>
-        type.paramKey &&
         ticketEditValues[type.id] !== undefined &&
         parseFloat(ticketEditValues[type.id] || '0') !== parseFloat(ticketOriginalValues[type.id] || '0')
       )
@@ -614,12 +610,11 @@ const FormulaConfig: React.FC = () => {
                         <td className="px-6 py-4 text-sm font-medium text-gray-900">{type.label}</td>
                         <td className="px-6 py-4">
                           {ticketEditMode ? (
-                            type.paramKey ? (
                             <input 
                               type="number" 
                               min="0" 
                               step="0.1"
-                              value={ticketEditValues[type.id] || ''}
+                              value={ticketEditValues[type.id] ?? '0'}
                               onChange={(e) => {
                                 const val = e.target.value;
                                 if (val === '' || val === '-') {
@@ -633,9 +628,6 @@ const FormulaConfig: React.FC = () => {
                               }}
                               className="w-24 px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
-                            ) : (
-                              <span className="text-sm text-gray-400">-</span>
-                            )
                           ) : (
                             <span className="text-sm font-semibold text-gray-900">{ticketTypeWeights[type.id] != null ? ticketTypeWeights[type.id].toFixed(1) : '-'}</span>
                           )}
