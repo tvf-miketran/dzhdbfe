@@ -9,6 +9,18 @@ interface SidebarProps {
   onLogout: () => void;
 }
 
+const getInitials = (fullName: string): string => {
+  const parts = fullName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (parts.length === 0) return 'NA';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+};
+
 const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onLogout }) => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [employeeName, setEmployeeName] = useState('');
@@ -107,11 +119,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onLogout }) =
 
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-3 border-t border-border-light pt-4 px-1">
-          <img
-            src="https://picsum.photos/seed/user/80/80"
-            alt="Profile"
-            className="h-10 w-10 rounded-full border border-border-light object-cover"
-          />
+          <div className="h-10 w-10 rounded-full border border-border-light bg-slate-100 text-slate-700 text-xs font-semibold flex items-center justify-center">
+            {getInitials(employeeLoading ? 'Loading' : employeeName || 'Unknown User')}
+          </div>
           <div className="flex flex-col min-w-0">
             <p className="text-sm font-bold text-slate-900 truncate">{employeeLoading ? 'Loading...' : employeeName || 'Unknown User'}</p>
             <p className="text-xs text-slate-500">{employeeLoading ? 'Loading...' : employeeRole || 'Member'}</p>

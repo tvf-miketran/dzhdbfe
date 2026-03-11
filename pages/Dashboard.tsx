@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
-import { useCalculateKPI } from '../hooks/mutations/useKPIMutations';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
+import axiosInstance from '../helpers/axios';
 
 interface KPIData {
   standardKPI: number;
@@ -15,14 +15,52 @@ interface KPIData {
   };
 }
 
+interface PersonalContributionRow {
+  name: string;
+  weeks: [number, number][];
+  ticket: number;
+  logwork: number;
+  member: number;
+  billable: number;
+  ee: string;
+  status: string;
+}
+
+const getCurrentMonth = (): string => String(new Date().getMonth() + 1).padStart(2, '0');
+const monthOptions = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0'));
+
+const toNumber = (value: unknown, fallback: number): number => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+};
+
+const getInitials = (fullName: string): string => {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'NA';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+};
+
+const getRoleColumnIndex = (roleValue: unknown): number => {
+  const normalizedRole = String(roleValue ?? '')
+    .trim()
+    .toUpperCase()
+    .replace(/[_\s-]+/g, '');
+
+  if (normalizedRole === 'BA') return 0;
+  if (normalizedRole === 'QAINTERNAL' || normalizedRole === 'IQA') return 1;
+  if (normalizedRole === 'QASTANDALONE' || normalizedRole === 'EQA') return 2;
+  if (normalizedRole === 'DEV' || normalizedRole === 'DEVELOPER') return 3;
+  if (normalizedRole === 'REVIEWER' || normalizedRole === 'REVIEW') return 4;
+  return -1;
+};
+
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const userId = user?.UUID || '';
-
-  // Use KPI mutation hook
-  const calculateKPIMutation = useCalculateKPI();
+  const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonth());
+  const [isLoading, setIsLoading] = useState(false);
   
-  // Mock KPI data - replace with actual API data
   const [personalKPI, setPersonalKPI] = useState<KPIData>({
     standardKPI: 8.5,
     currentKPI: 7.8,
@@ -33,50 +71,156 @@ const Dashboard: React.FC = () => {
       quality: 2.3,
     }
   });
+  const [personalContribution, setPersonalContribution] = useState<PersonalContributionRow>({
+    name: user?.fullname || 'You',
+    weeks: [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]],
+    ticket: 0,
+    logwork: 0,
+    member: 0,
+    billable: 0,
+    ee: '-',
+    status: '-',
+  });
+  const [monthTicketCount, setMonthTicketCount] = useState(0);
+  const [monthLogworkPoint, setMonthLogworkPoint] = useState(0);
+  const [monthRolesCount, setMonthRolesCount] = useState(0);
 
-  // KPI Trend data
-  const kpiTrendData = [
+  const [kpiTrendData, setKpiTrendData] = useState([
     { date: 'Jan', personal: 7.2 },
     { date: 'Feb', personal: 7.5 },
     { date: 'Mar', personal: 7.8 },
     { date: 'Apr', personal: 8.0 },
     { date: 'May', personal: 7.9 },
     { date: 'Jun', personal: 7.8 },
-  ];
+  ]);
 
-  // Handle Calculate KPI
-  const handleCalculateKPI = async () => {
+  const fetchDashboardByMonth = async (month: string) => {
+    if (!userId) return;
+    setIsLoading(true);
     try {
-      const response = await calculateKPIMutation.mutateAsync({
-        viewType: 'personal',
-        userId: userId,
+      const monthAsNumber = String(parseInt(month, 10));
+      const monthCandidates = monthAsNumber === month ? [month] : [month, monthAsNumber];
+
+      let personalRow: any = null;
+      for (const monthValue of monthCandidates) {
+        const endpoints = [
+          `/formulas/calculate/${userId}?month=${monthValue}&latest=false`,
+          `/formulas/calculate/${userId}/month=${monthValue}&latest=false`,
+        ];
+
+        for (const endpoint of endpoints) {
+          try {
+            const response = await axiosInstance.get(endpoint);
+            const root = response?.data ?? {};
+            const data = root?.data;
+
+            if (Array.isArray(data) && data.length > 0) {
+              personalRow = data[0];
+              break;
+            }
+
+            if (data && typeof data === 'object') {
+              personalRow = data;
+              break;
+            }
+          } catch (_error) {
+            // try next endpoint format
+          }
+        }
+
+        if (personalRow) {
+          break;
+        }
+      }
+
+      if (!personalRow) {
+        setPersonalContribution((prev) => ({ ...prev, ee: '-', status: '-' }));
+        return;
+      }
+
+      const ticketPoint = toNumber(personalRow.ticket_point, 0);
+      const logworkPoint = toNumber(personalRow.logwork_point, 0);
+      const memberPoint = toNumber(personalRow.member_contr_point, 0);
+
+      const roleBuckets: [number, number][] = [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]];
+      const ticketBreakdown = Array.isArray(personalRow.ticket_breakdown) ? personalRow.ticket_breakdown : [];
+      ticketBreakdown.forEach((item: any) => {
+        const roleIndex = getRoleColumnIndex(item?.role);
+        if (roleIndex < 0) return;
+
+        roleBuckets[roleIndex] = [
+          roleBuckets[roleIndex][0] + toNumber(item?.task_count ?? item?.taskCount ?? item?.task, 0),
+          roleBuckets[roleIndex][1] + toNumber(item?.bug_count ?? item?.bugCount ?? item?.bug, 0),
+        ];
       });
 
-      // Update KPI state with API response
       const kpiData: KPIData = {
-        standardKPI: response.data.standardKPI,
-        currentKPI: response.data.currentKPI,
-        lastCalculated: 'just now',
-        breakdown: response.data.breakdown,
+        standardKPI: 8.5,
+        currentKPI: memberPoint,
+        lastCalculated: `${month}/${personalRow?.year ?? new Date().getFullYear()}`,
+        breakdown: {
+          tickets: ticketPoint,
+          logwork: logworkPoint,
+          quality: Math.max(memberPoint - ticketPoint - logworkPoint, 0),
+        },
       };
 
       setPersonalKPI(kpiData);
+      setPersonalContribution({
+        name: personalRow?.employee?.en_full_name ?? personalRow?.employee?.vn_full_name ?? user?.fullname ?? 'You',
+        weeks: roleBuckets,
+        ticket: ticketPoint,
+        logwork: logworkPoint,
+        member: memberPoint,
+        billable: toNumber(personalRow.billable_point, 0),
+        ee: personalRow?.ee ? String(personalRow.ee) : '-',
+        status: personalRow?.status ? String(personalRow.status) : '-',
+      });
+
+      setMonthTicketCount(toNumber(personalRow.task_count, 0) + toNumber(personalRow.bug_count, 0));
+      setMonthLogworkPoint(logworkPoint);
+      setMonthRolesCount(ticketBreakdown.length);
+      setKpiTrendData([{ date: `${month}/${String(personalRow?.year ?? new Date().getFullYear()).slice(-2)}`, personal: memberPoint }]);
     } catch (error) {
-      console.error('Failed to calculate KPI:', error);
+      toast.error('Failed to fetch dashboard data by month');
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchDashboardByMonth(selectedMonth);
+  }, [selectedMonth, userId]);
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <div className="w-full px-6 py-8 md:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">
-            Your KPI Dashboard
-          </h1>
-          <p className="text-sm text-slate-600 mt-2">
-            Track your individual performance metrics
-          </p>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">
+                Your KPI Dashboard
+              </h1>
+              <p className="text-sm text-slate-600 mt-2">
+                Track your individual performance metrics
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <label htmlFor="dashboard-month" className="text-sm font-medium text-slate-600">Month</label>
+              <select
+                id="dashboard-month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                disabled={isLoading}
+                className="h-10 min-w-[92px] rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                {monthOptions.map((month) => (
+                  <option key={month} value={month}>{month}</option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
 
         {/* Main KPI Section */}
@@ -166,18 +310,18 @@ const Dashboard: React.FC = () => {
               {/* Calculate Button */}
               <div className="mt-10 pt-6 border-t border-slate-200">
                 <button
-                  onClick={handleCalculateKPI}
-                  disabled={calculateKPIMutation.isPending}
+                  onClick={() => fetchDashboardByMonth(selectedMonth)}
+                  disabled={isLoading}
                   className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all duration-200 ${
-                    calculateKPIMutation.isPending
+                    isLoading
                       ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                       : 'bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20 active:scale-95 hover:shadow-xl hover:shadow-primary/30'
                   }`}
                 >
-                  <span className={`material-symbols-outlined ${calculateKPIMutation.isPending ? 'animate-spin' : ''}`}>
+                  <span className={`material-symbols-outlined ${isLoading ? 'animate-spin' : ''}`}>
                     calculate
                   </span>
-                  {calculateKPIMutation.isPending ? 'Calculating...' : 'Calculate KPI'}
+                  {isLoading ? 'Loading...' : 'Refresh Data'}
                 </button>
               </div>
             </div>
@@ -259,7 +403,7 @@ const Dashboard: React.FC = () => {
                 <LineChart data={kpiTrendData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="date" stroke="#94a3b8" style={{ fontSize: '12px' }} />
-                  <YAxis stroke="#94a3b8" style={{ fontSize: '12px' }} domain={[7, 8.5]} />
+                  <YAxis stroke="#94a3b8" style={{ fontSize: '12px' }} domain={['auto', 'auto']} />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '8px' }}
                     formatter={(value) => (value as number).toFixed(1)}
@@ -284,8 +428,8 @@ const Dashboard: React.FC = () => {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest">Tickets This Month</p>
-                  <p className="text-3xl font-bold text-slate-900 mt-2">24</p>
-                  <p className="text-xs text-emerald-600 mt-1">↑ 8% from last month</p>
+                  <p className="text-3xl font-bold text-slate-900 mt-2">{monthTicketCount}</p>
+                  <p className="text-xs text-slate-600 mt-1">From selected month</p>
                 </div>
                 <div className="p-3 bg-blue-50 rounded-lg">
                   <span className="material-symbols-outlined text-blue-600 text-[32px]">assignment</span>
@@ -297,8 +441,8 @@ const Dashboard: React.FC = () => {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest">Logwork Hours</p>
-                  <p className="text-3xl font-bold text-slate-900 mt-2">156</p>
-                  <p className="text-xs text-slate-600 mt-1">This month</p>
+                  <p className="text-3xl font-bold text-slate-900 mt-2">{monthLogworkPoint.toFixed(2)}</p>
+                  <p className="text-xs text-slate-600 mt-1">Logwork point</p>
                 </div>
                 <div className="p-3 bg-purple-50 rounded-lg">
                   <span className="material-symbols-outlined text-purple-600 text-[32px]">schedule</span>
@@ -310,8 +454,8 @@ const Dashboard: React.FC = () => {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest">Code Reviews</p>
-                  <p className="text-3xl font-bold text-slate-900 mt-2">18</p>
-                  <p className="text-xs text-slate-600 mt-1">Completed</p>
+                  <p className="text-3xl font-bold text-slate-900 mt-2">{monthRolesCount}</p>
+                  <p className="text-xs text-slate-600 mt-1">Roles in breakdown</p>
                 </div>
                 <div className="p-3 bg-emerald-50 rounded-lg">
                   <span className="material-symbols-outlined text-emerald-600 text-[32px]">done_all</span>
@@ -333,61 +477,68 @@ const Dashboard: React.FC = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
-                  <th rowSpan={2} className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">Member's Name</th>
-                  <th rowSpan={2} className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">Weight Role</th>
-                  {['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'].map((w) => (
-                    <th key={w} colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">{w}</th>
-                  ))}
-                  <th rowSpan={2} className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">Ticket Contribution Point</th>
-                  <th rowSpan={2} className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">LogWork Contr. Point</th>
-                  <th rowSpan={2} className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">Member Contr. Point</th>
-                  <th rowSpan={2} className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">Billable</th>
-                  <th rowSpan={2} className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">EE</th>
-                  <th rowSpan={2} className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Status</th>
+                  <th colSpan={1} className="text-left px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">DATA THÁNG {selectedMonth}</th>
+                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">BA = 0,4</th>
+                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">QA Internal = 0,6</th>
+                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">QA Stand Alone = 0,8</th>
+                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">DEV = 1</th>
+                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">Reviewer = 0,2</th>
+                  <th colSpan={6} className="px-4 py-2"></th>
                 </tr>
                 <tr className="bg-slate-50 border-b border-slate-200">
-                  {['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'].map((w) => (
+                  <th className="px-4 py-2 border-r border-slate-200"></th>
+                  {[1, 2, 3, 4, 5].map((w) => (
                     <React.Fragment key={w}>
+                      <th className="text-center px-3 py-2 font-medium text-slate-700 whitespace-nowrap border-r border-slate-100">1</th>
+                      <th className="text-center px-3 py-2 font-medium text-slate-700 whitespace-nowrap border-r border-slate-200">0.5</th>
+                    </React.Fragment>
+                  ))}
+                  <th className="px-4 py-2 border-r border-slate-200"></th>
+                  <th className="px-4 py-2 border-r border-slate-200"></th>
+                  <th className="px-4 py-2 border-r border-slate-200"></th>
+                  <th className="px-4 py-2 border-r border-slate-200"></th>
+                  <th className="px-4 py-2 border-r border-slate-200"></th>
+                  <th className="px-4 py-2"></th>
+                </tr>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">Member's Name</th>
+                  {[1, 2, 3, 4, 5].map((w) => (
+                    <React.Fragment key={`header-${w}`}>
                       <th className="text-center px-3 py-2 font-medium text-blue-600 whitespace-nowrap border-r border-slate-100 text-xs">Task</th>
                       <th className="text-center px-3 py-2 font-medium text-red-500 whitespace-nowrap border-r border-slate-200 text-xs">Bug</th>
                     </React.Fragment>
                   ))}
+                  <th className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">Ticket Contribution Point</th>
+                  <th className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">LogWork Contr. Point</th>
+                  <th className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">Member Contr. Point</th>
+                  <th className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">Billable</th>
+                  <th className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">EE</th>
+                  <th className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Status</th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                   <td className="px-4 py-3 border-r border-slate-100">
                     <div className="flex items-center gap-2">
-                      <img src="https://picsum.photos/seed/user/40/40" alt="" className="w-7 h-7 rounded-full border border-slate-200" />
-                      <span className="font-medium text-slate-800 whitespace-nowrap">{user?.fullname || 'You'}</span>
+                      <div className="w-7 h-7 rounded-full border border-slate-200 bg-slate-100 text-slate-700 text-[10px] font-semibold flex items-center justify-center">
+                        {getInitials(personalContribution.name)}
+                      </div>
+                      <span className="font-medium text-slate-800 whitespace-nowrap">{personalContribution.name}</span>
                     </div>
                   </td>
-                  <td className="text-center px-4 py-3 text-slate-700 border-r border-slate-100">1.0</td>
-                  {/* Week 1 */}
-                  <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-100">5</td>
-                  <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-200">1</td>
-                  {/* Week 2 */}
-                  <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-100">6</td>
-                  <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-200">0</td>
-                  {/* Week 3 */}
-                  <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-100">4</td>
-                  <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-200">2</td>
-                  {/* Week 4 */}
-                  <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-100">7</td>
-                  <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-200">1</td>
-                  {/* Week 5 */}
-                  <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-100">5</td>
-                  <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-200">0</td>
-                  {/* Summary */}
-                  <td className="text-center px-4 py-3 font-semibold text-blue-600 border-r border-slate-100">3.5</td>
-                  <td className="text-center px-4 py-3 font-semibold text-purple-600 border-r border-slate-100">2.0</td>
-                  <td className="text-center px-4 py-3 font-bold text-primary border-r border-slate-100">7.8</td>
-                  <td className="text-center px-4 py-3 border-r border-slate-100">
-                    <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">Yes</span>
-                  </td>
-                  <td className="text-center px-4 py-3 text-slate-700 border-r border-slate-100">95%</td>
+                  {personalContribution.weeks.map(([task, bug], wi) => (
+                    <React.Fragment key={`week-${wi}`}>
+                      <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-100">{task}</td>
+                      <td className={`text-center px-3 py-3 border-r border-slate-200 ${bug > 0 ? 'text-red-500 font-medium' : 'text-slate-400'}`}>{bug}</td>
+                    </React.Fragment>
+                  ))}
+                  <td className="text-center px-4 py-3 font-semibold text-blue-600 border-r border-slate-100">{personalContribution.ticket.toFixed(2)}</td>
+                  <td className="text-center px-4 py-3 font-semibold text-purple-600 border-r border-slate-100">{personalContribution.logwork.toFixed(2)}</td>
+                  <td className="text-center px-4 py-3 font-bold text-primary border-r border-slate-100">{personalContribution.member.toFixed(2)}</td>
+                  <td className="text-center px-4 py-3 text-slate-700 border-r border-slate-100">{personalContribution.billable.toFixed(2)}</td>
+                  <td className="text-center px-4 py-3 text-slate-700 border-r border-slate-100">{personalContribution.ee}</td>
                   <td className="text-center px-4 py-3">
-                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">Active</span>
+                    <span className="text-slate-700">{personalContribution.status}</span>
                   </td>
                 </tr>
               </tbody>

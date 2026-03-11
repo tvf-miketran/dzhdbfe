@@ -3,6 +3,18 @@ import { useResetPassword } from "../hooks";
 import toast from "react-hot-toast";
 import axiosInstance from "../helpers/axios";
 
+const getInitials = (fullName: string): string => {
+  const parts = fullName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (parts.length === 0) return "NA";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+};
+
 const Profile: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"personal" | "password">("personal");
   const [isEditMode, setIsEditMode] = useState(false);
@@ -133,11 +145,9 @@ const Profile: React.FC = () => {
         <div className="lg:col-span-1 rounded-2xl border border-border-light bg-gradient-to-br from-white via-white to-slate-50 p-6 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
           <div className="flex flex-col items-center text-center gap-4">
             <div className="relative">
-              <img
-                src="https://picsum.photos/seed/user/120/120"
-                alt="Profile"
-                className="h-24 w-24 rounded-full border-4 border-white object-cover shadow-lg"
-              />
+              <div className="h-24 w-24 rounded-full border-4 border-white bg-slate-100 text-slate-700 text-2xl font-semibold flex items-center justify-center shadow-lg">
+                {getInitials(formState.fullName || formState.vnFullName || "User")}
+              </div>
               <span className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-emerald-500 ring-2 ring-white" />
             </div>
             <div>
