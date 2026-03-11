@@ -1,11 +1,11 @@
 export enum Page {
   DASHBOARD = "dashboard",
+  ODASHBOARD = "odashboard",
   RESOURCES = "resources",
   PROJECTS = "projects",
   LOGTICKETS = "logtickets",
   OTICKET = "oticket",
   TIMESHEETS = "timesheets",
-  SETTINGS = "settings",
   FORMULACONFIG = "formulaconfig",
   PROFILE = "profile",
 }

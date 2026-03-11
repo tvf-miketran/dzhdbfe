@@ -8,3 +8,4 @@ export * from "./useUserMutations";
 export * from "./useTicketsMutations";
 export * from "./useProjectsMutations";
 export * from "./useLogworksMutations";
+export * from "./useKPIMutations";

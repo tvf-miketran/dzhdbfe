@@ -3,11 +3,11 @@ import { Page } from "./types";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import Dashboard from "./pages/Dashboard";
+import ODashboard from "./pages/ODashboard";
 import Resources from "./pages/Resources";
 import Projects from "./pages/Projects";
 import LogTickets from "./pages/LogTickets";
 import OTicket from "./pages/OTicket";
-import Performance from "./pages/Performance";
 import Logwork from "./pages/Logwork";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
@@ -46,10 +46,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace("#", "");
-      if (hash.startsWith("settings-performance")) {
-        setActivePage(Page.SETTINGS);
-        setCurrentView("performance");
-      } else if (hash.startsWith("timesheets-logwork")) {
+      if (hash.startsWith("timesheets-logwork")) {
         setActivePage(Page.TIMESHEETS);
         setCurrentView("logwork");
       } else if (Object.values(Page).includes(hash as Page)) {
@@ -64,9 +61,6 @@ const App: React.FC = () => {
   }, []);
 
   const renderContent = () => {
-    if (activePage === Page.SETTINGS && currentView === "performance") {
-      return <Performance />;
-    }
     if (activePage === Page.TIMESHEETS && currentView === "logwork") {
       return <Logwork />;
     }
@@ -74,6 +68,8 @@ const App: React.FC = () => {
     switch (activePage) {
       case Page.DASHBOARD:
         return <Dashboard />;
+      case Page.ODASHBOARD:
+        return <ODashboard />;
       case Page.RESOURCES:
         return <Resources />;
       case Page.PROJECTS:
@@ -84,8 +80,6 @@ const App: React.FC = () => {
         return <OTicket />;
       case Page.TIMESHEETS:
         return <Logwork />;
-      case Page.SETTINGS:
-        return <Performance />;
       case Page.FORMULACONFIG:
         return <FormulaConfig />;
       case Page.PROFILE:
