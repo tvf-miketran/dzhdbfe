@@ -34,8 +34,6 @@ export const useLogin = (
   return useMutation({
     mutationFn: authService.login,
     onSuccess: (data) => {
-      console.log("[useLogin] Login response:", data);
-
       // Validate response structure
       if (!data?.user?.access_token) {
         console.error(
@@ -46,10 +44,6 @@ export const useLogin = (
       }
 
       // Store access token and user information
-      console.log(
-        "[useLogin] Storing token:",
-        data.user.access_token.substring(0, 20) + "...",
-      );
       setAuthToken(data.user.access_token);
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("user", JSON.stringify(data.user.user));

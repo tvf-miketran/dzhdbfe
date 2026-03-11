@@ -163,10 +163,6 @@ export const projectsService = {
     id: string,
     payload: AddProjectMembersPayload,
   ): Promise<AddProjectMembersResponse> => {
-    console.log("[ProjectsService] addProjectMembers called");
-    console.log("Project ID:", id);
-    console.log("Payload to send:", JSON.stringify(payload, null, 2));
-    
     // Validate payload has members with role_id
     const hasInvalidMembers = (payload.members || []).some(
       (m) => !m.role_id || m.role_id === undefined || m.role_id === null,

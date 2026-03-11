@@ -61,21 +61,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = useCallback((accessToken: string, userData: User) => {
-    console.log(
-      "[AuthContext] Login called with token:",
-      accessToken?.substring(0, 20) + "...",
-    );
-    console.log("[AuthContext] User data:", userData);
-
     // Store token and user in localStorage
     setAuthToken(accessToken);
     localStorage.setItem("isAuthenticated", "true");
     localStorage.setItem("user", JSON.stringify(userData));
 
     // Verify token was stored
-    const storedToken = localStorage.getItem("access_token");
-    console.log("[AuthContext] Token stored successfully:", !!storedToken);
-
     // Update state
     setToken(accessToken);
     setUser(userData);

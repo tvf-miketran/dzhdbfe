@@ -982,10 +982,6 @@ const Projects: React.FC = () => {
                     // Prevent double submission
                     if (isSubmittingRef.current) return;
 
-                    console.log("[Add Members] Confirm button clicked");
-                    console.log("Project ID:", addMemberProjectId);
-                    console.log("Member Drafts:", memberDrafts);
-
                     // Validate project is selected
                     if (!addMemberProjectId || !addMemberProjectId.trim()) {
                       toast.error("Please select a project", { duration: 5000 });
@@ -1043,12 +1039,6 @@ const Projects: React.FC = () => {
                         }),
                       },
                     };
-
-                    // Log payload for debugging
-                    console.log("=== Add Members Payload ===");
-                    console.log("Project ID:", payload.projectId);
-                    console.log("Members:", JSON.stringify(payload.payload.members, null, 2));
-                    console.log("===========================");
 
                     addProjectMembers(payload, {
                       onSuccess: (data) => {

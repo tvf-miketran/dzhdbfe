@@ -142,11 +142,6 @@ const Resources: React.FC = () => {
       }));
     });
     
-    console.log("[Resources] Generated displayedEmployeeRows:", rows.length, "rows");
-    if (rows.length > 0) {
-      console.log("[Resources] First row sample:", rows[0]);
-    }
-    
     return rows;
   })();
 
@@ -155,45 +150,6 @@ const Resources: React.FC = () => {
 
   // Reset employee password mutation
   const resetPasswordMutation = useResetEmployeePassword();
-
-  // Debug logging
-  useEffect(() => {
-    console.log("[Resources] Component mounted, useEmployees hook initialized");
-    console.log("[Resources] API Base URL:", import.meta.env.VITE_API_BASE_URL);
-    console.log("[Resources] Query params:", {
-      page: currentPage,
-      per_page: perPage,
-      search: debouncedSearch || undefined,
-      status:
-        selectedStatus === "Active"
-          ? true
-          : selectedStatus === "Inactive"
-            ? false
-            : undefined,
-    });
-    console.log(
-      "[Resources] Auth token exists:",
-      !!localStorage.getItem("access_token"),
-    );
-  }, []);
-
-  useEffect(() => {
-    console.log("[Resources] API call state:", {
-      isLoading,
-      isError,
-      hasData: !!employeesData,
-      error: error,
-    });
-    if (employeesData) {
-      console.log("[Resources] Employees data received:", employeesData);
-      console.log("[Resources] First employee projects:", employeesData.data?.items?.[0]?.projects);
-    }
-  }, [isLoading, isError, employeesData, error]);
-
-  useEffect(() => {
-    console.log("[Resources] displayedEmployees:", displayedEmployees);
-    console.log("[Resources] displayedEmployeeRows:", displayedEmployeeRows);
-  }, [displayedEmployees]);
 
   const statuses = ["All", "Active", "Inactive"];
 

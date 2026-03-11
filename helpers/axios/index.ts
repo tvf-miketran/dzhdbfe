@@ -61,22 +61,6 @@ axiosInstance.interceptors.request.use(
     if (config.headers) {
       config.headers["ngrok-skip-browser-warning"] = "true";
     }
-    // Add request timestamp for debugging
-    if (import.meta.env.DEV) {
-      console.log(
-        `[API Request] ${config.method?.toUpperCase()} ${config.url}`,
-        {
-          params: config.params,
-          data: config.data,
-          hasToken: !!token && token !== "undefined" && token !== "null",
-          tokenPreview:
-            token && token !== "undefined" && token !== "null"
-              ? `${token.substring(0, 20)}...`
-              : "No valid token",
-        },
-      );
-    }
-
     return config;
   },
   (error: AxiosError) => {
@@ -91,17 +75,6 @@ axiosInstance.interceptors.request.use(
  */
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
-    // Log successful responses in development
-    if (import.meta.env.DEV) {
-      console.log(
-        `[API Response] ${response.config.method?.toUpperCase()} ${response.config.url}`,
-        {
-          status: response.status,
-          data: response.data,
-        },
-      );
-    }
-
     return response;
   },
   async (error: AxiosError<ApiError>) => {
@@ -195,7 +168,6 @@ export const setAuthToken = (token: string): void => {
     removeAuthToken();
     return;
   }
-  console.log("[setAuthToken] Setting token:", token.substring(0, 20) + "...");
   localStorage.setItem("access_token", token);
 };
 

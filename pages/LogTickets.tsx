@@ -396,18 +396,6 @@ const LogTickets: React.FC = () => {
         month: String(resolvedMonth),
       };
 
-      // Debug log for this entry
-      console.log('Normalized entry:', {
-        ticketId: normalizedEntry.ticketId,
-        projectId: normalizedEntry.projectId,
-        roleId: normalizedEntry.roleId,
-        roleIdLength: normalizedEntry.roleId?.length,
-        ticketTypeId: normalizedEntry.ticketTypeId,
-        ticketStatusId: normalizedEntry.ticketStatusId,
-        originalRoles: entry.roles,
-        originalRoleUuids: entry.roleUuids,
-      });
-
       return normalizedEntry;
     });
 
