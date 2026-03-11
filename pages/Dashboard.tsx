@@ -254,8 +254,8 @@ const Dashboard: React.FC = () => {
               <h3 className="text-lg font-semibold text-slate-900">KPI Trend</h3>
               <p className="text-sm text-slate-600 mt-1">Monthly progress</p>
             </div>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height={256}>
                 <LineChart data={kpiTrendData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="date" stroke="#94a3b8" style={{ fontSize: '12px' }} />
@@ -347,10 +347,10 @@ const Dashboard: React.FC = () => {
                 </tr>
                 <tr className="bg-slate-50 border-b border-slate-200">
                   {['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'].map((w) => (
-                    <>
-                      <th key={`${w}-task`} className="text-center px-3 py-2 font-medium text-blue-600 whitespace-nowrap border-r border-slate-100 text-xs">Task</th>
-                      <th key={`${w}-bug`} className="text-center px-3 py-2 font-medium text-red-500 whitespace-nowrap border-r border-slate-200 text-xs">Bug</th>
-                    </>
+                    <React.Fragment key={w}>
+                      <th className="text-center px-3 py-2 font-medium text-blue-600 whitespace-nowrap border-r border-slate-100 text-xs">Task</th>
+                      <th className="text-center px-3 py-2 font-medium text-red-500 whitespace-nowrap border-r border-slate-200 text-xs">Bug</th>
+                    </React.Fragment>
                   ))}
                 </tr>
               </thead>
