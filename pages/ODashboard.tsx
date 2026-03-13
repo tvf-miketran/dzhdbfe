@@ -135,8 +135,8 @@ const buildFromMemberRows = (rows: any[], selectedMonth: string) => {
     const breakdown = Array.isArray(row.ticket_breakdown) ? row.ticket_breakdown : [];
     const firstWeight = breakdown.length > 0 ? toNumber(breakdown[0]?.role_weight, 1) : 1;
     const memberPoint = toNumber(row.member_contr_point, 0);
-    const eeValue = row.ee ?? row.employee?.ee;
-    const statusValue = row.status ?? row.employee?.status;
+    const eeValue = row.member_performance?.total_ee;
+    const statusValue = row.member_performance?.performance_level;
 
     const roleBuckets: [number, number][] = [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]];
     breakdown.forEach((item: any) => {
@@ -550,28 +550,13 @@ const ODashboard: React.FC = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
-                  <th colSpan={1} className="text-left px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">DATA THÁNG {selectedMonth}</th>
-                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">BA = 0,4</th>
-                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">QA Internal = 0,6</th>
-                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">QA Stand Alone = 0,8</th>
-                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">DEV = 1</th>
-                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">Reviewer = 0,2</th>
+                  <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200"></th>
+                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">BA</th>
+                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">QA Internal</th>
+                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">QA Stand Alone</th>
+                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">DEV</th>
+                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">Reviewer</th>
                   <th colSpan={6} className="px-4 py-2"></th>
-                </tr>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="px-4 py-2 border-r border-slate-200"></th>
-                  {[1, 2, 3, 4, 5].map((w) => (
-                    <React.Fragment key={w}>
-                      <th className="text-center px-3 py-2 font-medium text-slate-700 whitespace-nowrap border-r border-slate-100">1</th>
-                      <th className="text-center px-3 py-2 font-medium text-slate-700 whitespace-nowrap border-r border-slate-200">0.5</th>
-                    </React.Fragment>
-                  ))}
-                  <th className="px-4 py-2 border-r border-slate-200"></th>
-                  <th className="px-4 py-2 border-r border-slate-200"></th>
-                  <th className="px-4 py-2 border-r border-slate-200"></th>
-                  <th className="px-4 py-2 border-r border-slate-200"></th>
-                  <th className="px-4 py-2 border-r border-slate-200"></th>
-                  <th className="px-4 py-2"></th>
                 </tr>
                 <tr className="bg-slate-50 border-b border-slate-200">
                   <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">Member's Name</th>
