@@ -173,8 +173,8 @@ const Dashboard: React.FC = () => {
         logwork: logworkPoint,
         member: memberPoint,
         billable: toNumber(personalRow.billable_point, 0),
-        ee: personalRow?.ee ? String(personalRow.ee) : '-',
-        status: personalRow?.status ? String(personalRow.status) : '-',
+        ee: personalRow?.member_performance?.total_ee ? String(personalRow.member_performance.total_ee) : '-',
+        status: personalRow?.member_performance?.performance_level ? String(personalRow.member_performance.performance_level) : '-',
       });
 
       setMonthTicketCount(toNumber(personalRow.task_count, 0) + toNumber(personalRow.bug_count, 0));
@@ -477,28 +477,13 @@ const Dashboard: React.FC = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
-                  <th colSpan={1} className="text-left px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">DATA THÁNG {selectedMonth}</th>
-                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">BA = 0,4</th>
-                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">QA Internal = 0,6</th>
-                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">QA Stand Alone = 0,8</th>
-                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">DEV = 1</th>
-                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">Reviewer = 0,2</th>
+                  <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200"></th>
+                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">BA</th>
+                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">QA Internal</th>
+                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">QA Stand Alone</th>
+                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">DEV</th>
+                  <th colSpan={2} className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200">Reviewer</th>
                   <th colSpan={6} className="px-4 py-2"></th>
-                </tr>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="px-4 py-2 border-r border-slate-200"></th>
-                  {[1, 2, 3, 4, 5].map((w) => (
-                    <React.Fragment key={w}>
-                      <th className="text-center px-3 py-2 font-medium text-slate-700 whitespace-nowrap border-r border-slate-100">1</th>
-                      <th className="text-center px-3 py-2 font-medium text-slate-700 whitespace-nowrap border-r border-slate-200">0.5</th>
-                    </React.Fragment>
-                  ))}
-                  <th className="px-4 py-2 border-r border-slate-200"></th>
-                  <th className="px-4 py-2 border-r border-slate-200"></th>
-                  <th className="px-4 py-2 border-r border-slate-200"></th>
-                  <th className="px-4 py-2 border-r border-slate-200"></th>
-                  <th className="px-4 py-2 border-r border-slate-200"></th>
-                  <th className="px-4 py-2"></th>
                 </tr>
                 <tr className="bg-slate-50 border-b border-slate-200">
                   <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">Member's Name</th>
