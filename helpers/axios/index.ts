@@ -21,6 +21,7 @@ import {
  */
 export interface ApiError {
   message: string;
+  msg?: string;
   statusCode?: number;
   code?: string;
   details?: unknown;
