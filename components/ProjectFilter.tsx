@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useAllProjects } from "../hooks/queries/useProjectsQueries";
-import type { ProjectItem } from "../types";
+import type { ProjectItem } from "../types/index";
 
 interface ProjectFilterProps {
   /** Currently selected project id, or "All" */

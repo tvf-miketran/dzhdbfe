@@ -5,7 +5,7 @@
 
 import axiosInstance from "../helpers/axios";
 import { ENDPOINTS } from "../config/api";
-import { BaseApiResponse, Ticket, TicketEntry } from "../types";
+import { BaseApiResponse, Ticket, TicketEntry } from "../types/index";
 
 export interface CreateTicketData {
   title: string;

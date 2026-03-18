@@ -1,4 +1,4 @@
-import type { BaseApiResponse } from "../types";
+import type { BaseApiResponse } from "../types/index";
 
 export interface FormulaResultRow {
   billable_point?: number;

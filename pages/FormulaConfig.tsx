@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axiosInstance from "../helpers/axios";
-import type { BaseApiResponse } from "../types";
+import type { BaseApiResponse } from "../types/index";
 
 interface ApiResponse extends BaseApiResponse<{
   dynamic_variables: Record<string, string>;

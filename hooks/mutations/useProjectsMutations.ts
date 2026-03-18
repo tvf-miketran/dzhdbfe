@@ -19,7 +19,7 @@ import type {
   UpdateProjectResponse,
   CreateBankPayload,
   CreateBankResponse,
-} from "../../types";
+} from "../../types/index";
 import { queryKeys } from "../queries";
 
 /**

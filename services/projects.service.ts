@@ -17,7 +17,7 @@ import type {
   CreateProjectResponse,
   UpdateProjectPayload,
   UpdateProjectResponse,
-} from "../types";
+} from "../types/index";
 
 export interface Project {
   id: string;

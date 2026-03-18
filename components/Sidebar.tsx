@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Page } from '../types';
+import { Page } from '../types/index';
 import axiosInstance from '../helpers/axios';
 
 interface SidebarProps {

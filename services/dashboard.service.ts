@@ -5,7 +5,7 @@
 
 import axiosInstance from "../helpers/axios";
 import { ENDPOINTS } from "../config/api";
-import { MetricCardProps } from "../types";
+import { MetricCardProps } from "../types/index";
 
 export interface DashboardMetrics {
   totalProjects: number;

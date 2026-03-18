@@ -5,7 +5,7 @@
 
 import axiosInstance from "../helpers/axios";
 import { ENDPOINTS } from "../config/api";
-import type { BaseApiResponse, EmployeesResponse } from "../types";
+import type { BaseApiResponse, EmployeesResponse } from "../types/index";
 
 export interface UserProfile {
   id: string;
@@ -139,7 +139,7 @@ export const userService = {
     vnFullName: string;
     enFullName: string;
     email: string;
-    employeeId: string;
+    employeeId?: string | null;
     password: string;
     description?: string;
     authorizeRole?: "MEMBER" | "ADMIN";

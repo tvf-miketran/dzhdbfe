@@ -7,7 +7,7 @@ import {
   useResetEmployeePassword,
 } from "../hooks/mutations/useUserMutations";
 import { useAuth } from "../context/AuthContext";
-import type { Employee, EmployeeProject } from "../types";
+import type { Employee, EmployeeProject } from "../types/index";
 import CreateEmployeeModal from "../components/modal/CreateEmployeeModal";
 import EditEmployeeModal from "../components/modal/EditEmployeeModal";
 import UserDetailModal from "../components/modal/UserDetailModal";

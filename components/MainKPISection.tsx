@@ -1,5 +1,5 @@
 import React, { useId } from "react";
-import type { KPIData } from "../types";
+import type { KPIData } from "../types/index";
 
 export type MainKPIData = KPIData;
 

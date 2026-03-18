@@ -16,7 +16,7 @@ import {
   BulkCreateTicketsPayload,
   BulkCreateTicketsResponse,
 } from "../../services";
-import { Ticket, TicketEntry } from "../../types";
+import { Ticket, TicketEntry } from "../../types/index";
 import { queryKeys } from "../queries";
 
 /**

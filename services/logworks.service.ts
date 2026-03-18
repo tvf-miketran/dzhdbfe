@@ -5,7 +5,7 @@
 
 import axiosInstance from "../helpers/axios";
 import { ENDPOINTS } from "../config/api";
-import type { BaseApiResponse } from "../types";
+import type { BaseApiResponse } from "../types/index";
 
 export interface Logwork {
   id: string;

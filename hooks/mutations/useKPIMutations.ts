@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import axiosInstance from '../../helpers/axios';
-import type { BaseApiResponse } from '../../types';
+import type { BaseApiResponse } from '../../types/index';
 
 interface CalculateKPIResponse
   extends BaseApiResponse<{

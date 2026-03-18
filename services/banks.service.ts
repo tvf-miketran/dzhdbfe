@@ -5,7 +5,7 @@
 
 import axiosInstance from "../helpers/axios";
 import { ENDPOINTS } from "../config/api";
-import type { BanksResponse, CreateBankPayload, CreateBankResponse } from "../types";
+import type { BanksResponse, CreateBankPayload, CreateBankResponse } from "../types/index";
 
 export const banksService = {
   /**

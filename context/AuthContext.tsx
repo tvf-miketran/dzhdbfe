@@ -12,7 +12,7 @@ import React, {
   ReactNode,
 } from "react";
 import { getAuthToken, removeAuthToken, setAuthToken } from "../helpers/axios";
-import { User } from "../types";
+import { User } from "../types/index";
 import axiosInstance from "../helpers/axios";
 import { ENDPOINTS } from "../config/api";
 

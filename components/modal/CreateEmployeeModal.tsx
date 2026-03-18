@@ -239,7 +239,9 @@ const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
                   id="password"
                   type="password"
                   value={formData.password}
-                  onChange={(e) => handleInputChange("password", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("password", e.target.value)
+                  }
                   disabled={isSubmitting}
                   className={`w-full h-11 px-4 rounded-lg border bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                     formErrors.password

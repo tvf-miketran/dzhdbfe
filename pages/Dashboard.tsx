@@ -29,7 +29,7 @@ import {
   normalizeMonthValue,
   toNumber,
 } from "../utils/dashboardShared";
-import type { KPIData, PersonalContributionRow } from "../types";
+import type { KPIData, PersonalContributionRow } from "../types/index";
 
 const monthOptions = buildRecentMonthOptions();
 

@@ -32,7 +32,7 @@ import {
   normalizeMonthValue,
   toNumber,
 } from "../utils/dashboardShared";
-import type { ContributionRow, KPIData, TeamData, TrendData } from "../types";
+import type { ContributionRow, KPIData, TeamData, TrendData } from "../types/index";
 
 const DEFAULT_KPI: KPIData = {
   standardKPI: 8.5,

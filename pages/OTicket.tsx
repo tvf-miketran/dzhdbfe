@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TicketEntry } from '../types';
+import { TicketEntry } from '../types/index';
 import FilterDialog from '../components/FilterDialog';
 import { useTicketTypes, useTicketStatuses } from '../hooks/queries/useTicketsQueries';
 import { ticketsService, type TicketsListResponse } from '../services/tickets.service';
