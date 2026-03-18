@@ -1,4 +1,4 @@
-import { MetricCardProps, Ticket, TicketEntry } from '../types';
+import { MetricCardProps, Ticket, TicketEntry } from '../types/index';
 
 type ProjectStatus = 'Active' | 'On Hold' | 'Completed';
 
@@ -60,6 +60,6 @@ export const TICKET_TYPES_MOCK: string[] = ['Bug Fix', 'Feature', 'Refactor', 'H
 export const ROLES_MOCK: string[] = ['Senior Dev', 'Junior Dev', 'QA Lead', 'UX Designer', 'Team Lead'];
 
 export const TICKET_ENTRIES_MOCK: TicketEntry[] = [
-  { id: '1', ticketId: 'ODC-120', projectName: 'Alpha Banking Portal', type: 'Feature', role: 'Senior Dev', status: 'InQA', timestamp: '2023-10-01' },
-  { id: '2', ticketId: 'ODC-341', projectName: 'Mobile App Refresh', type: 'Bug Fix', role: 'QA Lead', status: 'Closed', timestamp: '2023-10-02' },
+  { id: '1', ticketId: 'ODC-120', projectName: 'Alpha Banking Portal', type: 'Feature', roles: ['Senior Dev'], status: 'InQA', timestamp: '2023-10-01' },
+  { id: '2', ticketId: 'ODC-341', projectName: 'Mobile App Refresh', type: 'Bug Fix', roles: ['QA Lead'], status: 'Closed', timestamp: '2023-10-02' },
 ];

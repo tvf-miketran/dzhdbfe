@@ -12,7 +12,7 @@ import {
   TicketStatusOption,
   WeekOption,
 } from "../../services";
-import { Ticket, TicketEntry } from "../../types";
+import { Ticket, TicketEntry } from "../../types/index";
 import { queryKeys } from "./queryKeys";
 
 /**

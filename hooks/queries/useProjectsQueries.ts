@@ -18,7 +18,7 @@ import type {
   ProjectDetailResponse,
   BanksResponse,
   ProjectRoleOption,
-} from "../../types";
+} from "../../types/index";
 
 /**
  * Hook to fetch all banks for dropdown selection

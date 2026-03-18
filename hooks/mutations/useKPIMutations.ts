@@ -1,9 +1,10 @@
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import axiosInstance from '../../helpers/axios';
+import type { BaseApiResponse } from '../../types/index';
 
-interface CalculateKPIResponse {
-  data: {
+interface CalculateKPIResponse
+  extends BaseApiResponse<{
     standardKPI: number;
     currentKPI: number;
     lastCalculated: string;
@@ -12,10 +13,7 @@ interface CalculateKPIResponse {
       logwork: number;
       quality: number;
     };
-  };
-  message: string;
-  success: boolean;
-}
+  }> {}
 
 interface CalculateKPIRequest {
   viewType: 'personal' | 'odc'; // personal or odc-overall

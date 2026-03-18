@@ -10,6 +10,12 @@ export enum Page {
   PROFILE = "profile",
 }
 
+export interface BaseApiResponse<TData = unknown> {
+  data: TData;
+  message: string;
+  success: boolean;
+}
+
 export interface MetricCardProps {
   title: string;
   value: string;
@@ -79,8 +85,8 @@ export interface EmployeesFilters {
   status?: boolean | null;
 }
 
-export interface EmployeesResponse {
-  data: {
+export interface EmployeesResponse
+  extends BaseApiResponse<{
     items: Employee[];
     page: number;
     pages: number;
@@ -89,10 +95,7 @@ export interface EmployeesResponse {
     has_next: boolean;
     has_prev: boolean;
     filters: EmployeesFilters;
-  };
-  message: string;
-  success: boolean;
-}
+  }> {}
 
 export interface User {
   UUID: string;
@@ -118,11 +121,7 @@ export interface ProjectItem {
 }
 
 /** Response from GET /api/projects (full list, no pagination) */
-export interface ProjectsAllResponse {
-  data: ProjectItem[];
-  message: string;
-  success: boolean;
-}
+export interface ProjectsAllResponse extends BaseApiResponse<ProjectItem[]> {}
 
 export interface ProjectsPaginatedFilters {
   bank_id: string;
@@ -141,8 +140,8 @@ export interface ProjectsPaginatedParams {
 }
 
 /** Response from GET /api/projects?page=...&per_page=...&... */
-export interface ProjectsPaginatedResponse {
-  data: {
+export interface ProjectsPaginatedResponse
+  extends BaseApiResponse<{
     filters: ProjectsPaginatedFilters;
     has_next: boolean;
     has_prev: boolean;
@@ -151,10 +150,7 @@ export interface ProjectsPaginatedResponse {
     pages: number;
     per_page: number;
     total: number;
-  };
-  message: string;
-  success: boolean;
-}
+  }> {}
 
 // ─── Project detail with members ─────────────────────────────────────────────
 
@@ -185,11 +181,8 @@ export interface ProjectDetailWithMembers extends ProjectItem {
 }
 
 /** Response from GET /api/projects/:id?include_members=true */
-export interface ProjectDetailResponse {
-  data: ProjectDetailWithMembers;
-  message: string;
-  success: boolean;
-}
+export interface ProjectDetailResponse
+  extends BaseApiResponse<ProjectDetailWithMembers> {}
 
 // ─── Add Project Members ──────────────────────────────────────────────────────
 
@@ -216,14 +209,11 @@ export interface AddProjectMembersResponseItem {
 }
 
 /** Response from POST /api/projects/:id/members */
-export interface AddProjectMembersResponse {
-  data: {
+export interface AddProjectMembersResponse
+  extends BaseApiResponse<{
     count: number;
     members: AddProjectMembersResponseItem[];
-  };
-  message: string;
-  success: boolean;
-}
+  }> {}
 
 export interface ProjectRoleOption {
   id: string;
@@ -245,18 +235,10 @@ export interface CreateBankPayload {
 }
 
 /** Response from POST /api/banks */
-export interface CreateBankResponse {
-  data: BankItem;
-  message: string;
-  success: boolean;
-}
+export interface CreateBankResponse extends BaseApiResponse<BankItem> {}
 
 /** Response from GET /api/banks */
-export interface BanksResponse {
-  data: BankItem[];
-  message: string;
-  success: boolean;
-}
+export interface BanksResponse extends BaseApiResponse<BankItem[]> {}
 
 // ─── Create Project ───────────────────────────────────────────────────────────
 
@@ -274,17 +256,16 @@ export interface CreateProjectPayload {
 }
 
 /** Response from POST /api/projects */
-export interface CreateProjectResponse {
-  data: ProjectItem & {
-    pmName: string;
-    projectId: string;
-    projectLink?: string;
-    startDate?: string;
-    endDate?: string;
-  };
-  message: string;
-  success: boolean;
-}
+export interface CreateProjectResponse
+  extends BaseApiResponse<
+    ProjectItem & {
+      pmName: string;
+      projectId: string;
+      projectLink?: string;
+      startDate?: string;
+      endDate?: string;
+    }
+  > {}
 
 // ─── Update Project ───────────────────────────────────────────────────────────
 
@@ -302,14 +283,13 @@ export interface UpdateProjectPayload {
 }
 
 /** Response from PUT /api/projects/:id */
-export interface UpdateProjectResponse {
-  data: ProjectItem & {
-    pmName?: string;
-    projectId?: string;
-    projectLink?: string;
-    startDate?: string;
-    endDate?: string;
-  };
-  message: string;
-  success: boolean;
-}
+export interface UpdateProjectResponse
+  extends BaseApiResponse<
+    ProjectItem & {
+      pmName?: string;
+      projectId?: string;
+      projectLink?: string;
+      startDate?: string;
+      endDate?: string;
+    }
+  > {}

@@ -30,13 +30,16 @@ const ProjectSelect: React.FC<ProjectSelectProps> = ({
   page = 1,
   perPage = 100,
 }) => {
+  const normalizedSortOrder: "asc" | "desc" =
+    sortOrder === "desc" ? "desc" : "asc";
+
   const { data: projectsData, isLoading } = useProjectsPaginated({
     page,
     per_page: perPage,
     bank_id: bankId,
     search,
     sort_by: sortBy,
-    sort_order: sortOrder,
+    sort_order: normalizedSortOrder,
   });
 
   const projects = projectsData?.data?.items ?? [];

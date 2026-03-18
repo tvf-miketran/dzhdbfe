@@ -6,7 +6,7 @@
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
 import { userService, UserProfile, UserPreferences } from "../../services";
 import { queryKeys } from "./queryKeys";
-import type { EmployeesResponse } from "../../types";
+import type { EmployeesResponse } from "../../types/index";
 
 /**
  * Hook to fetch user profile

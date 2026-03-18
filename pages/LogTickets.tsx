@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { TicketEntry } from '../types';
+import { TicketEntry } from '../types/index';
 import toast from 'react-hot-toast';
 import ProjectSelect from '../components/ProjectSelect';
 import { useAllProjects, useProjectRoles } from '../hooks/queries/useProjectsQueries';

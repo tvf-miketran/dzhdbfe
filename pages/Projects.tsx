@@ -10,7 +10,7 @@ import {
 import { useEmployees } from "../hooks/queries/useUserQueries";
 import { useAddProjectMembers, useCreateBank } from "../hooks/mutations/useProjectsMutations";
 import { useAuth } from "../context/AuthContext";
-import type { ProjectItem, Employee } from "../types";
+import type { ProjectItem, Employee } from "../types/index";
 import { Pagination } from "../components/pagination";
 import { CreateProjectModal, EditProjectModal } from "../components/modal";
 

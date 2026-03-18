@@ -5,7 +5,7 @@
 
 import axiosInstance from "../helpers/axios";
 import { ENDPOINTS } from "../config/api";
-import { Ticket, TicketEntry } from "../types";
+import { BaseApiResponse, Ticket, TicketEntry } from "../types/index";
 
 export interface CreateTicketData {
   title: string;
@@ -81,11 +81,8 @@ export interface TicketsListData {
   total: number;
 }
 
-export interface TicketsListResponse {
-  data: TicketsListData;
-  message: string;
-  success: boolean;
-}
+export interface TicketsListResponse
+  extends BaseApiResponse<TicketsListData> {}
 
 export interface CreateTicketEntryData {
   ticketId: string;
@@ -134,8 +131,8 @@ export interface BulkTicketItem {
   updatedAt: string;
 }
 
-export interface BulkCreateTicketsResponse {
-  data: {
+export interface BulkCreateTicketsResponse
+  extends BaseApiResponse<{
     created: BulkTicketItem[];
     existing: Array<{
       ticketId: string;
@@ -143,10 +140,7 @@ export interface BulkCreateTicketsResponse {
     }>;
     total_created: number;
     total_existing: number;
-  };
-  message: string;
-  success: boolean;
-}
+  }> {}
 
 /**
  * Tickets Service - Raw async API calls
