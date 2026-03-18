@@ -5,6 +5,7 @@
 
 import axiosInstance from "../helpers/axios";
 import { ENDPOINTS } from "../config/api";
+import type { BaseApiResponse } from "../types";
 
 export interface Logwork {
   id: string;
@@ -17,11 +18,7 @@ export interface Logwork {
   updatedAt: string;
 }
 
-export interface LogworksResponse {
-  data: Logwork[];
-  message: string;
-  success: boolean;
-}
+export interface LogworksResponse extends BaseApiResponse<Logwork[]> {}
 
 export interface LogworksFilters {
   /** Comma-separated month numbers, e.g. "1,2,3" – built from a number[] by the hook */
@@ -44,11 +41,7 @@ export interface SaveLogworksPayload {
   logworks: LogworkUpsertItem[];
 }
 
-export interface SaveLogworksResponse {
-  data: Logwork[];
-  message: string;
-  success: boolean;
-}
+export interface SaveLogworksResponse extends BaseApiResponse<Logwork[]> {}
 
 /**
  * Logworks Service - Raw async API calls

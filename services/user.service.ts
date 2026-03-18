@@ -5,7 +5,7 @@
 
 import axiosInstance from "../helpers/axios";
 import { ENDPOINTS } from "../config/api";
-import type { EmployeesResponse } from "../types";
+import type { BaseApiResponse, EmployeesResponse } from "../types";
 
 export interface UserProfile {
   id: string;
@@ -144,8 +144,8 @@ export const userService = {
     description?: string;
     authorizeRole?: "MEMBER" | "ADMIN";
     status?: boolean;
-  }): Promise<{
-    data: {
+  }): Promise<
+    BaseApiResponse<{
       id: string;
       employeeId: string;
       email: string;
@@ -155,10 +155,8 @@ export const userService = {
       status: boolean;
       description?: string;
       createdAt: string;
-    };
-    message: string;
-    success: boolean;
-  }> => {
+    }>
+  > => {
     const response = await axiosInstance.post(ENDPOINTS.EMPLOYEES.CREATE, data);
     return response.data;
   },
@@ -168,8 +166,8 @@ export const userService = {
    */
   getEmployee: async (
     id: string,
-  ): Promise<{
-    data: {
+  ): Promise<
+    BaseApiResponse<{
       authorizeRole: "ADMIN" | "MEMBER";
       createdAt: string;
       description?: string;
@@ -180,10 +178,8 @@ export const userService = {
       status: boolean;
       updatedAt: string;
       vnFullName: string;
-    };
-    message: string;
-    success: boolean;
-  }> => {
+    }>
+  > => {
     const response = await axiosInstance.get(ENDPOINTS.EMPLOYEES.GET(id));
     return response.data;
   },
@@ -202,8 +198,8 @@ export const userService = {
       authorizeRole?: "MEMBER" | "ADMIN";
       status?: boolean;
     },
-  ): Promise<{
-    data: {
+  ): Promise<
+    BaseApiResponse<{
       authorizeRole: "ADMIN" | "MEMBER";
       description?: string;
       email: string;
@@ -213,10 +209,8 @@ export const userService = {
       status: boolean;
       updatedAt: string;
       vnFullName: string;
-    };
-    message: string;
-    success: boolean;
-  }> => {
+    }>
+  > => {
     const response = await axiosInstance.put(
       ENDPOINTS.EMPLOYEES.UPDATE(id),
       data,
@@ -229,11 +223,7 @@ export const userService = {
    */
   resetEmployeePassword: async (
     employeeId: string,
-  ): Promise<{
-    data: null;
-    message: string;
-    success: boolean;
-  }> => {
+  ): Promise<BaseApiResponse<null>> => {
     const response = await axiosInstance.post(
       ENDPOINTS.EMPLOYEES.RESET_PASSWORD,
       { employeeId },
@@ -246,8 +236,8 @@ export const userService = {
    */
   toggleEmployeeStatus: async (
     id: string,
-  ): Promise<{
-    data: {
+  ): Promise<
+    BaseApiResponse<{
       authorizeRole: "ADMIN" | "MEMBER";
       description?: string;
       email: string;
@@ -257,10 +247,8 @@ export const userService = {
       status: boolean;
       updatedAt: string;
       vnFullName: string;
-    };
-    message: string;
-    success: boolean;
-  }> => {
+    }>
+  > => {
     const response = await axiosInstance.patch(
       ENDPOINTS.EMPLOYEES.TOGGLE_STATUS(id),
     );

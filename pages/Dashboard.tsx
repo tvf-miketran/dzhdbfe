@@ -13,118 +13,33 @@ import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import axiosInstance from "../helpers/axios";
 import MultiSelectDropdown from "../components/MultiSelectDropdown";
-import type { MultiSelectOption } from "../components/MultiSelectDropdown";
+import MainKPISection from "../components/MainKPISection";
+import {
+  extractFormulaAggregateFromResponse,
+  extractFormulaRowsFromResponse,
+  type FormulaAggregateData,
+  type FormulaResultRow,
+} from "../mappers";
+import {
+  buildMonthRequestCandidates,
+  buildRecentMonthOptions,
+  getCurrentMonth,
+  getInitials,
+  getRoleColumnIndex,
+  normalizeMonthValue,
+  toNumber,
+} from "../utils/dashboardShared";
+import type { KPIData, PersonalContributionRow } from "../types";
 
-interface KPIData {
-  standardKPI: number;
-  currentKPI: number;
-  lastCalculated?: string;
-  breakdown?: {
-    tickets: number;
-    logwork: number;
-    quality: number;
-  };
-}
+const monthOptions = buildRecentMonthOptions();
 
-interface PersonalContributionRow {
-  name: string;
-  weeks: [number, number][];
-  ticket: number;
-  logwork: number;
-  member: number;
-  billable: number;
-  ee: string;
-  status: string;
-}
-
-const getCurrentMonth = (): string =>
-  String(new Date().getMonth() + 1).padStart(2, "0");
-const buildRecentMonthOptions = (
-  monthsBeforeCurrent = 5,
-): MultiSelectOption[] => {
-  const currentMonthNumber = new Date().getMonth() + 1;
-
-  return Array.from({ length: monthsBeforeCurrent + 1 }, (_, index) => {
-    const monthNumber =
-      ((currentMonthNumber - monthsBeforeCurrent + index - 1 + 12 * 10) % 12) +
-      1;
-    const monthValue = String(monthNumber).padStart(2, "0");
-
-    return {
-      value: monthValue,
-      label: monthValue,
-    };
-  });
-};
-
-const monthOptions: MultiSelectOption[] = buildRecentMonthOptions();
-
-const toNumber = (value: unknown, fallback: number): number => {
-  const num = Number(value);
-  return Number.isFinite(num) ? num : fallback;
-};
-
-const getInitials = (fullName: string): string => {
-  const parts = fullName.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "NA";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-};
-
-const getRoleColumnIndex = (roleValue: unknown): number => {
-  const normalizedRole = String(roleValue ?? "")
-    .trim()
-    .toUpperCase()
-    .replace(/[_\s-]+/g, "");
-
-  if (normalizedRole === "BA") return 0;
-  if (normalizedRole === "QAINTERNAL" || normalizedRole === "IQA") return 1;
-  if (normalizedRole === "QASTANDALONE" || normalizedRole === "EQA") return 2;
-  if (normalizedRole === "DEV" || normalizedRole === "DEVELOPER") return 3;
-  if (normalizedRole === "REVIEWER" || normalizedRole === "REVIEW") return 4;
-  return -1;
-};
-
-const normalizeMonthValue = (value: unknown): string | null => {
-  const monthNumber = Number(value);
-  if (!Number.isInteger(monthNumber) || monthNumber < 1 || monthNumber > 12) {
-    return null;
-  }
-  return String(monthNumber).padStart(2, "0");
-};
-
-const buildMonthRequestCandidates = (months: string[]): string[] => {
-  const withLeadingZero = months.join(",");
-  const asNumbers = months
-    .map((month) => String(parseInt(month, 10)))
-    .join(",");
-
-  return Array.from(new Set([withLeadingZero, asNumbers])).filter(Boolean);
-};
-
-const extractRowsFromResponse = (root: any): any[] => {
-  const sources = [
-    root?.data,
-    root?.data?.data,
-    root?.data?.items,
-    root?.result,
-    root?.payload,
-    root,
-  ];
-
-  for (const source of sources) {
-    if (Array.isArray(source)) {
-      return source.filter(Boolean);
-    }
-  }
-
-  for (const source of sources) {
-    if (source && typeof source === "object") {
-      return [source];
-    }
-  }
-
-  return [];
+type TicketBreakdownItem = NonNullable<
+  FormulaResultRow["ticket_breakdown"]
+>[number] & {
+  taskCount?: number;
+  task?: number;
+  bugCount?: number;
+  bug?: number;
 };
 
 const Dashboard: React.FC = () => {
@@ -138,6 +53,7 @@ const Dashboard: React.FC = () => {
   const [personalKPI, setPersonalKPI] = useState<KPIData>({
     standardKPI: 8.5,
     currentKPI: 7.8,
+    totalBillable: 0,
     lastCalculated: "2 hours ago",
     breakdown: {
       tickets: 3.5,
@@ -175,31 +91,37 @@ const Dashboard: React.FC = () => {
     { date: "Jun", personal: 7.8 },
   ]);
 
-  const fetchPersonalRowsByMonths = async (months: string[]) => {
+  const fetchPersonalRowsByMonths = async (
+    months: string[],
+  ): Promise<{
+    rows: FormulaResultRow[];
+    aggregateData: FormulaAggregateData;
+  }> => {
     const monthParamCandidates = buildMonthRequestCandidates(months);
 
     for (const monthParam of monthParamCandidates) {
-      const encodedMonthParam = encodeURIComponent(monthParam);
-      const endpoints = [
-        `/formulas/calculate/${userId}?month=${encodedMonthParam}&latest=false`,
-        `/formulas/calculate/${userId}/month=${encodedMonthParam}&latest=false`,
-      ];
-
-      for (const endpoint of endpoints) {
-        try {
-          const response = await axiosInstance.get(endpoint);
-          const root = response?.data ?? {};
-          const rows = extractRowsFromResponse(root);
-          if (rows.length > 0) {
-            return rows;
-          }
-        } catch (_error) {
-          // try next endpoint format
+      try {
+        const response = await axiosInstance.get(
+          `/formulas/calculate/${userId}`,
+          {
+            params: {
+              month: monthParam,
+              latest: false,
+            },
+          },
+        );
+        const root = response?.data ?? {};
+        const rows = extractFormulaRowsFromResponse(root);
+        const aggregateData = extractFormulaAggregateFromResponse(root);
+        if (rows.length > 0) {
+          return { rows, aggregateData };
         }
+      } catch (_error) {
+        // try next month format candidate
       }
     }
 
-    return [] as any[];
+    return { rows: [], aggregateData: {} };
   };
 
   const fetchDashboardByMonth = async (months: string[]) => {
@@ -234,7 +156,8 @@ const Dashboard: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const personalRows = await fetchPersonalRowsByMonths(normalizedMonths);
+      const { rows: personalRows, aggregateData } =
+        await fetchPersonalRowsByMonths(normalizedMonths);
 
       if (personalRows.length === 0) {
         setPersonalContribution((prev) => ({ ...prev, ee: "-", status: "-" }));
@@ -245,7 +168,7 @@ const Dashboard: React.FC = () => {
         return;
       }
 
-      const monthGroupedRows = new Map<string, any[]>();
+      const monthGroupedRows = new Map<string, FormulaResultRow[]>();
       normalizedMonths.forEach((month) => monthGroupedRows.set(month, []));
 
       personalRows.forEach((row, index) => {
@@ -286,7 +209,11 @@ const Dashboard: React.FC = () => {
             row: rows[rows.length - 1],
           };
         })
-        .filter(Boolean) as Array<{ date: string; personal: number; row: any }>;
+        .filter(Boolean) as Array<{
+        date: string;
+        personal: number;
+        row: FormulaResultRow;
+      }>;
 
       const latestRow =
         trendRows.length > 0
@@ -310,11 +237,22 @@ const Dashboard: React.FC = () => {
         0,
       );
 
+      const normalizedTotalTicketPoint =
+        aggregateData.total_ticket_point ?? totalTicketPoint;
+      const normalizedTotalLogworkPoint =
+        aggregateData.total_logwork_point ?? totalLogworkPoint;
+      const normalizedTotalBillablePoint =
+        aggregateData.total_billable_point ?? totalBillablePoint;
+
       const rowCount = personalRows.length;
-      const avgTicketPoint = rowCount > 0 ? totalTicketPoint / rowCount : 0;
-      const avgLogworkPoint = rowCount > 0 ? totalLogworkPoint / rowCount : 0;
+      const avgTicketPoint =
+        rowCount > 0 ? normalizedTotalTicketPoint / rowCount : 0;
+      const avgLogworkPoint =
+        rowCount > 0 ? normalizedTotalLogworkPoint / rowCount : 0;
       const avgMemberPoint = rowCount > 0 ? totalMemberPoint / rowCount : 0;
-      const avgBillablePoint = rowCount > 0 ? totalBillablePoint / rowCount : 0;
+      const avgBillablePoint =
+        aggregateData.average_billable_point ??
+        (rowCount > 0 ? normalizedTotalBillablePoint / rowCount : 0);
 
       const roleBuckets: [number, number][] = [
         [0, 0],
@@ -333,7 +271,7 @@ const Dashboard: React.FC = () => {
           ? row.ticket_breakdown
           : [];
 
-        ticketBreakdown.forEach((item: any) => {
+        ticketBreakdown.forEach((item: TicketBreakdownItem) => {
           const roleIndex = getRoleColumnIndex(item?.role);
           if (roleIndex < 0) return;
 
@@ -357,13 +295,16 @@ const Dashboard: React.FC = () => {
 
       const kpiData: KPIData = {
         standardKPI: 8.5,
-        currentKPI: avgMemberPoint,
+        currentKPI: avgBillablePoint,
+        totalBillable: normalizedTotalBillablePoint,
         lastCalculated: lastCalculatedLabel,
         breakdown: {
-          tickets: avgTicketPoint,
-          logwork: avgLogworkPoint,
+          tickets: normalizedTotalTicketPoint,
+          logwork: normalizedTotalLogworkPoint,
           quality: Math.max(
-            avgMemberPoint - avgTicketPoint - avgLogworkPoint,
+            avgBillablePoint -
+              normalizedTotalTicketPoint -
+              normalizedTotalLogworkPoint,
             0,
           ),
         },
@@ -391,7 +332,7 @@ const Dashboard: React.FC = () => {
       });
 
       setMonthTicketCount(monthTicketCountValue);
-      setMonthLogworkPoint(totalLogworkPoint);
+      setMonthLogworkPoint(normalizedTotalLogworkPoint);
       setMonthRolesCount(uniqueRoleSet.size);
 
       if (trendRows.length > 0) {
@@ -461,212 +402,12 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Main KPI Section */}
-        <div className="mb-8 rounded-2xl border border-border-light bg-white shadow-lg overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8">
-            {/* Left: KPI Scores */}
-            <div className="flex flex-col justify-between">
-              <div>
-                <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-4">
-                  KPI Score
-                </p>
-                <div className="flex items-center justify-between mb-8">
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-6xl font-bold text-primary">
-                      {personalKPI.currentKPI.toFixed(1)}
-                    </span>
-                    <span className="text-lg font-semibold text-slate-500">
-                      / {personalKPI.standardKPI.toFixed(1)}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-col items-end gap-2">
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-200">
-                      <span className="material-symbols-outlined text-sm text-emerald-600">
-                        trending_up
-                      </span>
-                      <span className="text-sm font-semibold text-emerald-700">
-                        {Math.abs(
-                          personalKPI.currentKPI - personalKPI.standardKPI,
-                        ).toFixed(1)}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500">↑ vs Standard</p>
-                  </div>
-                </div>
-                <p className="text-xs text-slate-400 mb-6">
-                  Last calculated:{" "}
-                  <span className="font-medium text-slate-600">
-                    {personalKPI.lastCalculated}
-                  </span>
-                </p>
-
-                {/* KPI Breakdown */}
-                {personalKPI.breakdown && (
-                  <div className="space-y-3">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">
-                      Breakdown
-                    </p>
-                    <div className="space-y-5">
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-sm font-medium text-slate-600 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-sm text-blue-500">
-                              assignment_turned_in
-                            </span>
-                            Ticket Completion
-                          </span>
-                          <span className="text-sm font-bold text-blue-600">
-                            {personalKPI.breakdown.tickets.toFixed(1)}
-                          </span>
-                        </div>
-                        <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
-                          <div
-                            className="h-2 rounded-full bg-gradient-to-r from-blue-400 to-blue-600"
-                            style={{
-                              width: `${Math.min((personalKPI.breakdown.tickets / personalKPI.standardKPI) * 100, 100)}%`,
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-sm font-medium text-slate-600 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-sm text-purple-500">
-                              schedule
-                            </span>
-                            Logwork Compliance
-                          </span>
-                          <span className="text-sm font-bold text-purple-600">
-                            {personalKPI.breakdown.logwork.toFixed(1)}
-                          </span>
-                        </div>
-                        <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
-                          <div
-                            className="h-2 rounded-full bg-gradient-to-r from-purple-400 to-purple-600"
-                            style={{
-                              width: `${Math.min((personalKPI.breakdown.logwork / personalKPI.standardKPI) * 100, 100)}%`,
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-sm font-medium text-slate-600 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-sm text-emerald-500">
-                              code
-                            </span>
-                            Code Quality
-                          </span>
-                          <span className="text-sm font-bold text-emerald-600">
-                            {personalKPI.breakdown.quality.toFixed(1)}
-                          </span>
-                        </div>
-                        <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
-                          <div
-                            className="h-2 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600"
-                            style={{
-                              width: `${Math.min((personalKPI.breakdown.quality / personalKPI.standardKPI) * 100, 100)}%`,
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Calculate Button */}
-              <div className="mt-10 pt-6 border-t border-slate-200">
-                <button
-                  onClick={() => fetchDashboardByMonth(selectedMonths)}
-                  disabled={isLoading}
-                  className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all duration-200 ${
-                    isLoading
-                      ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                      : "bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20 active:scale-95 hover:shadow-xl hover:shadow-primary/30"
-                  }`}
-                >
-                  <span
-                    className={`material-symbols-outlined ${isLoading ? "animate-spin" : ""}`}
-                  >
-                    calculate
-                  </span>
-                  {isLoading ? "Loading..." : "Refresh Data"}
-                </button>
-              </div>
-            </div>
-
-            {/* Right: KPI Score Gauge */}
-            <div className="flex items-center justify-center">
-              <div className="relative w-56 h-56">
-                <svg className="w-full h-full" viewBox="0 0 36 36">
-                  {/* Background circle */}
-                  <circle
-                    cx="18"
-                    cy="18"
-                    r="15.9155"
-                    fill="none"
-                    stroke="#e2e8f0"
-                    strokeWidth="2.5"
-                  />
-
-                  {/* Progress circle */}
-                  <circle
-                    cx="18"
-                    cy="18"
-                    r="15.9155"
-                    fill="none"
-                    stroke="url(#gradient)"
-                    strokeWidth="2.5"
-                    strokeDasharray={`${(personalKPI.currentKPI / 10) * 100}, 100`}
-                    strokeLinecap="round"
-                    transform="rotate(-90 18 18)"
-                  />
-
-                  {/* Gradient definition */}
-                  <defs>
-                    <linearGradient
-                      id="gradient"
-                      x1="0%"
-                      y1="0%"
-                      x2="100%"
-                      y2="0%"
-                    >
-                      <stop offset="0%" stopColor="#3b82f6" />
-                      <stop offset="100%" stopColor="#8b5cf6" />
-                    </linearGradient>
-                  </defs>
-
-                  {/* Center text */}
-                  <text
-                    x="50%"
-                    y="50%"
-                    textAnchor="middle"
-                    dy="0.3em"
-                    fontSize="10"
-                    fontWeight="700"
-                    fill="#3b82f6"
-                  >
-                    {personalKPI.currentKPI.toFixed(1)}
-                  </text>
-                  <text
-                    x="50%"
-                    y="65%"
-                    textAnchor="middle"
-                    dy="0.3em"
-                    fontSize="4"
-                    fontWeight="500"
-                    fill="#64748b"
-                  >
-                    of {personalKPI.standardKPI.toFixed(1)}
-                  </text>
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
+        <MainKPISection
+          kpi={personalKPI}
+          isLoading={isLoading}
+          onRefresh={() => fetchDashboardByMonth(selectedMonths)}
+          showTotal
+        />
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
