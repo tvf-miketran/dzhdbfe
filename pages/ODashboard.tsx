@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
-import axiosInstance from "../helpers/axios";
+import { formulasService } from "../services";
 import MultiSelectDropdown from "../components/MultiSelectDropdown";
 import MainKPISection from "../components/MainKPISection";
 import {
@@ -32,7 +32,12 @@ import {
   normalizeMonthValue,
   toNumber,
 } from "../utils/dashboardShared";
-import type { ContributionRow, KPIData, TeamData, TrendData } from "../types/index";
+import type {
+  ContributionRow,
+  KPIData,
+  TeamData,
+  TrendData,
+} from "../types/index";
 
 const DEFAULT_KPI: KPIData = {
   standardKPI: 8.5,
@@ -296,12 +301,10 @@ const ODashboard: React.FC = () => {
 
     for (const monthParam of monthParamCandidates) {
       try {
-        const response = await axiosInstance.get("/formulas/calculate", {
-          params: {
+        const root =
+          (await formulasService.getFormulaODC({
             month: monthParam,
-          },
-        });
-        const root = response?.data ?? {};
+          })) ?? {};
         const rows = extractFormulaRowsFromResponse(root);
         const aggregateData = extractFormulaAggregateFromResponse(root);
 

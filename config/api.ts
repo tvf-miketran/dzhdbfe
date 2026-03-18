@@ -134,6 +134,8 @@ export const ENDPOINTS = {
     UPDATE: (id: string) => `/formulas/${id}`,
     DELETE: (id: string) => `/formulas/${id}`,
     VALIDATE: "/formulas/validate",
+    CALCULATE: "/formulas/calculate",
+    CALCULATE_USER: (userId: string) => `/formulas/calculate/${userId}`,
   },
 
   // Logworks endpoints

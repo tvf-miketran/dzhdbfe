@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
-import axiosInstance from "../helpers/axios";
+import { formulasService } from "../services";
 import MultiSelectDropdown from "../components/MultiSelectDropdown";
 import MainKPISection from "../components/MainKPISection";
 import {
@@ -101,16 +101,11 @@ const Dashboard: React.FC = () => {
 
     for (const monthParam of monthParamCandidates) {
       try {
-        const response = await axiosInstance.get(
-          `/formulas/calculate/${userId}`,
-          {
-            params: {
-              month: monthParam,
-              latest: false,
-            },
-          },
-        );
-        const root = response?.data ?? {};
+        const root =
+          (await formulasService.getFormulaByUser(userId, {
+            month: monthParam,
+            latest: false,
+          })) ?? {};
         const rows = extractFormulaRowsFromResponse(root);
         const aggregateData = extractFormulaAggregateFromResponse(root);
         if (rows.length > 0) {
