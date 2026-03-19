@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Page } from '../types/index';
 import axiosInstance from '../helpers/axios';
+import { useAuth } from '../context/AuthContext';
 
 interface SidebarProps {
   activePage: Page;
@@ -21,11 +22,31 @@ const getInitials = (fullName: string): string => {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 };
 
+type SidebarRole = 'ADMIN' | 'MEMBER';
+
+const normalizeRole = (role?: string | null): SidebarRole =>
+  role?.toUpperCase() === 'ADMIN' ? 'ADMIN' : 'MEMBER';
+
 const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onLogout }) => {
+  const { user } = useAuth();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [employeeName, setEmployeeName] = useState('');
   const [employeeRole, setEmployeeRole] = useState('');
   const [employeeLoading, setEmployeeLoading] = useState(false);
+
+  const roleFromStorage = (() => {
+    const raw = localStorage.getItem('user');
+    if (!raw) return undefined;
+
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed?.authorize_role as string | undefined;
+    } catch {
+      return undefined;
+    }
+  })();
+
+  const currentRole = normalizeRole(user?.authorize_role ?? roleFromStorage ?? employeeRole);
 
   useEffect(() => {
     const fetchEmployeeInfo = async () => {
@@ -66,7 +87,23 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onLogout }) =
     { id: Page.LOGTICKETS, label: 'Log Tickets', icon: 'description' },
     { id: Page.OTICKET, label: 'OTicket', icon: 'assignment' },
     { id: Page.TIMESHEETS, label: 'Logworks', icon: 'schedule' },
-  ];
+  ].filter((item) => {
+    if (currentRole === 'ADMIN') {
+      return item.id !== Page.DASHBOARD;
+    }
+
+    return item.id !== Page.ODASHBOARD && item.id !== Page.OTICKET;
+  });
+
+  useEffect(() => {
+    const hiddenPage = currentRole === 'ADMIN' ? Page.DASHBOARD : Page.ODASHBOARD;
+
+    if (activePage === hiddenPage) {
+      const defaultPage = currentRole === 'ADMIN' ? Page.ODASHBOARD : Page.DASHBOARD;
+      onNavigate(defaultPage);
+      window.location.hash = defaultPage;
+    }
+  }, [activePage, currentRole, onNavigate]);
 
   return (
     <div className="hidden lg:flex w-64 flex-col justify-between border-r border-border-light bg-background-light p-4 shrink-0 h-full">
@@ -102,19 +139,21 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onLogout }) =
           ))}
         </nav>
 
-        <div>
-          <p className="text-[10px] font-light text-slate-400 uppercase tracking-widest px-3 mb-2">System Settings</p>
-          <button
-            onClick={() => { onNavigate(Page.FORMULACONFIG); window.location.hash = Page.FORMULACONFIG; }}
-            className={`w-full group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all ${activePage === Page.FORMULACONFIG
-              ? 'bg-primary/10 text-primary border border-primary/20'
-              : 'text-slate-600 hover:bg-surface-dark hover:text-slate-900'
-              }`}
-          >
-            <span className="material-symbols-outlined">functions</span>
-            <p className="text-sm font-medium">Formula Config</p>
-          </button>
-        </div>
+        {currentRole === 'ADMIN' && (
+          <div>
+            <p className="text-[10px] font-light text-slate-400 uppercase tracking-widest px-3 mb-2">System Settings</p>
+            <button
+              onClick={() => { onNavigate(Page.FORMULACONFIG); window.location.hash = Page.FORMULACONFIG; }}
+              className={`w-full group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all ${activePage === Page.FORMULACONFIG
+                ? 'bg-primary/10 text-primary border border-primary/20'
+                : 'text-slate-600 hover:bg-surface-dark hover:text-slate-900'
+                }`}
+            >
+              <span className="material-symbols-outlined">functions</span>
+              <p className="text-sm font-medium">Formula Config</p>
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-4">

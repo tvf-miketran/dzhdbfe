@@ -3,9 +3,10 @@ import { useLogin } from "../hooks";
 import { useAuth } from "../context/AuthContext";
 import { ApiError } from "../helpers/axios";
 import toast from "react-hot-toast";
+import { User } from "../types";
 
 interface LoginProps {
-  onLogin: () => void;
+  onLogin: (user: User) => void;
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
@@ -22,8 +23,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       // Store token and user in auth context
       login(data.user.access_token, data.user.user);
 
-      // Redirect to dashboard
-      onLogin();
+      // Redirect by role
+      onLogin(data.user.user);
     },
     onError: (error: ApiError) => {
       // Show error toast with message from API response
