@@ -14,10 +14,34 @@ import Login from "./pages/Login";
 import FormulaConfig from "./pages/FormulaConfig";
 import { useAuth } from "./context/AuthContext";
 import { Toaster } from "react-hot-toast";
+import { User } from "./types";
+
+type AppRole = "ADMIN" | "MEMBER";
+
+const normalizeRole = (role?: string | null): AppRole =>
+  role?.toUpperCase() === "ADMIN" ? "ADMIN" : "MEMBER";
+
+const getDefaultPageByRole = (role?: string | null): Page =>
+  normalizeRole(role) === "ADMIN" ? Page.ODASHBOARD : Page.DASHBOARD;
+
+const getStoredRole = (): AppRole => {
+  const storedUserRaw = localStorage.getItem("user");
+
+  if (!storedUserRaw) return "MEMBER";
+
+  try {
+    const storedUser = JSON.parse(storedUserRaw);
+    return normalizeRole(storedUser?.authorize_role);
+  } catch {
+    return "MEMBER";
+  }
+};
 
 const App: React.FC = () => {
-  const { isAuthenticated, logout: authLogout, checkAuth } = useAuth();
-  const [activePage, setActivePage] = useState<Page>(Page.DASHBOARD);
+  const { isAuthenticated, logout: authLogout, checkAuth, user } = useAuth();
+  const [activePage, setActivePage] = useState<Page>(() =>
+    getDefaultPageByRole(getStoredRole()),
+  );
   const [currentView, setCurrentView] = useState<string>("default"); // 'default', 'performance', 'logwork'
 
   // Check authentication status on mount
@@ -26,14 +50,16 @@ const App: React.FC = () => {
   }, [checkAuth]);
 
   // Handle login
-  const handleLogin = () => {
+  const handleLogin = (loggedInUser: User) => {
     // Auth context handles token storage
     checkAuth();
-    // Reset to dashboard on login
-    setActivePage(Page.DASHBOARD);
+
+    const defaultPage = getDefaultPageByRole(loggedInUser?.authorize_role);
+
+    // Redirect to role-based default page on login
+    setActivePage(defaultPage);
     setCurrentView("default");
-    // Clear any hash in URL
-    window.location.hash = "";
+    window.location.hash = defaultPage;
   };
 
   // Handle logout
@@ -46,6 +72,22 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace("#", "");
+      const currentRole = normalizeRole(user?.authorize_role ?? getStoredRole());
+
+      if (hash === Page.ODASHBOARD && currentRole !== "ADMIN") {
+        setActivePage(Page.DASHBOARD);
+        setCurrentView("default");
+        window.location.hash = Page.DASHBOARD;
+        return;
+      }
+
+      if (hash === Page.DASHBOARD && currentRole === "ADMIN") {
+        setActivePage(Page.ODASHBOARD);
+        setCurrentView("default");
+        window.location.hash = Page.ODASHBOARD;
+        return;
+      }
+
       if (hash.startsWith("timesheets-logwork")) {
         setActivePage(Page.TIMESHEETS);
         setCurrentView("logwork");
@@ -58,7 +100,21 @@ const App: React.FC = () => {
     window.addEventListener("hashchange", handleHashChange);
     handleHashChange();
     return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
+  }, [user]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const currentRole = normalizeRole(user?.authorize_role ?? getStoredRole());
+    const hiddenPage = currentRole === "ADMIN" ? Page.DASHBOARD : Page.ODASHBOARD;
+
+    if (activePage === hiddenPage) {
+      const defaultPage = getDefaultPageByRole(currentRole);
+      setActivePage(defaultPage);
+      setCurrentView("default");
+      window.location.hash = defaultPage;
+    }
+  }, [isAuthenticated, user, activePage]);
 
   const renderContent = () => {
     if (activePage === Page.TIMESHEETS && currentView === "logwork") {
