@@ -20,8 +20,8 @@ import ProjectFilter from "../components/ProjectFilter";
 
 const Resources: React.FC = () => {
   const { user } = useAuth();
-  const isMember = user?.authorize_role === "MEMBER";
-  
+  const isMember = (user?.authorize_role ?? "").toUpperCase() !== "ADMIN";
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editEmployeeId, setEditEmployeeId] = useState<string | null>(null);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -35,7 +35,9 @@ const Resources: React.FC = () => {
     name: string;
   }>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
+    null,
+  );
 
   // Pagination and filters from API
   const [currentPage, setCurrentPage] = useState(1);
@@ -131,7 +133,10 @@ const Resources: React.FC = () => {
   }> = (() => {
     const rows = displayedEmployees.flatMap((employee) => {
       // Check if employee has valid projects
-      const hasProjects = employee.projects && Array.isArray(employee.projects) && employee.projects.length > 0;
+      const hasProjects =
+        employee.projects &&
+        Array.isArray(employee.projects) &&
+        employee.projects.length > 0;
       const projects = hasProjects ? employee.projects : [null];
 
       return projects.map((project, index) => ({
@@ -141,7 +146,7 @@ const Resources: React.FC = () => {
         rowSpan: projects.length,
       }));
     });
-    
+
     return rows;
   })();
 
@@ -353,131 +358,152 @@ const Resources: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-light">
-                  {displayedEmployeeRows.map(({ employee, project, isFirst, rowSpan }, index) => (
-                    <tr
-                      key={`${employee.id}-${project?.projectId ?? "no-project"}-${project?.roleId ?? "no-role"}-${index}`}
-                      onClick={() => {
-                        setSelectedEmployee(employee);
-                        setIsDetailModalOpen(true);
-                      }}
-                      className="hover:bg-slate-50 transition-colors group cursor-pointer"
-                    >
-                      {isFirst && (
-                        <td rowSpan={rowSpan} className="py-4 px-6 text-left align-middle">
-                          <div>
-                            <div className="font-semibold text-slate-900 text-sm">
-                              {employee.enFullName}
+                  {displayedEmployeeRows.map(
+                    ({ employee, project, isFirst, rowSpan }, index) => (
+                      <tr
+                        key={`${employee.id}-${project?.projectId ?? "no-project"}-${project?.roleId ?? "no-role"}-${index}`}
+                        onClick={() => {
+                          setSelectedEmployee(employee);
+                          setIsDetailModalOpen(true);
+                        }}
+                        className="hover:bg-slate-50 transition-colors group cursor-pointer"
+                      >
+                        {isFirst && (
+                          <td
+                            rowSpan={rowSpan}
+                            className="py-4 px-6 text-left align-middle"
+                          >
+                            <div>
+                              <div className="font-semibold text-slate-900 text-sm">
+                                {employee.enFullName}
+                              </div>
+                              <div className="text-xs text-slate-500">
+                                {employee.vnFullName}
+                              </div>
                             </div>
-                            <div className="text-xs text-slate-500">
-                              {employee.vnFullName}
-                            </div>
+                          </td>
+                        )}
+                        {isFirst && (
+                          <td
+                            rowSpan={rowSpan}
+                            className="py-4 px-6 text-left align-middle"
+                          >
+                            <span className="text-sm text-slate-900">
+                              {employee.email}
+                            </span>
+                          </td>
+                        )}
+                        <td className="py-4 px-6 text-left">
+                          <div className="text-sm text-slate-900">
+                            {project?.projectName ? (
+                              project.projectName
+                            ) : (
+                              <span className="text-slate-400 italic">
+                                No project
+                              </span>
+                            )}
                           </div>
                         </td>
-                      )}
-                      {isFirst && (
-                        <td rowSpan={rowSpan} className="py-4 px-6 text-left align-middle">
-                          <span className="text-sm text-slate-900">
-                            {employee.email}
-                          </span>
+                        <td className="py-4 px-6 text-left">
+                          <div className="text-sm text-slate-900">
+                            {project?.roleName ? (
+                              project.roleName
+                            ) : (
+                              <span className="text-slate-400 italic">—</span>
+                            )}
+                          </div>
                         </td>
-                      )}
-                      <td className="py-4 px-6 text-left">
-                        <div className="text-sm text-slate-900">
-                          {project?.projectName ? project.projectName : (
-                            <span className="text-slate-400 italic">No project</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-4 px-6 text-left">
-                        <div className="text-sm text-slate-900">
-                          {project?.roleName ? project.roleName : (
-                            <span className="text-slate-400 italic">—</span>
-                          )}
-                        </div>
-                      </td>
-                      {isFirst && (
-                        <td rowSpan={rowSpan} className="py-4 px-6 text-center align-middle">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold ${
-                              employee.authorizeRole === "ADMIN"
-                                ? "bg-purple-100 text-purple-700 border border-purple-200"
-                                : "bg-blue-100 text-blue-700 border border-blue-200"
-                            }`}
-                          >
-                            {employee.authorizeRole}
-                          </span>
-                        </td>
-                      )}
-                      {isFirst && (
-                        <td rowSpan={rowSpan} className="py-4 px-6 text-center align-middle">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (!isMember) {
-                                setStatusConfirm({
-                                  id: employee.id,
-                                  nextStatus: employee.status
-                                    ? "Inactive"
-                                    : "Active",
-                                });
-                              }
-                            }}
-                            disabled={isMember}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-widest border transition-colors ${
-                              isMember
-                                ? "opacity-60 cursor-not-allowed"
-                                : ""
-                            } ${
-                              employee.status
-                                ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20"
-                                : "bg-slate-200/30 text-slate-600 border-slate-300/30 hover:bg-slate-200/50"
-                            }`}
+                        {isFirst && (
+                          <td
+                            rowSpan={rowSpan}
+                            className="py-4 px-6 text-center align-middle"
                           >
                             <span
-                              className={`w-1.5 h-1.5 rounded-full ${employee.status ? "bg-emerald-600" : "bg-slate-400"}`}
-                            ></span>
-                            {employee.status ? "Active" : "Inactive"}
-                          </button>
-                        </td>
-                      )}
-                      {!isMember && isFirst && (
-                        <td rowSpan={rowSpan} className="py-4 px-6 text-center align-middle">
-                          <div className="inline-flex items-center gap-2">
+                              className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold ${
+                                employee.authorizeRole === "ADMIN"
+                                  ? "bg-purple-100 text-purple-700 border border-purple-200"
+                                  : "bg-blue-100 text-blue-700 border border-blue-200"
+                              }`}
+                            >
+                              {employee.authorizeRole}
+                            </span>
+                          </td>
+                        )}
+                        {isFirst && (
+                          <td
+                            rowSpan={rowSpan}
+                            className="py-4 px-6 text-center align-middle"
+                          >
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setResetConfirm({
-                                  id: employee.id,
-                                  name: employee.enFullName,
-                                });
+                                if (!isMember) {
+                                  setStatusConfirm({
+                                    id: employee.id,
+                                    nextStatus: employee.status
+                                      ? "Inactive"
+                                      : "Active",
+                                  });
+                                }
                               }}
-                              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-amber-500 text-amber-600 text-xs font-semibold bg-white hover:bg-amber-50 transition-colors"
+                              disabled={isMember}
+                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-widest border transition-colors ${
+                                isMember ? "opacity-60 cursor-not-allowed" : ""
+                              } ${
+                                employee.status
+                                  ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20"
+                                  : "bg-slate-200/30 text-slate-600 border-slate-300/30 hover:bg-slate-200/50"
+                              }`}
                             >
-                              <span className="material-symbols-outlined text-[14px]">
-                                lock_reset
-                              </span>
-                              Reset
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${employee.status ? "bg-emerald-600" : "bg-slate-400"}`}
+                              ></span>
+                              {employee.status ? "Active" : "Inactive"}
                             </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditEmployeeId(employee.id);
-                              }}
-                              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-primary text-primary text-xs font-semibold bg-white hover:bg-primary/10 transition-colors"
-                            >
-                              <span className="material-symbols-outlined text-[14px]">
-                                edit
-                              </span>
-                              Edit
-                            </button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
+                          </td>
+                        )}
+                        {!isMember && isFirst && (
+                          <td
+                            rowSpan={rowSpan}
+                            className="py-4 px-6 text-center align-middle"
+                          >
+                            <div className="inline-flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setResetConfirm({
+                                    id: employee.id,
+                                    name: employee.enFullName,
+                                  });
+                                }}
+                                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-amber-500 text-amber-600 text-xs font-semibold bg-white hover:bg-amber-50 transition-colors"
+                              >
+                                <span className="material-symbols-outlined text-[14px]">
+                                  lock_reset
+                                </span>
+                                Reset
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditEmployeeId(employee.id);
+                                }}
+                                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-primary text-primary text-xs font-semibold bg-white hover:bg-primary/10 transition-colors"
+                              >
+                                <span className="material-symbols-outlined text-[14px]">
+                                  edit
+                                </span>
+                                Edit
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ),
+                  )}
                 </tbody>
               </table>
             </div>

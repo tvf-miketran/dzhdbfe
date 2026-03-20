@@ -20,6 +20,17 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
 }) => {
   const gradientId = useId();
   const progressValue = Math.min(Math.max((kpi.currentKPI / 10) * 100, 0), 100);
+  const billableStandard = kpi.billableStandard ?? 0;
+  const logworkStandard = kpi.logworkStandard ?? 0;
+  const displayNumber = (value: number | undefined) =>
+    value === undefined || value === null ? "0" : String(value);
+  const getBreakdownProgressWidth = (value: number, standard: number) => {
+    if (standard <= 0) {
+      return "0%";
+    }
+
+    return `${Math.min((value / standard) * 100, 100)}%`;
+  };
 
   return (
     <div className="mb-8 rounded-2xl border border-border-light bg-white shadow-lg overflow-hidden">
@@ -37,7 +48,7 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
                       Total
                     </span>
                     <span className="text-4xl font-bold text-slate-700 leading-none">
-                      {kpi.totalBillable?.toFixed(1) ?? "0.0"}
+                      {displayNumber(kpi.totalBillable)}
                     </span>
                   </div>
 
@@ -48,21 +59,21 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
                       Average
                     </span>
                     <span className="text-6xl font-bold text-primary leading-none">
-                      {kpi.currentKPI.toFixed(1)}
+                      {displayNumber(kpi.currentKPI)}
                     </span>
                   </div>
 
                   <span className="text-lg font-semibold text-slate-500 self-end mb-1">
-                    / {kpi.standardKPI.toFixed(1)}
+                    / {displayNumber(kpi.standardKPI)}
                   </span>
                 </div>
               ) : (
                 <div className="flex items-baseline gap-3">
                   <span className="text-6xl font-bold text-primary">
-                    {kpi.currentKPI.toFixed(1)}
+                    {displayNumber(kpi.currentKPI)}
                   </span>
                   <span className="text-lg font-semibold text-slate-500">
-                    / {kpi.standardKPI.toFixed(1)}
+                    / {displayNumber(kpi.standardKPI)}
                   </span>
                 </div>
               )}
@@ -73,7 +84,7 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
                     trending_up
                   </span>
                   <span className="text-sm font-semibold text-emerald-700">
-                    {Math.abs(kpi.currentKPI - kpi.standardKPI).toFixed(1)}
+                    {displayNumber(Math.abs(kpi.currentKPI - kpi.standardKPI))}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500">↑ vs Standard</p>
@@ -85,6 +96,36 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
                 {kpi.lastCalculated}
               </span>
             </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+              <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="material-symbols-outlined text-blue-600 text-base">
+                    paid
+                  </span>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Billable Standard
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-blue-600">
+                  {displayNumber(billableStandard)}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="material-symbols-outlined text-purple-600 text-base">
+                    schedule
+                  </span>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Logwork Standard
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-purple-600">
+                  {displayNumber(logworkStandard)}
+                </p>
+              </div>
+            </div>
 
             {kpi.breakdown && (
               <div className="space-y-3">
@@ -101,14 +142,17 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
                         Ticket Completion
                       </span>
                       <span className="text-sm font-bold text-blue-600">
-                        {kpi.breakdown.tickets.toFixed(1)}
+                        {displayNumber(kpi.breakdown.tickets)}
                       </span>
                     </div>
                     <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
                       <div
                         className="h-2 rounded-full bg-gradient-to-r from-blue-400 to-blue-600"
                         style={{
-                          width: `${Math.min((kpi.breakdown.tickets / kpi.standardKPI) * 100, 100)}%`,
+                          width: getBreakdownProgressWidth(
+                            kpi.breakdown.tickets,
+                            kpi.standardKPI,
+                          ),
                         }}
                       ></div>
                     </div>
@@ -123,36 +167,17 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
                         Logwork Compliance
                       </span>
                       <span className="text-sm font-bold text-purple-600">
-                        {kpi.breakdown.logwork.toFixed(1)}
+                        {displayNumber(kpi.breakdown.logwork)}
                       </span>
                     </div>
                     <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
                       <div
                         className="h-2 rounded-full bg-gradient-to-r from-purple-400 to-purple-600"
                         style={{
-                          width: `${Math.min((kpi.breakdown.logwork / kpi.standardKPI) * 100, 100)}%`,
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-sm font-medium text-slate-600 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-sm text-emerald-500">
-                          code
-                        </span>
-                        Code Quality
-                      </span>
-                      <span className="text-sm font-bold text-emerald-600">
-                        {kpi.breakdown.quality.toFixed(1)}
-                      </span>
-                    </div>
-                    <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
-                      <div
-                        className="h-2 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600"
-                        style={{
-                          width: `${Math.min((kpi.breakdown.quality / kpi.standardKPI) * 100, 100)}%`,
+                          width: getBreakdownProgressWidth(
+                            kpi.breakdown.logwork,
+                            kpi.standardKPI,
+                          ),
                         }}
                       ></div>
                     </div>
@@ -231,7 +256,7 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
                   fontWeight="700"
                   fill="#3b82f6"
                 >
-                  {kpi.currentKPI.toFixed(1)}
+                  {displayNumber(kpi.currentKPI)}
                 </text>
                 <text
                   x="50%"
@@ -242,7 +267,7 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
                   fontWeight="500"
                   fill="#64748b"
                 >
-                  of {kpi.standardKPI.toFixed(1)}
+                  of {displayNumber(kpi.standardKPI)}
                 </text>
               </svg>
             </div>

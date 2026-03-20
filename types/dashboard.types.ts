@@ -7,6 +7,8 @@ export interface KPIBreakdown {
 export interface KPIData {
   standardKPI: number;
   currentKPI: number;
+  billableStandard: number;
+  logworkStandard: number;
   totalBillable?: number;
   lastCalculated?: string;
   breakdown?: KPIBreakdown;

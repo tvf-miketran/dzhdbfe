@@ -235,15 +235,30 @@ export const useCreateBank = (
   >,
 ) => {
   const queryClient = useQueryClient();
+  const {
+    onSuccess,
+    onError,
+    onSettled,
+    ...restOptions
+  } = options ?? {};
 
   return useMutation({
+    ...restOptions,
     mutationFn: (payload: CreateBankPayload) =>
       banksService.createBank(payload),
-    onSuccess: () => {
+    onSuccess: async (data, variables, onMutateResult, context) => {
       // Invalidate banks query to refetch the updated list
-      queryClient.invalidateQueries({ queryKey: queryKeys.banks.all });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.banks.list(),
+      });
+      onSuccess?.(data, variables, onMutateResult, context);
     },
-    ...options,
+    onError: (error, variables, onMutateResult, context) => {
+      onError?.(error, variables, onMutateResult, context);
+    },
+    onSettled: (data, error, variables, onMutateResult, context) => {
+      onSettled?.(data, error, variables, onMutateResult, context);
+    },
   });
 };
 

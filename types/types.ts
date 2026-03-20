@@ -69,7 +69,7 @@ export interface Employee {
   email: string;
   vnFullName: string;
   enFullName: string;
-  authorizeRole: "ADMIN" | "MEMBER";
+  authorizeRole: "ADMIN" | "MEMBER" | "MANAGER";
   status: boolean;
   description?: string | null;
   createdAt: string;
@@ -99,7 +99,7 @@ export interface EmployeesResponse
 
 export interface User {
   UUID: string;
-  authorize_role: "ADMIN" | "MEMBER";
+  authorize_role: "ADMIN" | "MEMBER" | "MANAGER";
   description: string | null;
   email: string;
   en_full_name: string;
@@ -163,7 +163,7 @@ export interface ProjectMemberDetail {
   enFullName: string;
   vnFullName: string;
   email: string;
-  authorize_role: "ADMIN" | "MEMBER";
+  authorize_role: "ADMIN" | "MEMBER" | "MANAGER";
   status: boolean;
   allocationPercent: number;
   joinedAt: string;

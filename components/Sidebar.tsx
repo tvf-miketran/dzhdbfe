@@ -1,8 +1,7 @@
-
-import React, { useEffect, useState } from 'react';
-import { Page } from '../types/index';
-import axiosInstance from '../helpers/axios';
-import { useAuth } from '../context/AuthContext';
+import React, { useEffect, useState } from "react";
+import { Page } from "../types/index";
+import axiosInstance from "../helpers/axios";
+import { useAuth } from "../context/AuthContext";
 
 interface SidebarProps {
   activePage: Page;
@@ -11,31 +10,32 @@ interface SidebarProps {
 }
 
 const getInitials = (fullName: string): string => {
-  const parts = fullName
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
 
-  if (parts.length === 0) return 'NA';
+  if (parts.length === 0) return "NA";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
 
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 };
 
-type SidebarRole = 'ADMIN' | 'MEMBER';
+type SidebarRole = "ADMIN" | "MEMBER";
 
 const normalizeRole = (role?: string | null): SidebarRole =>
-  role?.toUpperCase() === 'ADMIN' ? 'ADMIN' : 'MEMBER';
+  role?.toUpperCase() === "ADMIN" ? "ADMIN" : "MEMBER";
 
-const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onLogout }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  activePage,
+  onNavigate,
+  onLogout,
+}) => {
   const { user } = useAuth();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const [employeeName, setEmployeeName] = useState('');
-  const [employeeRole, setEmployeeRole] = useState('');
+  const [employeeName, setEmployeeName] = useState("");
+  const [employeeRole, setEmployeeRole] = useState("");
   const [employeeLoading, setEmployeeLoading] = useState(false);
 
   const roleFromStorage = (() => {
-    const raw = localStorage.getItem('user');
+    const raw = localStorage.getItem("user");
     if (!raw) return undefined;
 
     try {
@@ -46,31 +46,37 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onLogout }) =
     }
   })();
 
-  const currentRole = normalizeRole(user?.authorize_role ?? roleFromStorage ?? employeeRole);
+  const currentRole = normalizeRole(
+    user?.authorize_role ?? roleFromStorage ?? employeeRole,
+  );
 
   useEffect(() => {
     const fetchEmployeeInfo = async () => {
       setEmployeeLoading(true);
       try {
-        const storedUserRaw = localStorage.getItem('user');
+        const storedUserRaw = localStorage.getItem("user");
         const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null;
         const employeeUuid = storedUser?.UUID || storedUser?.id;
 
         if (!employeeUuid) {
-          setEmployeeName('Unknown User');
-          setEmployeeRole('Member');
+          setEmployeeName("Unknown User");
+          setEmployeeRole("Member");
           return;
         }
 
         const response = await axiosInstance.get(`/employees/${employeeUuid}`);
         const employee = response?.data?.data ?? response?.data;
 
-        setEmployeeName(employee?.enFullName || employee?.vnFullName || 'Unknown User');
-        setEmployeeRole(employee?.authorizeRole || employee?.description || 'Member');
+        setEmployeeName(
+          employee?.enFullName || employee?.vnFullName || "Unknown User",
+        );
+        setEmployeeRole(
+          employee?.authorizeRole || employee?.description || "Member",
+        );
       } catch (error) {
-        console.error('Failed to fetch sidebar employee info:', error);
-        setEmployeeName('Unknown User');
-        setEmployeeRole('Member');
+        console.error("Failed to fetch sidebar employee info:", error);
+        setEmployeeName("Unknown User");
+        setEmployeeRole("Member");
       } finally {
         setEmployeeLoading(false);
       }
@@ -80,26 +86,28 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onLogout }) =
   }, []);
 
   const menuItems = [
-    { id: Page.DASHBOARD, label: 'Dashboard', icon: 'dashboard' },
-    { id: Page.ODASHBOARD, label: 'ODashboard', icon: 'analytics' },
-    { id: Page.RESOURCES, label: 'Users', icon: 'group' },
-    { id: Page.PROJECTS, label: 'Projects', icon: 'work' },
-    { id: Page.LOGTICKETS, label: 'Log Tickets', icon: 'description' },
-    { id: Page.OTICKET, label: 'OTicket', icon: 'assignment' },
-    { id: Page.TIMESHEETS, label: 'Logworks', icon: 'schedule' },
+    { id: Page.DASHBOARD, label: "Dashboard", icon: "dashboard" },
+    { id: Page.ODASHBOARD, label: "ODashboard", icon: "analytics" },
+    { id: Page.RESOURCES, label: "Users", icon: "group" },
+    { id: Page.PROJECTS, label: "Projects", icon: "work" },
+    { id: Page.LOGTICKETS, label: "Log Tickets", icon: "description" },
+    { id: Page.OTICKET, label: "OTicket", icon: "assignment" },
+    { id: Page.TIMESHEETS, label: "Logworks", icon: "schedule" },
   ].filter((item) => {
-    if (currentRole === 'ADMIN') {
-      return item.id !== Page.DASHBOARD;
+    if (currentRole === "ADMIN") {
+      return item.id !== Page.DASHBOARD && item.id !== Page.LOGTICKETS;
     }
 
     return item.id !== Page.ODASHBOARD && item.id !== Page.OTICKET;
   });
 
   useEffect(() => {
-    const hiddenPage = currentRole === 'ADMIN' ? Page.DASHBOARD : Page.ODASHBOARD;
+    const hiddenPage =
+      currentRole === "ADMIN" ? Page.DASHBOARD : Page.ODASHBOARD;
 
     if (activePage === hiddenPage) {
-      const defaultPage = currentRole === 'ADMIN' ? Page.ODASHBOARD : Page.DASHBOARD;
+      const defaultPage =
+        currentRole === "ADMIN" ? Page.ODASHBOARD : Page.DASHBOARD;
       onNavigate(defaultPage);
       window.location.hash = defaultPage;
     }
@@ -113,7 +121,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onLogout }) =
             <span className="material-symbols-outlined fill-1">grid_view</span>
           </div>
           <div className="flex flex-col">
-            <h1 className="text-base font-semibold text-slate-900 tracking-tight">ODC Manager</h1>
+            <h1 className="text-base font-semibold text-slate-900 tracking-tight">
+              ODC Manager
+            </h1>
             <p className="text-xs font-light text-slate-500">Admin Console</p>
           </div>
         </div>
@@ -124,14 +134,18 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onLogout }) =
               key={item.id}
               onClick={() => {
                 onNavigate(item.id);
-                window.location.hash = item.id === Page.TIMESHEETS ? 'timesheets-logwork' : item.id;
+                window.location.hash =
+                  item.id === Page.TIMESHEETS ? "timesheets-logwork" : item.id;
               }}
-              className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all ${activePage === item.id
-                ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                : 'text-slate-600 hover:bg-surface-dark hover:text-slate-900'
-                }`}
+              className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all ${
+                activePage === item.id
+                  ? "bg-primary text-white shadow-lg shadow-primary/20"
+                  : "text-slate-600 hover:bg-surface-dark hover:text-slate-900"
+              }`}
             >
-              <span className={`material-symbols-outlined ${activePage === item.id ? 'fill-1' : ''}`}>
+              <span
+                className={`material-symbols-outlined ${activePage === item.id ? "fill-1" : ""}`}
+              >
                 {item.icon}
               </span>
               <p className="text-sm font-medium">{item.label}</p>
@@ -139,15 +153,21 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onLogout }) =
           ))}
         </nav>
 
-        {currentRole === 'ADMIN' && (
+        {currentRole === "ADMIN" && (
           <div>
-            <p className="text-[10px] font-light text-slate-400 uppercase tracking-widest px-3 mb-2">System Settings</p>
+            <p className="text-[10px] font-light text-slate-400 uppercase tracking-widest px-3 mb-2">
+              System Settings
+            </p>
             <button
-              onClick={() => { onNavigate(Page.FORMULACONFIG); window.location.hash = Page.FORMULACONFIG; }}
-              className={`w-full group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all ${activePage === Page.FORMULACONFIG
-                ? 'bg-primary/10 text-primary border border-primary/20'
-                : 'text-slate-600 hover:bg-surface-dark hover:text-slate-900'
-                }`}
+              onClick={() => {
+                onNavigate(Page.FORMULACONFIG);
+                window.location.hash = Page.FORMULACONFIG;
+              }}
+              className={`w-full group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all ${
+                activePage === Page.FORMULACONFIG
+                  ? "bg-primary/10 text-primary border border-primary/20"
+                  : "text-slate-600 hover:bg-surface-dark hover:text-slate-900"
+              }`}
             >
               <span className="material-symbols-outlined">functions</span>
               <p className="text-sm font-medium">Formula Config</p>
@@ -159,11 +179,17 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onLogout }) =
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-3 border-t border-border-light pt-4 px-1">
           <div className="h-10 w-10 rounded-full border border-border-light bg-slate-100 text-slate-700 text-xs font-semibold flex items-center justify-center">
-            {getInitials(employeeLoading ? 'Loading' : employeeName || 'Unknown User')}
+            {getInitials(
+              employeeLoading ? "Loading" : employeeName || "Unknown User",
+            )}
           </div>
           <div className="flex flex-col min-w-0">
-            <p className="text-sm font-bold text-slate-900 truncate">{employeeLoading ? 'Loading...' : employeeName || 'Unknown User'}</p>
-            <p className="text-xs text-slate-500">{employeeLoading ? 'Loading...' : employeeRole || 'Member'}</p>
+            <p className="text-sm font-bold text-slate-900 truncate">
+              {employeeLoading ? "Loading..." : employeeName || "Unknown User"}
+            </p>
+            <p className="text-xs text-slate-500">
+              {employeeLoading ? "Loading..." : employeeRole || "Member"}
+            </p>
           </div>
           <div className="ml-auto relative">
             <button
@@ -173,7 +199,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, onLogout }) =
               aria-expanded={isProfileMenuOpen}
               aria-label="Open profile menu"
             >
-              <span className="material-symbols-outlined text-[18px]">more_vert</span>
+              <span className="material-symbols-outlined text-[18px]">
+                more_vert
+              </span>
             </button>
             {isProfileMenuOpen && (
               <div

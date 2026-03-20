@@ -53,6 +53,8 @@ const Dashboard: React.FC = () => {
   const [personalKPI, setPersonalKPI] = useState<KPIData>({
     standardKPI: 8.5,
     currentKPI: 7.8,
+    billableStandard: 0,
+    logworkStandard: 0,
     totalBillable: 0,
     lastCalculated: "2 hours ago",
     breakdown: {
@@ -238,6 +240,8 @@ const Dashboard: React.FC = () => {
         aggregateData.total_logwork_point ?? totalLogworkPoint;
       const normalizedTotalBillablePoint =
         aggregateData.total_billable_point ?? totalBillablePoint;
+      const normalizedBillableStandard = aggregateData.billable_standard ?? 0;
+      const normalizedLogworkStandard = aggregateData.logwork_standard ?? 0;
 
       const rowCount = personalRows.length;
       const avgTicketPoint =
@@ -291,6 +295,8 @@ const Dashboard: React.FC = () => {
       const kpiData: KPIData = {
         standardKPI: 8.5,
         currentKPI: avgBillablePoint,
+        billableStandard: normalizedBillableStandard,
+        logworkStandard: normalizedLogworkStandard,
         totalBillable: normalizedTotalBillablePoint,
         lastCalculated: lastCalculatedLabel,
         breakdown: {

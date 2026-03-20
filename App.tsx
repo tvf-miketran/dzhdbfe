@@ -24,6 +24,14 @@ const normalizeRole = (role?: string | null): AppRole =>
 const getDefaultPageByRole = (role?: string | null): Page =>
   normalizeRole(role) === "ADMIN" ? Page.ODASHBOARD : Page.DASHBOARD;
 
+const isPageHiddenForRole = (page: Page, role: AppRole): boolean => {
+  if (role === "ADMIN") {
+    return page === Page.DASHBOARD || page === Page.LOGTICKETS;
+  }
+
+  return page === Page.ODASHBOARD;
+};
+
 const getStoredRole = (): AppRole => {
   const storedUserRaw = localStorage.getItem("user");
 
@@ -43,6 +51,20 @@ const App: React.FC = () => {
     getDefaultPageByRole(getStoredRole()),
   );
   const [currentView, setCurrentView] = useState<string>("default"); // 'default', 'performance', 'logwork'
+
+  const handleNavigate = (nextPage: Page) => {
+    const currentRole = normalizeRole(user?.authorize_role ?? getStoredRole());
+
+    if (isPageHiddenForRole(nextPage, currentRole)) {
+      const defaultPage = getDefaultPageByRole(currentRole);
+      setActivePage(defaultPage);
+      setCurrentView("default");
+      window.location.hash = defaultPage;
+      return;
+    }
+
+    setActivePage(nextPage);
+  };
 
   // Check authentication status on mount
   useEffect(() => {
@@ -72,7 +94,9 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace("#", "");
-      const currentRole = normalizeRole(user?.authorize_role ?? getStoredRole());
+      const currentRole = normalizeRole(
+        user?.authorize_role ?? getStoredRole(),
+      );
 
       if (hash === Page.ODASHBOARD && currentRole !== "ADMIN") {
         setActivePage(Page.DASHBOARD);
@@ -82,6 +106,13 @@ const App: React.FC = () => {
       }
 
       if (hash === Page.DASHBOARD && currentRole === "ADMIN") {
+        setActivePage(Page.ODASHBOARD);
+        setCurrentView("default");
+        window.location.hash = Page.ODASHBOARD;
+        return;
+      }
+
+      if (hash === Page.LOGTICKETS && currentRole === "ADMIN") {
         setActivePage(Page.ODASHBOARD);
         setCurrentView("default");
         window.location.hash = Page.ODASHBOARD;
@@ -106,9 +137,7 @@ const App: React.FC = () => {
     if (!isAuthenticated) return;
 
     const currentRole = normalizeRole(user?.authorize_role ?? getStoredRole());
-    const hiddenPage = currentRole === "ADMIN" ? Page.DASHBOARD : Page.ODASHBOARD;
-
-    if (activePage === hiddenPage) {
+    if (isPageHiddenForRole(activePage, currentRole)) {
       const defaultPage = getDefaultPageByRole(currentRole);
       setActivePage(defaultPage);
       setCurrentView("default");
@@ -166,31 +195,31 @@ const App: React.FC = () => {
         toastOptions={{
           duration: 3000,
           style: {
-            background: '#fff',
-            color: '#0f172a',
-            border: '1px solid #e2e8f0',
-            padding: '12px 16px',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '500',
+            background: "#fff",
+            color: "#0f172a",
+            border: "1px solid #e2e8f0",
+            padding: "12px 16px",
+            borderRadius: "8px",
+            fontSize: "14px",
+            fontWeight: "500",
           },
           success: {
             iconTheme: {
-              primary: '#10b981',
-              secondary: '#fff',
+              primary: "#10b981",
+              secondary: "#fff",
             },
           },
           error: {
             iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
+              primary: "#ef4444",
+              secondary: "#fff",
             },
           },
         }}
       />
       <Sidebar
         activePage={activePage}
-        onNavigate={setActivePage}
+        onNavigate={handleNavigate}
         onLogout={handleLogout}
       />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">

@@ -42,6 +42,8 @@ import type {
 const DEFAULT_KPI: KPIData = {
   standardKPI: 8.5,
   currentKPI: 0,
+  billableStandard: 0,
+  logworkStandard: 0,
   totalBillable: 0,
   lastCalculated: "Loading...",
   breakdown: {
@@ -207,6 +209,8 @@ const buildFromMemberRows = (
   const apiAverageBillable = aggregateData?.average_billable_point;
   const apiTotalTicket = aggregateData?.total_ticket_point;
   const apiTotalLogwork = aggregateData?.total_logwork_point;
+  const apiBillableStandard = aggregateData?.billable_standard;
+  const apiLogworkStandard = aggregateData?.logwork_standard;
 
   const kpiCurrentValue =
     apiAverageBillable !== undefined && apiAverageBillable !== null
@@ -228,6 +232,11 @@ const buildFromMemberRows = (
   const kpi: KPIData = {
     standardKPI: DEFAULT_KPI.standardKPI,
     currentKPI: kpiCurrentValue,
+    billableStandard: toNumber(
+      apiBillableStandard,
+      DEFAULT_KPI.billableStandard,
+    ),
+    logworkStandard: toNumber(apiLogworkStandard, DEFAULT_KPI.logworkStandard),
     totalBillable: kpiTotalBillableValue,
     lastCalculated:
       selectedMonths.length === 1
@@ -467,6 +476,18 @@ const ODashboard: React.FC = () => {
           currentKPI: toNumber(
             candidate.currentKPI ?? candidate.current_kpi ?? candidate.kpi,
             DEFAULT_KPI.currentKPI,
+          ),
+          billableStandard: toNumber(
+            candidate.billableStandard ??
+              candidate.billable_standard ??
+              payload.aggregateData.billable_standard,
+            DEFAULT_KPI.billableStandard,
+          ),
+          logworkStandard: toNumber(
+            candidate.logworkStandard ??
+              candidate.logwork_standard ??
+              payload.aggregateData.logwork_standard,
+            DEFAULT_KPI.logworkStandard,
           ),
           totalBillable: toNumber(
             candidate.totalBillable ?? candidate.total_billable,
