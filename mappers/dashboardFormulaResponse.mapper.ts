@@ -39,6 +39,8 @@ export interface FormulaAggregateData {
   total_ticket_point?: number;
   total_logwork_point?: number;
   average_billable_point?: number;
+  billable_standard?: number;
+  logwork_standard?: number;
 }
 
 export interface FormulaResponseData extends FormulaAggregateData {
@@ -129,5 +131,7 @@ export const extractFormulaAggregateFromResponse = (
     total_ticket_point: toOptionalNumber(data?.total_ticket_point),
     total_logwork_point: toOptionalNumber(data?.total_logwork_point),
     average_billable_point: toOptionalNumber(data?.average_billable_point),
+    billable_standard: toOptionalNumber(data?.billable_standard),
+    logwork_standard: toOptionalNumber(data?.logwork_standard),
   };
 };

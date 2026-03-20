@@ -1,8 +1,26 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useAdminLogworks, useUserLogworks, useEmployees, useSaveLogworks } from '../hooks';
+import React, { useState, useMemo, useCallback } from "react";
+import { useAuth } from "../context/AuthContext";
+import {
+  useAdminLogworks,
+  useUserLogworks,
+  useEmployees,
+  useSaveLogworks,
+} from "../hooks";
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 interface EmployeeBasic {
   id: string;
@@ -11,17 +29,21 @@ interface EmployeeBasic {
 
 const Logwork: React.FC = () => {
   const { user } = useAuth();
-  const isMember = user?.authorize_role === 'MEMBER';
+  const isMember = (user?.authorize_role ?? "").toUpperCase() !== "ADMIN";
 
   // ─── Filter States ──────────────────────────────────────────────────────────
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [selectedQuarter, setSelectedQuarter] = useState<string>('');
+  const [selectedYear, setSelectedYear] = useState<number>(
+    new Date().getFullYear(),
+  );
+  const [selectedQuarter, setSelectedQuarter] = useState<string>("");
   const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
-  const [searchName, setSearchName] = useState<string>('');
+  const [searchName, setSearchName] = useState<string>("");
 
   // ─── Changed-cells tracking ──────────────────────────────────────────────────
   // Key: "<employeeUUID>|<monthNumber>" (month is 1-based), value: hours as number
-  const [changedCells, setChangedCells] = useState<Map<string, number>>(new Map());
+  const [changedCells, setChangedCells] = useState<Map<string, number>>(
+    new Map(),
+  );
 
   // ─── Save mutation ───────────────────────────────────────────────────────────
   const { mutate: saveLogworks, isPending: isSaving } = useSaveLogworks();
@@ -51,13 +73,13 @@ const Logwork: React.FC = () => {
     year: selectedYear,
     months: selectedMonths.length > 0 ? selectedMonths : undefined,
     userName: searchName || undefined,
-    sortBy: 'desc' as const,
+    sortBy: "desc" as const,
   };
 
   const memberFilters = {
     year: selectedYear,
     months: selectedMonths.length > 0 ? selectedMonths : undefined,
-    sortBy: 'desc' as const,
+    sortBy: "desc" as const,
   };
 
   const {
@@ -72,20 +94,25 @@ const Logwork: React.FC = () => {
     error: memberError,
   } = useUserLogworks(isMember ? memberFilters : undefined);
 
-  const logworksResponse = isMember ? memberLogworksResponse : adminLogworksResponse;
+  const logworksResponse = isMember
+    ? memberLogworksResponse
+    : adminLogworksResponse;
   const isLoading = isMember ? memberLoading : adminLoading;
   const error = isMember ? memberError : adminError;
 
   // ─── Build table data ────────────────────────────────────────────────────────
   const tableData = useMemo(() => {
     // Map from employee UUID → { id, name, hours[12] }
-    const employeeMap = new Map<string, {
-      id: string;
-      name: string;
-      initials: string;
-      hours: number[];
-      color: string;
-    }>();
+    const employeeMap = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        initials: string;
+        hours: number[];
+        color: string;
+      }
+    >();
 
     // For admins: pre-populate with all employees (so they always appear even with no data)
     if (!isMember && allEmployees.length > 0 && !searchName) {
@@ -131,7 +158,9 @@ const Logwork: React.FC = () => {
   const monthlyTotals = useMemo(() => {
     const totals = new Array(12).fill(0);
     tableData.forEach((emp) => {
-      emp.hours.forEach((h, i) => { totals[i] += h; });
+      emp.hours.forEach((h, i) => {
+        totals[i] += h;
+      });
     });
     return totals;
   }, [tableData]);
@@ -152,17 +181,22 @@ const Logwork: React.FC = () => {
   // ─── Quarter filter helpers ───────────────────────────────────────────────────
   const getQuarterMonths = (quarter: string): number[] => {
     switch (quarter) {
-      case 'Q1': return [1, 2, 3];
-      case 'Q2': return [4, 5, 6];
-      case 'Q3': return [7, 8, 9];
-      case 'Q4': return [10, 11, 12];
-      default: return [];
+      case "Q1":
+        return [1, 2, 3];
+      case "Q2":
+        return [4, 5, 6];
+      case "Q3":
+        return [7, 8, 9];
+      case "Q4":
+        return [10, 11, 12];
+      default:
+        return [];
     }
   };
 
   const handleQuarterChange = (quarter: string) => {
-    if (quarter === '') {
-      setSelectedQuarter('');
+    if (quarter === "") {
+      setSelectedQuarter("");
       setSelectedMonths([]);
     } else {
       setSelectedQuarter(quarter);
@@ -173,7 +207,7 @@ const Logwork: React.FC = () => {
 
   // ─── Month filter helpers ─────────────────────────────────────────────────────
   const toggleMonth = (month: number) => {
-    setSelectedQuarter(''); // Clear quarter selection when manually selecting months
+    setSelectedQuarter(""); // Clear quarter selection when manually selecting months
     setSelectedMonths((prev) =>
       prev.includes(month) ? prev.filter((m) => m !== month) : [...prev, month],
     );
@@ -193,7 +227,7 @@ const Logwork: React.FC = () => {
       const key = `${employeeId}|${monthNumber}`;
       setChangedCells((prev) => {
         const next = new Map(prev);
-        if (value === '' || isNaN(hours)) {
+        if (value === "" || isNaN(hours)) {
           // Treat empty / invalid as 0
           next.set(key, 0);
         } else {
@@ -209,15 +243,17 @@ const Logwork: React.FC = () => {
   const handleSave = () => {
     if (changedCells.size === 0) return;
 
-    const logworks = Array.from(changedCells.entries()).map(([key, logHours]) => {
-      const [employeeId, monthStr] = key.split('|');
-      return {
-        userId: employeeId,
-        year: selectedYear,
-        month: monthStr,
-        logHour: logHours.toString(),
-      };
-    });
+    const logworks = Array.from(changedCells.entries()).map(
+      ([key, logHours]) => {
+        const [employeeId, monthStr] = key.split("|");
+        return {
+          userId: employeeId,
+          year: selectedYear,
+          month: monthStr,
+          logHour: logHours.toString(),
+        };
+      },
+    );
 
     saveLogworks(
       { logworks },
@@ -229,11 +265,23 @@ const Logwork: React.FC = () => {
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
   function getInitials(name: string): string {
-    return name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
+    return name
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
   }
 
   function getRandomColor(id: string): string {
-    const colors = ['bg-blue-500', 'bg-purple-500', 'bg-emerald-500', 'bg-orange-500', 'bg-pink-500', 'bg-cyan-500'];
+    const colors = [
+      "bg-blue-500",
+      "bg-purple-500",
+      "bg-emerald-500",
+      "bg-orange-500",
+      "bg-pink-500",
+      "bg-cyan-500",
+    ];
     let hash = 0;
     for (let i = 0; i < id.length; i++) {
       hash = id.charCodeAt(i) + ((hash << 5) - hash);
@@ -257,23 +305,31 @@ const Logwork: React.FC = () => {
           {/* Search (admin only) */}
           {!isMember && (
             <div className="flex-1 min-w-0 lg:w-80">
-              <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Search by Name</label>
+              <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-2">
+                Search by Name
+              </label>
               <div className="relative">
                 <input
                   type="text"
                   value={searchName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchName(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setSearchName(e.target.value)
+                  }
                   placeholder="Enter employee name..."
                   className="w-full h-11 pl-4 pr-10 bg-background-light border border-border-light rounded-xl text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-primary/20 outline-none"
                 />
-                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">search</span>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                  search
+                </span>
               </div>
             </div>
           )}
 
           {/* Year */}
           <div className="flex-1 min-w-0 lg:w-40">
-            <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Year</label>
+            <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-2">
+              Year
+            </label>
             <div className="relative">
               <select
                 value={selectedYear}
@@ -284,20 +340,28 @@ const Logwork: React.FC = () => {
                 className="w-full h-11 pl-4 pr-10 bg-background-light border border-border-light rounded-xl text-sm font-semibold text-slate-900 appearance-none focus:ring-2 focus:ring-primary/20 outline-none"
               >
                 {yearOptions.map((year: number) => (
-                  <option key={year} value={year}>{year}</option>
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
                 ))}
               </select>
-              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">calendar_today</span>
+              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                calendar_today
+              </span>
             </div>
           </div>
 
           {/* Quarter */}
           <div className="flex-1 min-w-0 lg:w-40">
-            <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Quarter</label>
+            <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-2">
+              Quarter
+            </label>
             <div className="relative">
               <select
                 value={selectedQuarter}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleQuarterChange(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                  handleQuarterChange(e.target.value)
+                }
                 className="w-full h-11 pl-4 pr-10 bg-background-light border border-border-light rounded-xl text-sm font-semibold text-slate-900 appearance-none focus:ring-2 focus:ring-primary/20 outline-none"
               >
                 <option value="">All Quarters</option>
@@ -306,13 +370,17 @@ const Logwork: React.FC = () => {
                 <option value="Q3">Q3 (Jul-Sep)</option>
                 <option value="Q4">Q4 (Oct-Dec)</option>
               </select>
-              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">date_range</span>
+              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                date_range
+              </span>
             </div>
           </div>
 
           {/* Month multi-select */}
           <div className="flex-1 min-w-0 lg:w-52">
-            <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Month</label>
+            <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-2">
+              Month
+            </label>
             <div className="relative">
               <select
                 value=""
@@ -320,12 +388,12 @@ const Logwork: React.FC = () => {
                   const val = Number(e.target.value);
                   if (val) toggleMonth(val);
                   // Reset select back to placeholder
-                  e.target.value = '';
+                  e.target.value = "";
                 }}
                 className="w-full h-11 pl-4 pr-10 bg-background-light border border-border-light rounded-xl text-sm font-semibold text-slate-900 appearance-none focus:ring-2 focus:ring-primary/20 outline-none"
               >
                 <option value="">
-                  {selectedMonths.length === 0 ? 'All Months' : 'Add month...'}
+                  {selectedMonths.length === 0 ? "All Months" : "Add month..."}
                 </option>
                 {MONTHS.map((month: string, index: number) => (
                   <option
@@ -333,11 +401,13 @@ const Logwork: React.FC = () => {
                     value={index + 1}
                     disabled={selectedMonths.includes(index + 1)}
                   >
-                    {month} {selectedMonths.includes(index + 1) ? '✓' : ''}
+                    {month} {selectedMonths.includes(index + 1) ? "✓" : ""}
                   </option>
                 ))}
               </select>
-              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                expand_more
+              </span>
             </div>
           </div>
 
@@ -346,17 +416,24 @@ const Logwork: React.FC = () => {
             <button
               onClick={handleSave}
               disabled={!hasChanges || isSaving}
-              className={`flex items-center justify-center gap-2 h-10 px-5 rounded-lg font-semibold text-xs transition-all shadow-xl ${hasChanges && !isSaving
-                ? 'bg-primary hover:bg-emerald-600 text-white shadow-primary/20 cursor-pointer'
-                : 'bg-slate-200 text-slate-400 shadow-none cursor-not-allowed'
-                }`}
+              className={`flex items-center justify-center gap-2 h-10 px-5 rounded-lg font-semibold text-xs transition-all shadow-xl ${
+                hasChanges && !isSaving
+                  ? "bg-primary hover:bg-emerald-600 text-white shadow-primary/20 cursor-pointer"
+                  : "bg-slate-200 text-slate-400 shadow-none cursor-not-allowed"
+              }`}
             >
               {isSaving ? (
-                <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                <span className="material-symbols-outlined text-[18px] animate-spin">
+                  progress_activity
+                </span>
               ) : (
-                <span className="material-symbols-outlined text-[18px]">save</span>
+                <span className="material-symbols-outlined text-[18px]">
+                  save
+                </span>
               )}
-              <span className="hidden sm:inline">{isSaving ? 'Saving...' : 'Save Changes'}</span>
+              <span className="hidden sm:inline">
+                {isSaving ? "Saving..." : "Save Changes"}
+              </span>
             </button>
           </div>
         </div>
@@ -378,13 +455,19 @@ const Logwork: React.FC = () => {
                     className="flex items-center justify-center w-4 h-4 rounded-full hover:bg-primary/20 transition-colors"
                     aria-label={`Remove ${MONTHS[m - 1]}`}
                   >
-                    <span className="material-symbols-outlined text-[12px]">close</span>
+                    <span className="material-symbols-outlined text-[12px]">
+                      close
+                    </span>
                   </button>
                 </span>
               ))}
             {selectedMonths.length > 1 && (
               <button
-                onClick={() => { setSelectedQuarter(''); setSelectedMonths([]); setChangedCells(new Map()); }}
+                onClick={() => {
+                  setSelectedQuarter("");
+                  setSelectedMonths([]);
+                  setChangedCells(new Map());
+                }}
                 className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold border border-slate-200 hover:bg-slate-200 transition-colors"
               >
                 Clear all
@@ -401,13 +484,15 @@ const Logwork: React.FC = () => {
             <table className="w-full border-collapse min-w-[700px] lg:min-w-0">
               <thead className="bg-slate-50 sticky top-0 z-20">
                 <tr className="border-b border-border-light">
-                  <th className={`sticky left-0 z-30 bg-slate-50 px-3 md:px-6 py-3 md:py-5 text-center text-[10px] md:text-[11px] font-semibold uppercase tracking-widest text-slate-600 border-r border-border-light ${isSingleMonthView ? 'w-[200px] md:w-[260px] min-w-[200px] md:min-w-[260px]' : 'min-w-[200px] md:min-w-[260px]'}`}>
+                  <th
+                    className={`sticky left-0 z-30 bg-slate-50 px-3 md:px-6 py-3 md:py-5 text-center text-[10px] md:text-[11px] font-semibold uppercase tracking-widest text-slate-600 border-r border-border-light ${isSingleMonthView ? "w-[200px] md:w-[260px] min-w-[200px] md:min-w-[260px]" : "min-w-[200px] md:min-w-[260px]"}`}
+                  >
                     User Name
                   </th>
                   {displayedMonths.map((m) => (
                     <th
                       key={m.name}
-                      className={`px-1 md:px-2 py-3 md:py-5 text-center text-[9px] md:text-[11px] font-semibold uppercase tracking-widest text-slate-600 border-r border-border-light ${isSingleMonthView ? 'w-full min-w-[200px] md:min-w-[300px]' : 'min-w-[70px] md:min-w-[100px]'}`}
+                      className={`px-1 md:px-2 py-3 md:py-5 text-center text-[9px] md:text-[11px] font-semibold uppercase tracking-widest text-slate-600 border-r border-border-light ${isSingleMonthView ? "w-full min-w-[200px] md:min-w-[300px]" : "min-w-[70px] md:min-w-[100px]"}`}
                     >
                       {m.name}
                     </th>
@@ -417,48 +502,79 @@ const Logwork: React.FC = () => {
               <tbody className="divide-y divide-border-light">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={displayedMonths.length + 1} className="px-6 py-8 text-center text-slate-500">
-                      <span className="material-symbols-outlined animate-spin text-2xl">progress_activity</span>
+                    <td
+                      colSpan={displayedMonths.length + 1}
+                      className="px-6 py-8 text-center text-slate-500"
+                    >
+                      <span className="material-symbols-outlined animate-spin text-2xl">
+                        progress_activity
+                      </span>
                       <p className="mt-2 text-sm">Loading logworks...</p>
                     </td>
                   </tr>
                 ) : error ? (
                   <tr>
-                    <td colSpan={displayedMonths.length + 1} className="px-6 py-8 text-center text-red-500">
-                      <span className="material-symbols-outlined text-2xl">error</span>
-                      <p className="mt-2 text-sm">Failed to load logworks data</p>
+                    <td
+                      colSpan={displayedMonths.length + 1}
+                      className="px-6 py-8 text-center text-red-500"
+                    >
+                      <span className="material-symbols-outlined text-2xl">
+                        error
+                      </span>
+                      <p className="mt-2 text-sm">
+                        Failed to load logworks data
+                      </p>
                     </td>
                   </tr>
                 ) : tableData.length === 0 ? (
                   <tr>
-                    <td colSpan={displayedMonths.length + 1} className="px-6 py-8 text-center text-slate-500">
-                      <span className="material-symbols-outlined text-2xl">inbox</span>
+                    <td
+                      colSpan={displayedMonths.length + 1}
+                      className="px-6 py-8 text-center text-slate-500"
+                    >
+                      <span className="material-symbols-outlined text-2xl">
+                        inbox
+                      </span>
                       <p className="mt-2 text-sm">No data found</p>
                     </td>
                   </tr>
                 ) : (
                   <>
                     {tableData.map((emp) => (
-                      <tr key={emp.id} className="group hover:bg-slate-50 transition-colors">
-                        <td className={`sticky left-0 z-10 bg-surface-light group-hover:bg-slate-100 transition-colors px-3 md:px-6 py-3 md:py-4 border-r border-border-light text-left ${isSingleMonthView ? 'w-[200px] md:w-[260px]' : ''}`}>
+                      <tr
+                        key={emp.id}
+                        className="group hover:bg-slate-50 transition-colors"
+                      >
+                        <td
+                          className={`sticky left-0 z-10 bg-surface-light group-hover:bg-slate-100 transition-colors px-3 md:px-6 py-3 md:py-4 border-r border-border-light text-left ${isSingleMonthView ? "w-[200px] md:w-[260px]" : ""}`}
+                        >
                           <div className="flex items-center gap-2 md:gap-4">
-                            <div className={`h-8 md:h-10 w-8 md:w-10 rounded-full ${emp.color}/10 flex items-center justify-center font-semibold text-[10px] md:text-xs ${emp.color.replace('bg-', 'text-')}`}>
+                            <div
+                              className={`h-8 md:h-10 w-8 md:w-10 rounded-full ${emp.color}/10 flex items-center justify-center font-semibold text-[10px] md:text-xs ${emp.color.replace("bg-", "text-")}`}
+                            >
                               {emp.initials}
                             </div>
-                            <span className="text-xs md:text-sm font-semibold text-slate-900 truncate">{emp.name}</span>
+                            <span className="text-xs md:text-sm font-semibold text-slate-900 truncate">
+                              {emp.name}
+                            </span>
                           </div>
                         </td>
                         {displayedMonths.map((m) => {
                           const cellKey = `${emp.id}|${m.index + 1}`;
                           const changedValue = changedCells.get(cellKey);
-                          const displayValue = changedValue !== undefined
-                            ? (changedValue === 0 ? '' : String(changedValue))
-                            : (emp.hours[m.index] === 0 ? '' : String(emp.hours[m.index]));
+                          const displayValue =
+                            changedValue !== undefined
+                              ? changedValue === 0
+                                ? ""
+                                : String(changedValue)
+                              : emp.hours[m.index] === 0
+                                ? ""
+                                : String(emp.hours[m.index]);
 
                           return (
                             <td
                               key={m.name}
-                              className={`p-0.5 md:p-1 border-r border-border-light group-hover:bg-slate-100/50 transition-colors ${changedCells.has(cellKey) ? 'bg-amber-50' : ''} ${isSingleMonthView ? 'text-center' : ''}`}
+                              className={`p-0.5 md:p-1 border-r border-border-light group-hover:bg-slate-100/50 transition-colors ${changedCells.has(cellKey) ? "bg-amber-50" : ""} ${isSingleMonthView ? "text-center" : ""}`}
                             >
                               <input
                                 type="number"
@@ -468,13 +584,20 @@ const Logwork: React.FC = () => {
                                 key={`${emp.id}-${m.index}-${selectedYear}`}
                                 placeholder="-"
                                 disabled={isMember}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                                  handleCellChange(emp.id, m.index + 1, e.target.value)
+                                onChange={(
+                                  e: React.ChangeEvent<HTMLInputElement>,
+                                ) =>
+                                  handleCellChange(
+                                    emp.id,
+                                    m.index + 1,
+                                    e.target.value,
+                                  )
                                 }
-                                className={`w-full h-8 md:h-10 bg-transparent border-0 text-center text-[10px] md:text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-primary rounded transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isMember
-                                  ? 'cursor-not-allowed opacity-60'
-                                  : 'hover:ring-2 hover:ring-primary/30'
-                                  } ${changedCells.has(cellKey) ? 'ring-2 ring-amber-400' : ''}`}
+                                className={`w-full h-8 md:h-10 bg-transparent border-0 text-center text-[10px] md:text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-primary rounded transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                  isMember
+                                    ? "cursor-not-allowed opacity-60"
+                                    : "hover:ring-2 hover:ring-primary/30"
+                                } ${changedCells.has(cellKey) ? "ring-2 ring-amber-400" : ""}`}
                               />
                             </td>
                           );
@@ -490,9 +613,11 @@ const Logwork: React.FC = () => {
                       {displayedMonths.map((m) => (
                         <td
                           key={m.name}
-                          className={`px-3 md:px-6 py-3 md:py-4 text-center text-xs md:text-sm text-slate-900 border-r border-border-light ${isSingleMonthView ? 'text-center' : ''}`}
+                          className={`px-3 md:px-6 py-3 md:py-4 text-center text-xs md:text-sm text-slate-900 border-r border-border-light ${isSingleMonthView ? "text-center" : ""}`}
                         >
-                          {monthlyTotals[m.index] > 0 ? monthlyTotals[m.index].toLocaleString() : '-'}
+                          {monthlyTotals[m.index] > 0
+                            ? monthlyTotals[m.index].toLocaleString()
+                            : "-"}
                         </td>
                       ))}
                     </tr>

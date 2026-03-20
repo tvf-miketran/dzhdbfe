@@ -8,7 +8,10 @@ import {
   useProjectRoles,
 } from "../hooks/queries/useProjectsQueries";
 import { useEmployees } from "../hooks/queries/useUserQueries";
-import { useAddProjectMembers, useCreateBank } from "../hooks/mutations/useProjectsMutations";
+import {
+  useAddProjectMembers,
+  useCreateBank,
+} from "../hooks/mutations/useProjectsMutations";
 import { useAuth } from "../context/AuthContext";
 import type { ProjectItem, Employee } from "../types/index";
 import { Pagination } from "../components/pagination";
@@ -24,7 +27,7 @@ interface MemberAssignment {
 
 const Projects: React.FC = () => {
   const { user } = useAuth();
-  const isMember = user?.authorize_role === "MEMBER";
+  const isMember = (user?.authorize_role ?? "").toUpperCase() !== "ADMIN";
 
   // Pagination & search
   const [currentPage, setCurrentPage] = useState(1);
@@ -256,7 +259,10 @@ const Projects: React.FC = () => {
                   {bank.name}
                 </option>
               ))}
-              <option value="__add_new_bank__" className="font-semibold text-primary">
+              <option
+                value="__add_new_bank__"
+                className="font-semibold text-primary"
+              >
                 + Add Bank
               </option>
             </select>
@@ -583,13 +589,13 @@ const Projects: React.FC = () => {
                                   disabled={isAlreadyInProject}
                                   onClick={() => {
                                     if (isAlreadyInProject) return;
-                                    
+
                                     // Get default role - ensure it always has a value
                                     let defaultRole =
                                       projectMemberRoles.find(
                                         (role) => role.name === "DEV",
                                       ) ?? projectMemberRoles[0];
-                                    
+
                                     // Fallback if projectMemberRoles is empty
                                     if (!defaultRole) {
                                       defaultRole = { id: "DEV", name: "DEV" };
@@ -802,39 +808,42 @@ const Projects: React.FC = () => {
                               </select>
 
                               <div className="flex flex-col items-end gap-0.5">
-                              <input
-                                type="number"
-                                min="0"
-                                max="100"
-                                value={entry.allocationPercent}
-                                onChange={(event) => {
-                                  let value = event.target.value;
-                                  const numValue = parseFloat(value);
-                                  if (!isNaN(numValue) && numValue > 100) {
-                                    value = "100";
-                                  }
-                                  setMemberDrafts((prev) =>
-                                    prev.map((item) =>
-                                      item.userId === entry.userId
-                                        ? { ...item, allocationPercent: value }
-                                        : item,
-                                    ),
-                                  );
-                                }}
-                                placeholder="Alloc %"
-                                className={`h-9 w-24 rounded-md border ${
-                                  hasAllocError &&
-                                  entry.allocationPercent !== ""
-                                    ? "border-red-400"
-                                    : "border-border-light"
-                                } bg-surface-light px-2 text-sm text-slate-900 outline-none focus:ring-1 focus:ring-primary focus:border-primary`}
-                              />
-                              {hasAllocError &&
-                                entry.allocationPercent !== "" && (
-                                  <p className="text-[10px] text-red-500">
-                                    0–100
-                                  </p>
-                                )}
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  value={entry.allocationPercent}
+                                  onChange={(event) => {
+                                    let value = event.target.value;
+                                    const numValue = parseFloat(value);
+                                    if (!isNaN(numValue) && numValue > 100) {
+                                      value = "100";
+                                    }
+                                    setMemberDrafts((prev) =>
+                                      prev.map((item) =>
+                                        item.userId === entry.userId
+                                          ? {
+                                              ...item,
+                                              allocationPercent: value,
+                                            }
+                                          : item,
+                                      ),
+                                    );
+                                  }}
+                                  placeholder="Alloc %"
+                                  className={`h-9 w-24 rounded-md border ${
+                                    hasAllocError &&
+                                    entry.allocationPercent !== ""
+                                      ? "border-red-400"
+                                      : "border-border-light"
+                                  } bg-surface-light px-2 text-sm text-slate-900 outline-none focus:ring-1 focus:ring-primary focus:border-primary`}
+                                />
+                                {hasAllocError &&
+                                  entry.allocationPercent !== "" && (
+                                    <p className="text-[10px] text-red-500">
+                                      0–100
+                                    </p>
+                                  )}
                               </div>
                             </div>
                             <button
@@ -931,7 +940,10 @@ const Projects: React.FC = () => {
               <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
                 <div className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
                   <span>Project</span>
-                  <span className="text-primary">{memberDrafts.length} member{memberDrafts.length !== 1 ? "s" : ""}</span>
+                  <span className="text-primary">
+                    {memberDrafts.length} member
+                    {memberDrafts.length !== 1 ? "s" : ""}
+                  </span>
                 </div>
                 <p className="mt-1.5 text-sm font-semibold text-slate-800 truncate">
                   {addMemberProjectName}
@@ -984,13 +996,17 @@ const Projects: React.FC = () => {
 
                     // Validate project is selected
                     if (!addMemberProjectId || !addMemberProjectId.trim()) {
-                      toast.error("Please select a project", { duration: 5000 });
+                      toast.error("Please select a project", {
+                        duration: 5000,
+                      });
                       return;
                     }
 
                     // Validate at least one member is selected
                     if (memberDrafts.length === 0) {
-                      toast.error("Please add at least one member", { duration: 5000 });
+                      toast.error("Please add at least one member", {
+                        duration: 5000,
+                      });
                       return;
                     }
 
@@ -1003,13 +1019,13 @@ const Projects: React.FC = () => {
                         allocVal >= 0 &&
                         allocVal <= 100;
                       const hasValidRole = m.roleId && m.roleId.trim();
-                      
+
                       if (!hasValidAlloc || !hasValidRole) {
                         console.warn(
                           `Invalid member: ${m.enFullName}, allocation: "${m.allocationPercent}", roleId: "${m.roleId}", valid: ${hasValidAlloc && hasValidRole}`,
                         );
                       }
-                      
+
                       return !hasValidAlloc || !hasValidRole;
                     });
 
