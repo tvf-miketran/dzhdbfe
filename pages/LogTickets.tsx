@@ -679,7 +679,8 @@ const LogTickets: React.FC = () => {
         : entry
     ));
     if (newMonth !== NO_MONTH) {
-      fetchWeeksForEntry(id, newMonth);
+      // fetchWeeksForEntry(id, newMonth);
+       idsToUpdate.forEach(entryId => fetchWeeksForEntry(entryId, newMonth));
     }
   };
 
@@ -788,97 +789,97 @@ const LogTickets: React.FC = () => {
     }, 500);
   };
 
-  const updateDraftLength = (id: string, newLength: number) => {
-    const idsToUpdate = selectedDraftIds.has(id) ? selectedDraftIds : new Set([id]);
+const updateDraftLength = (id: string, newLength: number) => {
+  const idsToUpdate = selectedDraftIds.has(id) ? selectedDraftIds : new Set([id]);
 
-    // Multi-select: just update length without split logic
-    if (idsToUpdate.size > 1) {
-      setDraftEntries(prev => prev.map(entry =>
-        idsToUpdate.has(entry.id)
-          ? { ...entry, length: newLength }
-          : entry
-      ));
-      return;
+  if (idsToUpdate.size > 1) {
+    setDraftEntries(prev => prev.map(entry =>
+      idsToUpdate.has(entry.id)
+        ? { ...entry, length: newLength }
+        : entry
+    ));
+    return;
+  }
+
+  setDraftEntries(prev => {
+    const entryIndex = prev.findIndex(e => e.id === id);
+    if (entryIndex === -1) return prev;
+
+    const entry = prev[entryIndex];
+    const oldLength = entry.length || 0;
+
+    const oldSplits = calculateSplits(oldLength);
+    const newSplits = calculateSplits(newLength);
+    const difference = newSplits - oldSplits;
+
+    const baseName = entry.ticketId.replace(/ \(\d+\)$/, '');
+
+    // Find the index of the FIRST entry in this ticket's group
+    const groupStartIndex = prev.findIndex(e =>
+      e.ticketId.replace(/ \(\d+\)$/, '') === baseName
+    );
+
+    const allSameTicketEntries = prev.filter(e =>
+      e.ticketId.replace(/ \(\d+\)$/, '') === baseName
+    );
+
+    // Everything before the group
+    const beforeGroup = prev.slice(0, groupStartIndex);
+    // Everything after the group
+    const afterGroup = prev.slice(groupStartIndex + allSameTicketEntries.length);
+
+    const resetMonthWeek = {
+      month: NO_MONTH,
+      week: undefined as number | undefined,
+      weekLabel: '',
+      availableWeeks: null,
+      weekLoading: false,
+    };
+
+    if (difference === 0) {
+      const updated = allSameTicketEntries.map(e => ({ ...e, length: newLength }));
+      return [...beforeGroup, ...updated, ...afterGroup];
     }
 
-    // Single entry — full split logic
-    setDraftEntries(prev => {
-      const entryIndex = prev.findIndex(e => e.id === id);
-      if (entryIndex === -1) return prev;
+    const template = entry;
 
-      const entry = prev[entryIndex];
-      const oldLength = entry.length || 0;
+    if (difference > 0) {
+      const updatedExisting = allSameTicketEntries.map((e, idx) => ({
+        ...e,
+        ticketId: `${baseName} (${idx + 1})`,
+        length: newLength,
+        ...resetMonthWeek,
+      }));
 
-      const oldSplits = calculateSplits(oldLength);
-      const newSplits = calculateSplits(newLength);
-      const difference = newSplits - oldSplits;
-
-      // Strip the " (N)" suffix to get the canonical ticket id
-      const baseName = entry.ticketId.replace(/ \(\d+\)$/, '');
-
-      // FIX: collect ALL entries belonging to this base ticket (including current)
-      const allSameTicketEntries = prev.filter(e =>
-        e.ticketId.replace(/ \(\d+\)$/, '') === baseName
-      );
-
-      // Entries that are NOT part of this group stay unchanged
-      const otherEntries = prev.filter(e =>
-        e.ticketId.replace(/ \(\d+\)$/, '') !== baseName
-      );
-
-      // No split count change — just update length on all group members
-      if (difference === 0) {
-        const updated = allSameTicketEntries.map(e => ({ ...e, length: newLength }));
-        return [...otherEntries, ...updated];
+      const newOnes: TicketEntry[] = [];
+      for (let i = 0; i < difference; i++) {
+        newOnes.push({
+          ...template,
+          id: Math.random().toString(36).substr(2, 9),
+          ticketId: `${baseName} (${updatedExisting.length + newOnes.length + 1})`,
+          length: newLength,
+          ...resetMonthWeek,
+        });
       }
 
-      // Template: use the current entry's data as the prototype for new splits
-      const template = entry;
+      debouncedToastAdd(difference);
+      return [...beforeGroup, ...updatedExisting, ...newOnes, ...afterGroup];
+    } else {
+      const keepCount = allSameTicketEntries.length + difference;
+      const kept = allSameTicketEntries.slice(0, Math.max(keepCount, 1));
 
-      if (difference > 0) {
-        // Keep existing entries and append new ones
-        const updatedExisting = allSameTicketEntries.map((e, idx) => ({
-          ...e,
-          ticketId: `${baseName} (${idx + 1})`,
-          length: newLength,
-          availableWeeks: null,
-          weekLoading: false,
-        }));
+      const updatedKept = kept.map((e, idx) => ({
+        ...e,
+        ticketId: kept.length === 1 ? baseName : `${baseName} (${idx + 1})`,
+        length: newLength,
+        ...resetMonthWeek,
+      }));
 
-        const newOnes: TicketEntry[] = [];
-        for (let i = 0; i < difference; i++) {
-          newOnes.push({
-            ...template,
-            id: Math.random().toString(36).substr(2, 9),
-            ticketId: `${baseName} (${updatedExisting.length + newOnes.length + 1})`,
-            length: newLength,
-            week: undefined,
-            weekLabel: '',
-            availableWeeks: null,
-            weekLoading: false,
-          });
-        }
-
-        debouncedToastAdd(difference);
-        return [...otherEntries, ...updatedExisting, ...newOnes];
-      } else {
-        // Remove from the end of the group, keep the rest
-        const keepCount = allSameTicketEntries.length + difference; // difference is negative
-        const kept = allSameTicketEntries.slice(0, Math.max(keepCount, 1));
-
-        const updatedKept = kept.map((e, idx) => ({
-          ...e,
-          ticketId: kept.length === 1 ? baseName : `${baseName} (${idx + 1})`,
-          length: newLength,
-          availableWeeks: null,
-          weekLoading: false,
-        }));
-
-        debouncedToastRemove(Math.abs(difference));
-        return [...otherEntries, ...updatedKept];
-      }
-    });
-  };
+      debouncedToastRemove(Math.abs(difference));
+      return [...beforeGroup, ...updatedKept, ...afterGroup];
+    }
+  });
+};
 
   const getTypeColor = (type: string) => {
     switch (type) {
