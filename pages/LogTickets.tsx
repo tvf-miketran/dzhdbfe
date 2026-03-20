@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { TicketEntry } from '../types/index';
 import toast from 'react-hot-toast';
@@ -11,18 +10,17 @@ import { ExistingTicketsModal } from '../components/modal';
 import { ticketsService, type BulkTicketItem } from '../services/tickets.service';
 import FilterDialog from '../components/FilterDialog';
 
-const DEFAULT_TYPE = 'Bug Fix';
 const FALLBACK_TICKET_TYPES = ['Feature', 'Bug Fix', 'Refactor', 'Hotfix', 'Research'];
 const DEFAULT_JIRA_BASE_URL = 'https://dzhintl.atlassian.net/browse';
 
-const INITIAL_FINAL_ENTRIES: TicketEntry[] = [
-    { id: '1', ticketId: 'ODC-120', projectName: 'Alpha Banking Portal', type: 'Feature', roles: ['Senior Dev'], status: 'InQA', timestamp: '2023-10-01', week: 1, month: 10, length: 5 },
-    { id: '2', ticketId: 'ODC-341', projectName: 'Mobile App Refresh', type: 'Bug Fix', roles: ['QA Lead'], status: 'Closed', timestamp: '2023-10-02', week: 2, month: 10, length: 3 },
-];
+// Sentinel values meaning "not chosen yet"
+const NO_MONTH = 0;
+const NO_TYPE = '';
+const NO_STATUS = '';
 
 const LogTickets: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'draft' | 'final'>('draft');
-  const [draftEntries, setDraftEntries] = useState<TicketEntry[]>([]);
+  const [draftEntries, setDraftEntries] = useState<TicketEntry[]>([] as TicketEntry[]);
   const [finalEntries, setFinalEntries] = useState<TicketEntry[]>([]);
   const [validationError, setValidationError] = useState<string>('');
   const [fieldErrors, setFieldErrors] = useState<{
@@ -35,7 +33,6 @@ const LogTickets: React.FC = () => {
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
   const roleDropdownRef = useRef<HTMLDivElement>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [draftMonth, setDraftMonth] = useState<number | null>(null);
   const [existingTickets, setExistingTickets] = useState<Array<{
     ticketId: string;
     ticket: BulkTicketItem;
@@ -67,7 +64,6 @@ const LogTickets: React.FC = () => {
   const { data: allProjectsData } = useAllProjects();
   const { data: ticketTypes = [], isLoading: isLoadingTicketTypes } = useTicketTypes();
   const { data: ticketStatuses = [], isLoading: isLoadingTicketStatuses } = useTicketStatuses();
-  const { data: weeks = [] } = useWeeks(draftMonth);
   const { data: userProfile } = useUserProfile();
   const { mutateAsync: submitTicketsBulk, isPending: isSubmittingFinal } = useBulkCreateTickets();
 
@@ -85,7 +81,6 @@ const LogTickets: React.FC = () => {
         .filter(Boolean),
     ),
   ) as string[];
-  const defaultDraftStatus = draftStatusOptions[0] || '';
 
   const findRoleBySelectedValue = (selectedValue: string) => {
     return rolesData.find(
@@ -109,7 +104,6 @@ const LogTickets: React.FC = () => {
   };
 
   const getDefaultBugTicketTypeId = () => {
-    // Try to find Bug ticket type
     const bugType = ticketTypes.find(
       (item) => item.name?.toLowerCase() === 'bug' || item.code?.toLowerCase() === 'bug' || item.code === 'BUG',
     );
@@ -166,7 +160,6 @@ const LogTickets: React.FC = () => {
       profile?.data?.id,
     ];
 
-    // Find the first valid UUID
     for (const candidate of candidates) {
       if (candidate && isValidUUID(String(candidate))) {
         return String(candidate);
@@ -176,13 +169,11 @@ const LogTickets: React.FC = () => {
     return '';
   };
 
-  // Fetch final tickets from API with specific project IDs
   const fetchMyTickets = async () => {
     setIsLoadingFinalTab(true);
     try {
       let response;
       
-      // Use search API if search query exists
       if (filters.search && filters.search.trim()) {
         response = await ticketsService.searchTickets(filters.search.trim());
       } else {
@@ -216,7 +207,9 @@ const LogTickets: React.FC = () => {
           timestamp: ticket.createdAt || ticket.created_at || new Date().toISOString().split('T')[0],
           week: ticket.week || 1,
           month: ticket.month || new Date().getMonth() + 1,
-          length: 0
+          length: 0,
+          availableWeeks: null,
+          weekLoading: false
         })) : [];
         setFinalTabMyTickets(transformedEntries);
       } else {
@@ -231,7 +224,6 @@ const LogTickets: React.FC = () => {
     }
   };
 
-  // Fetch tickets when entering Final tab or when filters change
   useEffect(() => {
     if (activeTab !== 'final') return;
     fetchMyTickets();
@@ -239,11 +231,10 @@ const LogTickets: React.FC = () => {
 
   const [formData, setFormData] = useState({
     ticketId: '',
-    type: DEFAULT_TYPE,
+    type: NO_TYPE,
     roles: [] as string[]
   });
 
-  // Toggle role selection
   const toggleRole = (roleId: string) => {
     setFormData(prev => ({
       ...prev,
@@ -254,7 +245,6 @@ const LogTickets: React.FC = () => {
     if (fieldErrors.roles) setFieldErrors({...fieldErrors, roles: false});
   };
 
-  // Handle click outside role dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (roleDropdownRef.current && !roleDropdownRef.current.contains(event.target as Node)) {
@@ -273,7 +263,6 @@ const LogTickets: React.FC = () => {
   const handleAddTicket = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate all required fields
     const errors: typeof fieldErrors = {};
     
     if (!formData.ticketId.trim()) {
@@ -291,7 +280,6 @@ const LogTickets: React.FC = () => {
       setValidationError('Please fill all required fields');
     }
     
-    // If there are validation errors, show them and return
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
@@ -314,10 +302,7 @@ const LogTickets: React.FC = () => {
     setValidationError('');
     setFieldErrors({});
 
-    const resolvedTicketTypeId = getTicketTypeIdByName(formData.type);
-    const resolvedDefaultStatusId = getTicketStatusIdByName(defaultDraftStatus);
     
-    // Create one entry per ticket ID with all selected roles
     const newEntries: TicketEntry[] = ids.map(ticketId => {
       const selectedRoles = formData.roles.map((selectedValue) => {
         const role = findRoleBySelectedValue(selectedValue);
@@ -329,23 +314,25 @@ const LogTickets: React.FC = () => {
       const selectedRoleNames = selectedRoles.map((role) => role.roleName);
       const selectedRoleUuids = selectedRoles.map((role) => role.roleSubmitId);
       
-      const today = new Date();
       return {
         id: Math.random().toString(36).substr(2, 9),
         ticketId: ticketId,
         projectName: selectedProjectName || 'Unknown Project',
         projectId: selectedProjectId,
-        type: formData.type,
-        ticketTypeId: resolvedTicketTypeId,
+        type: NO_TYPE,
+        ticketTypeId: '',  // user must choose in the draft table
         roles: selectedRoleNames,
         roleUuids: selectedRoleUuids,
-        status: defaultDraftStatus,
-        ticketStatusId: resolvedDefaultStatusId,
+        status: NO_STATUS,
+        ticketStatusId: '',  // user must choose in the draft table
         timestamp: new Date().toISOString().split('T')[0],
-        week: Math.ceil(today.getDate() / 7),
+        // FIX: new tickets start with NO_MONTH (0) — "Choose month" placeholder
+        week: undefined,
         weekLabel: '',
-        month: today.getMonth() + 1,
-        length: 0
+        month: NO_MONTH,
+        length: 0,
+        availableWeeks: null,
+        weekLoading: false
       };
     });
 
@@ -354,8 +341,45 @@ const LogTickets: React.FC = () => {
     setFormData({ ...formData, ticketId: '', roles: [] });
   };
 
+  // ─── Validate draft entries before submitting to final ───────────────────────
+  const validateDraftBeforeSubmit = (): boolean => {
+    const missingType = draftEntries.filter(e => !e.type || e.type === NO_TYPE);
+    const missingStatus = draftEntries.filter(e => !e.status || e.status === NO_STATUS);
+    const missingMonth = draftEntries.filter(e => !e.month || e.month === NO_MONTH);
+    const missingWeek = draftEntries.filter(e => e.month && e.month !== NO_MONTH && !e.week);
+
+    if (missingType.length > 0) {
+      const ids = missingType.map(e => e.ticketId).join(', ');
+      toast.error(`Please select a type for: ${ids}`);
+      return false;
+    }
+
+    if (missingStatus.length > 0) {
+      const ids = missingStatus.map(e => e.ticketId).join(', ');
+      toast.error(`Please select a status for: ${ids}`);
+      return false;
+    }
+
+    if (missingMonth.length > 0) {
+      const ids = missingMonth.map(e => e.ticketId).join(', ');
+      toast.error(`Please select a month for: ${ids}`);
+      return false;
+    }
+
+    if (missingWeek.length > 0) {
+      const ids = missingWeek.map(e => e.ticketId).join(', ');
+      toast.error(`Please select a week for: ${ids}`);
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmitDraft = () => {
     if (draftEntries.length === 0) return;
+
+    // FIX: validate month/week before proceeding
+    if (!validateDraftBeforeSubmit()) return;
 
     const employeeId = resolveEmployeeId();
     if (!employeeId) {
@@ -373,7 +397,6 @@ const LogTickets: React.FC = () => {
         .filter(Boolean);
       
       let resolvedTicketTypeId = entry.ticketTypeId || getTicketTypeIdByName(entry.type);
-      // If still not resolved, default to Bug type
       if (!resolvedTicketTypeId) {
         resolvedTicketTypeId = getDefaultBugTicketTypeId();
       }
@@ -382,7 +405,7 @@ const LogTickets: React.FC = () => {
       const resolvedWeekNumber = entry.week || 1;
       const resolvedMonth = entry.month || new Date().getMonth() + 1;
       const resolvedWeekLabel =
-        entry.weekLabel || weeks[resolvedWeekNumber - 1]?.name || String(resolvedWeekNumber);
+        entry.availableWeeks?.[resolvedWeekNumber - 1]?.name || entry.weekLabel || String(resolvedWeekNumber);
 
       const normalizedEntry = {
         ticketId: cleanTicketId,
@@ -434,14 +457,12 @@ const LogTickets: React.FC = () => {
           responseData?.message ||
           '';
 
-        // Check if response indicates failure (success: false)
         if (responseSuccess === false) {
           if (responseMessage.includes('already exist')) {
             const ticketIdMatch = responseMessage.match(/Ticket IDs?\s+(.+?)\s+already exists?/i);
             if (ticketIdMatch) {
               const ticketIds = ticketIdMatch[1].split(',').map(id => id.trim());
 
-              // Find corresponding draft entries
               const existingEntries = draftEntries.filter(entry => {
                 const cleanId = entry.ticketId.replace(/ \(\d+\)$/, '');
                 return ticketIds.some(id => cleanId === id || entry.ticketId === id);
@@ -465,35 +486,28 @@ const LogTickets: React.FC = () => {
 
         const data = responseData?.data || responseData;
         
-        // Show success message for created tickets
         if (data.total_created > 0) {
           toast.success(`${data.total_created} ticket${data.total_created > 1 ? 's' : ''} created successfully!`);
         }
         
-        // If there are existing tickets, show modal
         if (data.existing && data.existing.length > 0) {
           setExistingTickets(data.existing);
           setLastSubmittedPayload(payload);
           setShowExistingModal(true);
         } else {
-          // No existing tickets, clear draft and go to final tab
           setDraftEntries([]);
           setActiveTab('final');
-          // Refetch tickets from API
           fetchMyTickets();
         }
       })
       .catch((error: any) => {
         const message = error?.response?.data?.message || 'Submit to final failed.';
         
-        // Check if error is about existing tickets
         if (message.includes('already exist')) {
-          // Extract ticket IDs from message like "Ticket IDs g-3 already exist" or "Ticket ID g-3 already exists"
           const ticketIdMatch = message.match(/Ticket IDs?\s+(.+?)\s+already exists?/i);
           if (ticketIdMatch) {
             const ticketIds = ticketIdMatch[1].split(',').map(id => id.trim());
             
-            // Find corresponding draft entries
             const existingEntries = draftEntries.filter(entry => {
               const cleanId = entry.ticketId.replace(/ \(\d+\)$/, '');
               return ticketIds.some(id => cleanId === id || entry.ticketId === id);
@@ -513,12 +527,6 @@ const LogTickets: React.FC = () => {
         
         toast.error(message);
       });
-  };
-
-  const updateStatus = (id: string, newStatus: string) => {
-    setFinalEntries(prev => prev.map(entry => 
-      entry.id === id ? { ...entry, status: newStatus } : entry
-    ));
   };
 
   const updateDraftType = (id: string, newType: string) => {
@@ -551,17 +559,14 @@ const LogTickets: React.FC = () => {
     setIsUpdatingExisting(true);
     
     try {
-      // Update each existing ticket
       const updatePromises = existingTickets.map(async (item) => {
         const existingTicket = item.ticket;
         
-        // Find corresponding payload item from lastSubmittedPayload
         const submittedTicket = lastSubmittedPayload?.tickets?.find(
           (t: any) => t.ticketId === item.ticketId
         );
         
         if (submittedTicket) {
-          // Build update payload from submitted ticket data
           const updatePayload = {
             ticketId: existingTicket.ticketId,
             ticketLink: submittedTicket.ticketLink,
@@ -582,13 +587,11 @@ const LogTickets: React.FC = () => {
       
       toast.success(`${existingTickets.length} existing ticket${existingTickets.length > 1 ? 's' : ''} updated successfully!`);
       
-      // Clear and go to final tab
       setShowExistingModal(false);
       setExistingTickets([]);
       setLastSubmittedPayload(null);
       setDraftEntries([]);
       setActiveTab('final');
-      // Refetch tickets from API
       fetchMyTickets();
     } catch (error: any) {
       const message = error?.response?.data?.message || 'Failed to update existing tickets.';
@@ -599,13 +602,11 @@ const LogTickets: React.FC = () => {
   };
 
   const handleSkipExistingTickets = () => {
-    // Just close modal and go to final tab
     setShowExistingModal(false);
     setExistingTickets([]);
     setLastSubmittedPayload(null);
     setDraftEntries([]);
     setActiveTab('final');
-    // Refetch tickets from API
     fetchMyTickets();
   };
 
@@ -613,9 +614,7 @@ const LogTickets: React.FC = () => {
     setIsUpdatingAlreadyExist(true);
     
     try {
-      // Update each already-exist ticket
       const updatePromises = alreadyExistTickets.map(async (item) => {
-        // Find corresponding payload item from lastSubmittedPayload
         const submittedTicket = lastSubmittedPayload?.tickets?.find(
           (t: any) => {
             const tId = t.ticketId.replace(/ \(\d+\)$/, '');
@@ -624,9 +623,6 @@ const LogTickets: React.FC = () => {
         );
         
         if (submittedTicket) {
-          // Call PUT API for each existing ticket
-          // Note: We need the ticket ID from backend, but we only have ticketId from Jira
-          // We'll use the Jira ticket ID as the lookup
           return ticketsService.bulkUpdateTicket(item.ticketId, submittedTicket);
         }
       });
@@ -635,13 +631,11 @@ const LogTickets: React.FC = () => {
       
       toast.success(`${alreadyExistTickets.length} existing ticket${alreadyExistTickets.length > 1 ? 's' : ''} updated successfully!`);
       
-      // Clear and go to final tab
       setShowAlreadyExistModal(false);
       setAlreadyExistTickets([]);
       setLastSubmittedPayload(null);
       setDraftEntries([]);
       setActiveTab('final');
-      // Refetch tickets from API
       fetchMyTickets();
     } catch (error: any) {
       const message = error?.response?.data?.message || 'Failed to update existing tickets.';
@@ -652,20 +646,21 @@ const LogTickets: React.FC = () => {
   };
 
   const handleCancelAlreadyExistTickets = () => {
-    // Close modal and go to final tab
     setShowAlreadyExistModal(false);
     setAlreadyExistTickets([]);
     setLastSubmittedPayload(null);
     setDraftEntries([]);
     setActiveTab('final');
-    // Refetch tickets from API
     fetchMyTickets();
   };
 
   const updateDraftWeek = (id: string, newWeek: number) => {
-    const selectedWeekLabel = weeks[newWeek - 1]?.name || String(newWeek);
+    const entryIndex = draftEntries.findIndex((e: TicketEntry) => e.id === id);
+    if (entryIndex === -1 || !draftEntries[entryIndex].availableWeeks) return;
+    const entry = draftEntries[entryIndex];
+    const selectedWeekLabel = entry.availableWeeks![newWeek - 1]?.name || String(newWeek);
     const idsToUpdate = selectedDraftIds.has(id) ? selectedDraftIds : new Set([id]);
-    setDraftEntries(prev => prev.map(entry => 
+    setDraftEntries(prev => prev.map((entry: TicketEntry) => 
       idsToUpdate.has(entry.id)
         ? {
             ...entry,
@@ -678,12 +673,14 @@ const LogTickets: React.FC = () => {
 
   const updateDraftMonth = (id: string, newMonth: number) => {
     const idsToUpdate = selectedDraftIds.has(id) ? selectedDraftIds : new Set([id]);
-    setDraftMonth(newMonth);
-    setDraftEntries(prev => prev.map(entry => 
+    setDraftEntries(prev => prev.map((entry: TicketEntry) =>
       idsToUpdate.has(entry.id)
-        ? { ...entry, month: newMonth, week: undefined, weekLabel: '' }
+        ? { ...entry, month: newMonth, week: undefined, weekLabel: '', availableWeeks: null, weekLoading: false }
         : entry
     ));
+    if (newMonth !== NO_MONTH) {
+      fetchWeeksForEntry(id, newMonth);
+    }
   };
 
   const removeRoleFromDraft = (entryId: string, roleToRemove: string) => {
@@ -729,10 +726,72 @@ const LogTickets: React.FC = () => {
     return 7; // 30+
   };
 
+  const fetchWeeksForEntry = async (entryId: string, month: number) => {
+  const entry = draftEntries.find((e: TicketEntry) => e.id === entryId);
+  if (!entry || entry.weekLoading) return;
+
+  setDraftEntries(prev => prev.map(e =>
+    e.id === entryId ? { ...e, weekLoading: true } : e
+  ));
+
+  try {
+    const weeksData = await ticketsService.getWeeks(month);
+    setDraftEntries(prev => prev.map(e => {
+      if (e.id !== entryId) return e;
+
+      // Auto-select week 1 only if the user hasn't chosen one yet
+      const shouldAutoSelect = !e.week && weeksData && weeksData.length > 0;
+      const autoWeek = shouldAutoSelect ? 1 : e.week;
+      const autoWeekLabel = shouldAutoSelect
+        ? (weeksData[0]?.name || '1')
+        : e.weekLabel;
+
+      return {
+        ...e,
+        availableWeeks: weeksData,
+        week: autoWeek,
+        weekLabel: autoWeekLabel,
+        weekLoading: false,
+      };
+    }));
+  } catch (error) {
+    console.error('Failed to fetch weeks:', error);
+    setDraftEntries(prev => prev.map(e =>
+      e.id === entryId ? { ...e, weekLoading: false } : e
+    ));
+  }
+};
+
+  // Stable debounced toast refs — created once, survive re-renders
+  const toastAddRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toastRemoveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingAddCountRef = useRef(0);
+  const pendingRemoveCountRef = useRef(0);
+
+  const debouncedToastAdd = (count: number) => {
+    pendingAddCountRef.current += count;
+    if (toastAddRef.current) clearTimeout(toastAddRef.current);
+    toastAddRef.current = setTimeout(() => {
+      const n = pendingAddCountRef.current;
+      pendingAddCountRef.current = 0;
+      toast.success(`Added ${n} ticket${n > 1 ? 's' : ''}!`);
+    }, 500);
+  };
+
+  const debouncedToastRemove = (count: number) => {
+    pendingRemoveCountRef.current += count;
+    if (toastRemoveRef.current) clearTimeout(toastRemoveRef.current);
+    toastRemoveRef.current = setTimeout(() => {
+      const n = pendingRemoveCountRef.current;
+      pendingRemoveCountRef.current = 0;
+      toast.success(`Removed ${n} ticket${n > 1 ? 's' : ''}!`);
+    }, 500);
+  };
+
   const updateDraftLength = (id: string, newLength: number) => {
     const idsToUpdate = selectedDraftIds.has(id) ? selectedDraftIds : new Set([id]);
-    
-    // If multiple entries are selected, just update length without split logic
+
+    // Multi-select: just update length without split logic
     if (idsToUpdate.size > 1) {
       setDraftEntries(prev => prev.map(entry =>
         idsToUpdate.has(entry.id)
@@ -742,88 +801,156 @@ const LogTickets: React.FC = () => {
       return;
     }
 
-    // Single entry - apply full split logic
+    // Single entry — full split logic
     setDraftEntries(prev => {
-      // Find the entry being updated
       const entryIndex = prev.findIndex(e => e.id === id);
       if (entryIndex === -1) return prev;
-      
+
       const entry = prev[entryIndex];
       const oldLength = entry.length || 0;
-      
-      // Calculate old and new split counts
+
       const oldSplits = calculateSplits(oldLength);
       const newSplits = calculateSplits(newLength);
       const difference = newSplits - oldSplits;
-      
-      // If no difference, just update the length
+
+      // Strip the " (N)" suffix to get the canonical ticket id
+      const baseName = entry.ticketId.replace(/ \(\d+\)$/, '');
+
+      // FIX: collect ALL entries belonging to this base ticket (including current)
+      const allSameTicketEntries = prev.filter(e =>
+        e.ticketId.replace(/ \(\d+\)$/, '') === baseName
+      );
+
+      // Entries that are NOT part of this group stay unchanged
+      const otherEntries = prev.filter(e =>
+        e.ticketId.replace(/ \(\d+\)$/, '') !== baseName
+      );
+
+      // No split count change — just update length on all group members
       if (difference === 0) {
-        const updated = [...prev];
-        updated[entryIndex] = { ...entry, length: newLength };
-        return updated;
+        const updated = allSameTicketEntries.map(e => ({ ...e, length: newLength }));
+        return [...otherEntries, ...updated];
       }
-      
-      // Get all entries with the same ticketId (without split number)
-      const baseName = entry.ticketId.replace(/ \(\d+\)$/, ''); // Remove existing split number
-      const sameTicketEntries = prev.filter(e => e.ticketId.replace(/ \(\d+\)$/, '') === baseName);
-      
-      const result = prev.filter(e => e.ticketId.replace(/ \(\d+\)$/, '') !== baseName);
-      
+
+      // Template: use the current entry's data as the prototype for new splits
+      const template = entry;
+
       if (difference > 0) {
-        // Need to add more tickets
-        const updatedEntries = sameTicketEntries.map((e, idx) => ({
+        // Keep existing entries and append new ones
+        const updatedExisting = allSameTicketEntries.map((e, idx) => ({
           ...e,
           ticketId: `${baseName} (${idx + 1})`,
-          length: newLength
+          length: newLength,
+          availableWeeks: null,
+          weekLoading: false,
         }));
-        
+
+        const newOnes: TicketEntry[] = [];
         for (let i = 0; i < difference; i++) {
-          updatedEntries.push({
-            ...entry,
+          newOnes.push({
+            ...template,
             id: Math.random().toString(36).substr(2, 9),
-            ticketId: `${baseName} (${updatedEntries.length + 1})`,
-            length: newLength
+            ticketId: `${baseName} (${updatedExisting.length + newOnes.length + 1})`,
+            length: newLength,
+            week: undefined,
+            weekLabel: '',
+            availableWeeks: null,
+            weekLoading: false,
           });
         }
-        toast.success(`Added ${difference} ticket${difference > 1 ? 's' : ''}!`);
-        return [...result, ...updatedEntries];
+
+        debouncedToastAdd(difference);
+        return [...otherEntries, ...updatedExisting, ...newOnes];
       } else {
-        // Need to remove tickets (keep the first -difference entries)
-        const updatedEntries = sameTicketEntries
-          .slice(0, sameTicketEntries.length + difference)
-          .map((e, idx) => ({
-            ...e,
-            ticketId: `${baseName} (${idx + 1})`,
-            length: newLength
-          }));
-        toast.success(`Removed ${Math.abs(difference)} ticket${Math.abs(difference) > 1 ? 's' : ''}!`);
-        return [...result, ...updatedEntries];
+        // Remove from the end of the group, keep the rest
+        const keepCount = allSameTicketEntries.length + difference; // difference is negative
+        const kept = allSameTicketEntries.slice(0, Math.max(keepCount, 1));
+
+        const updatedKept = kept.map((e, idx) => ({
+          ...e,
+          ticketId: kept.length === 1 ? baseName : `${baseName} (${idx + 1})`,
+          length: newLength,
+          availableWeeks: null,
+          weekLoading: false,
+        }));
+
+        debouncedToastRemove(Math.abs(difference));
+        return [...otherEntries, ...updatedKept];
       }
     });
   };
 
   const getTypeColor = (type: string) => {
-    switch(type) {
+    switch (type) {
+      // Red family
       case 'Bug Fix':
-      case 'Bug': return 'bg-red-100 text-red-700 border-red-200';
-      case 'Task': return 'bg-cyan-100 text-cyan-700 border-cyan-200';
-      case 'Feature': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      case 'Refactor': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'Hotfix': return 'bg-orange-100 text-orange-700 border-orange-200';
-      case 'Epic': return 'bg-violet-100 text-violet-700 border-violet-200';
-      case 'Research': return 'bg-purple-100 text-purple-700 border-purple-200';
-      default: return 'bg-white text-slate-700 border-slate-200';
+      case 'Bug':           return 'bg-red-100 text-red-700 border-red-200';
+      // Orange family
+      case 'Enquiry':        return 'bg-orange-100 text-orange-700 border-orange-200';
+      case 'Incident':      return 'bg-rose-100 text-rose-700 border-rose-200';
+      // Yellow family
+      case 'Improvement':   return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      // Green family
+      case 'Feature':       return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      case 'Task':          return 'bg-teal-100 text-teal-700 border-teal-200';
+      // Cyan family
+      case 'Docs':       return 'bg-cyan-100 text-cyan-700 border-cyan-200';
+      // Blue family
+      case 'Refactor':      return 'bg-blue-100 text-blue-700 border-blue-200';
+      // case 'Enquiry':return 'bg-sky-100 text-sky-700 border-sky-200';
+      // Purple family
+      case 'Sub-task':      return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'Epic':          return 'bg-violet-100 text-violet-700 border-violet-200';
+      case 'Story':         return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+      // Pink family
+      case 'Improvement':        return 'bg-pink-100 text-pink-700 border-pink-200';
+      case 'Miscellaneous':            return 'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200';
+      // Unset / placeholder — no color emphasis
+      default:              return 'bg-white text-slate-400 border-slate-200';
     }
   };
 
   const getStatusColor = (status: string) => {
-    switch(status) {
-      case 'Open': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-      case 'Closed':
+    switch (status) {
+      // Not started / open
+      case 'Open':
+      case 'Backlog':             return 'bg-slate-100 text-slate-600 border-slate-300';
+      // Analysis / planning
+      case 'Analysis Review':
+      case 'Design & Analysis':   return 'bg-purple-50 text-purple-700 border-purple-200';
+      // Active development
+      case 'Development':
+      case 'In Progress':
+      case 'InProgress':          return 'bg-blue-50 text-blue-700 border-blue-200';
+      // Code / peer review
+      case 'Code Review':
+      case 'In Review':
+      case 'InReview':
+      case 'Review':              return 'bg-violet-50 text-violet-700 border-violet-200';
+      // QA
+      case 'In QA':
+      case 'InQA':
+      case 'QA':                  return 'bg-sky-50 text-sky-700 border-sky-200';
+      // Deployment
+      case 'Deployment':
+      case 'Released':
+      case 'Deployed':            return 'bg-teal-50 text-teal-700 border-teal-200';
+      // Blocked / waiting
+      case 'Blocked':             return 'bg-red-50 text-red-600 border-red-200';
+      case 'On Hold':
+      case 'Pending':             return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+      case 'Waiting':             return 'bg-amber-50 text-amber-700 border-amber-200';
+      // Done
+      case 'Done':
+      case 'Resolved':
+      case 'Closed':              return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      // Cancelled / rejected
       case 'Reject':
-      case 'Rejected': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'InQA': return 'bg-blue-50 text-blue-700 border-blue-200';
-      default: return 'bg-cyan-50 text-cyan-700 border-cyan-200';
+      case 'Rejected':
+      case 'Cancelled':
+      case 'Canceled':            return 'bg-rose-50 text-rose-600 border-rose-200';
+      // Unset / placeholder — no color emphasis
+      default:                    return 'bg-white text-slate-400 border-slate-200';
     }
   };
 
@@ -1025,7 +1152,6 @@ const LogTickets: React.FC = () => {
               <div className="flex flex-col gap-2 flex-1 min-w-[200px]" ref={roleDropdownRef}>
                 <label className="text-[11px] font-semibold text-slate-700 uppercase tracking-widest">Roles</label>
                 <div className="relative">
-                  {/* Select Box Trigger */}
                   <button
                     type="button"
                     onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
@@ -1047,7 +1173,6 @@ const LogTickets: React.FC = () => {
                     </span>
                   </button>
 
-                  {/* Dropdown List */}
                   {isRoleDropdownOpen && (
                     <div className="absolute top-12 left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-2xl z-[9999] max-h-[200px] overflow-y-auto">
                       {isLoadingRoles ? (
@@ -1088,9 +1213,9 @@ const LogTickets: React.FC = () => {
           <div className="bg-surface-light border border-border-light rounded-xl shadow-lg overflow-hidden flex flex-col">
             <div className="px-6 py-4 border-b border-border-light bg-slate-50 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-widest">Draft Tickets</h3>
-              <span className="text-xs font-semibold py-1 px-3 bg-primary/10 text-primary border border-primary/20 rounded-full">
+              {/* <span className="text-xs font-semibold py-1 px-3 bg-primary/10 text-primary border border-primary/20 rounded-full">
                 {draftEntries.length} {draftEntries.length === 1 ? 'Entry' : 'Entries'}
-              </span>
+              </span> */}
             </div>
 
             <div className="overflow-x-auto custom-scrollbar">
@@ -1145,13 +1270,18 @@ const LogTickets: React.FC = () => {
                           <span className="text-sm font-medium text-slate-700">{entry.projectName}</span>
                         </td>
                         <td className="py-4 px-6 text-center">
-                          <div className="relative inline-block w-full max-w-[140px]">
+                          <div className="relative inline-block w-full max-w-[150px]">
                             <select 
                               value={entry.type}
                               onChange={(e) => updateDraftType(entry.id, e.target.value)}
                               disabled={isLoadingTicketTypes && ticketTypes.length === 0}
-                              className={`w-full h-8 pl-2 pr-7 rounded border text-xs font-semibold uppercase tracking-tight appearance-none outline-none cursor-pointer transition-all ${getTypeColor(entry.type)}`}
+                              className={`w-full h-8 pl-2 pr-7 rounded border text-xs font-semibold uppercase tracking-tight appearance-none outline-none cursor-pointer transition-all ${
+                                !entry.type || entry.type === NO_TYPE
+                                  ? 'border-amber-300 bg-amber-50 text-amber-600'
+                                  : getTypeColor(entry.type)
+                              }`}
                             >
+                              <option value={NO_TYPE} disabled>Choose type</option>
                               {draftTypeOptions.map((typeOption) => (
                                 <option key={typeOption} value={typeOption}>{typeOption}</option>
                               ))}
@@ -1181,13 +1311,18 @@ const LogTickets: React.FC = () => {
                           </div>
                         </td>
                         <td className="py-4 px-6 text-center">
-                          <div className="relative inline-block w-full max-w-[120px]">
+                          <div className="relative inline-block w-full max-w-[140px]">
                             <select 
                               value={entry.status}
                               onChange={(e) => updateDraftStatus(entry.id, e.target.value)}
                               disabled={isLoadingTicketStatuses && ticketStatuses.length === 0}
-                              className={`w-full h-8 pl-2 pr-7 rounded border text-xs font-semibold uppercase tracking-tight appearance-none outline-none cursor-pointer transition-all ${getStatusColor(entry.status)}`}
+                              className={`w-full h-8 pl-2 pr-7 rounded border text-xs font-semibold uppercase tracking-tight appearance-none outline-none cursor-pointer transition-all ${
+                                !entry.status || entry.status === NO_STATUS
+                                  ? 'border-amber-300 bg-amber-50 text-amber-600'
+                                  : getStatusColor(entry.status)
+                              }`}
                             >
+                              <option value={NO_STATUS} disabled>Choose status</option>
                               {draftStatusOptions.length === 0 && (
                                 <option value="" disabled>No statuses</option>
                               )}
@@ -1199,33 +1334,43 @@ const LogTickets: React.FC = () => {
                           </div>
                         </td>
                         <td className="py-4 px-6 text-center">
-                          <div className="relative inline-block w-full max-w-[280px]">
+                        <div className="relative inline-block w-full max-w-[280px]">
                             <select 
                               value={entry.week || ''}
                               onChange={(e) => updateDraftWeek(entry.id, parseInt(e.target.value))}
-                              disabled={!entry.month || weeks.length === 0}
+                              disabled={!entry.availableWeeks || entry.weekLoading || !entry.month || entry.month === NO_MONTH}
                               className={`w-full h-8 pl-2 pr-7 rounded border text-xs font-semibold text-slate-700 appearance-none outline-none cursor-pointer transition-all ${
-                                !entry.month || weeks.length === 0
-                                  ? 'border-slate-200 bg-slate-100 text-slate-400 disabled:cursor-not-allowed'
+                                !entry.availableWeeks || entry.weekLoading || !entry.month || entry.month === NO_MONTH
+                                  ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed'
                                   : 'border-slate-300 bg-slate-50 hover:bg-slate-100'
                               }`}
                             >
-                              {!entry.month && <option value="">Select month first</option>}
-                              {entry.month && weeks.length === 0 && <option value="">No weeks available</option>}
-                              {weeks.map((week, idx) => (
-                                <option key={week.id} value={idx + 1}>{week.name}</option>
+                              {(!entry.month || entry.month === NO_MONTH || entry.availableWeeks === null) && (
+                                <option value="">Choose month first</option>
+                              )}
+                              {entry.availableWeeks && entry.availableWeeks.length === 0 && (
+                                <option value="">No weeks available</option>
+                              )}
+                              {entry.availableWeeks?.map((week, idx) => (
+                                <option key={week.id || idx} value={idx + 1}>{week.name}</option>
                               ))}
                             </select>
-                            <span className="material-symbols-outlined absolute right-1.5 top-1/2 -translate-y-1/2 text-[14px] pointer-events-none text-slate-500">expand_more</span>
-                          </div>
+                          <span className="material-symbols-outlined absolute right-1.5 top-1/2 -translate-y-1/2 text-[14px] pointer-events-none text-slate-500">expand_more</span>
+                        </div>
                         </td>
                         <td className="py-4 px-6 text-center">
                           <div className="relative inline-block w-full max-w-[130px]">
                             <select 
-                              value={entry.month || new Date().getMonth() + 1}
+                              value={entry.month || NO_MONTH}
                               onChange={(e) => updateDraftMonth(entry.id, parseInt(e.target.value))}
-                              className="w-full h-8 pl-2 pr-7 rounded border border-slate-300 bg-slate-50 text-xs text-slate-700 appearance-none outline-none cursor-pointer transition-all hover:bg-slate-100"
+                              className={`w-full h-8 pl-2 pr-7 rounded border text-xs appearance-none outline-none cursor-pointer transition-all ${
+                                !entry.month || entry.month === NO_MONTH
+                                  ? 'border-amber-300 bg-amber-50 text-amber-600 font-semibold'
+                                  : 'border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                              }`}
                             >
+                              {/* FIX: "Choose month" placeholder option */}
+                              <option value={NO_MONTH} disabled>Choose month</option>
                               {Array.from({length: 12}, (_, i) => i + 1).map(m => (
                                 <option key={m} value={m}>
                                   {new Date(2000, m - 1).toLocaleString('default', { month: 'long' })}
@@ -1236,15 +1381,27 @@ const LogTickets: React.FC = () => {
                           </div>
                         </td>
                         <td className="py-4 px-6 text-center">
-                          <input 
-                            type="number" 
-                            value={entry.length || 0}
-                            onChange={(e) => updateDraftLength(entry.id, parseFloat(e.target.value) || 0)}
-                            placeholder="1"
-                            min="1"
-                            step="0.5"
-                            className="w-16 h-7 px-2 rounded border border-slate-300 bg-white text-xs text-slate-900 outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                          />
+                          {(() => {
+                            const splitMatch = entry.ticketId.match(/ \((\d+)\)$/);
+                            const isSplitChild = splitMatch !== null && parseInt(splitMatch[1]) > 1;
+                            return (
+                              <input
+                                type="number"
+                                value={entry.length || 0}
+                                onChange={(e) => updateDraftLength(entry.id, parseFloat(e.target.value) || 0)}
+                                placeholder="1"
+                                min="1"
+                                step="0.5"
+                                disabled={isSplitChild}
+                                title={isSplitChild ? 'Edit length on the first entry' : undefined}
+                                className={`w-16 h-7 px-2 rounded border text-xs outline-none transition-all ${
+                                  isSplitChild
+                                    ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed'
+                                    : 'border-slate-300 bg-white text-slate-900 focus:ring-2 focus:ring-primary focus:border-primary'
+                                }`}
+                              />
+                            );
+                          })()}
                         </td>
                         <td className="py-4 px-6 text-center">
                           <button 
