@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axiosInstance from "../helpers/axios";
+import toast from "react-hot-toast";
 import type { BaseApiResponse } from "../types/index";
 
 interface ApiResponse extends BaseApiResponse<{
@@ -22,7 +23,7 @@ interface ConfirmItem {
 
 interface ConfirmModal {
   open: boolean;
-  type: "role" | "ticket" | "formula";
+  type: "role" | "ticket" | "formula" | "parameter";
   items: ConfirmItem[];
 }
 
@@ -52,6 +53,13 @@ const FormulaConfig: React.FC = () => {
   const [parameters, setParameters] = useState<
     Array<{ name: string; value: string }>
   >([]);
+  const [parameterEditMode, setParameterEditMode] = useState(false);
+  const [parameterEditValues, setParameterEditValues] = useState<
+    Record<string, string>
+  >({});
+  const [parameterOriginalValues, setParameterOriginalValues] = useState<
+    Record<string, string>
+  >({});
 
   const [roleWeights, setRoleWeights] = useState<Record<string, number>>({});
   const [ticketTypeWeights, setTicketTypeWeights] = useState<
@@ -95,84 +103,86 @@ const FormulaConfig: React.FC = () => {
     { id: "subtask", label: "Sub-task", paramKey: "SUBTASK_WEIGHT" },
   ];
 
+  const fetchFormulas = async (month: string = selectedMonth) => {
+    if (!month) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      setFormulas([]);
+      setFormula("");
+      setVariables([]);
+      setParameters([]);
+      setRoleWeights({});
+      setTicketTypeWeights({});
+      setRoleEditMode(false);
+      setTicketEditMode(false);
+      setParameterEditMode(false);
+      const response = await axiosInstance.get<ApiResponse>(
+        `/formulas?month=${month}`,
+      );
+      const data = response.data.data;
+
+      const vars = Object.entries(data.dynamic_variables).map(
+        ([name, description]) => ({
+          name,
+          description,
+        }),
+      );
+      setVariables(vars);
+
+      const params = Object.entries(data.parameters).map(([name, value]) => ({
+        name,
+        value,
+      }));
+      setParameters(params);
+      const parameterMap = params.reduce(
+        (acc, item) => {
+          acc[item.name] = item.value;
+          return acc;
+        },
+        {} as Record<string, string>,
+      );
+      setParameterEditValues(parameterMap);
+      setParameterOriginalValues(parameterMap);
+
+      const formulasData = data.formulas.map((f) => ({
+        name: f.name,
+        value: f.value,
+      }));
+      setFormulas(formulasData);
+      if (formulasData.length > 0) {
+        setFormula(formulasData[0].value);
+      }
+
+      const roleWeightsData: Record<string, number> = {};
+      roles.forEach((role) => {
+        if (role.paramKey && data.parameters[role.paramKey]) {
+          roleWeightsData[role.id] = parseFloat(data.parameters[role.paramKey]);
+        }
+      });
+      setRoleWeights(roleWeightsData);
+
+      const ticketWeightsData: Record<string, number> = {};
+      ticketTypes.forEach((type) => {
+        if (type.paramKey && data.parameters[type.paramKey]) {
+          ticketWeightsData[type.id] = parseFloat(data.parameters[type.paramKey]);
+        }
+      });
+      setTicketTypeWeights(ticketWeightsData);
+
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching formulas:", err);
+      setError("Failed to load formula configuration");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!selectedMonth) return;
-    const fetchFormulas = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        // Reset previous data
-        setFormulas([]);
-        setFormula("");
-        setVariables([]);
-        setParameters([]);
-        setRoleWeights({});
-        setTicketTypeWeights({});
-        setRoleEditMode(false);
-        setTicketEditMode(false);
-        const response = await axiosInstance.get<ApiResponse>(
-          `/formulas?month=${selectedMonth}`,
-        );
-        const data = response.data.data;
-
-        // Process variables
-        const vars = Object.entries(data.dynamic_variables).map(
-          ([name, description]) => ({
-            name,
-            description,
-          }),
-        );
-        setVariables(vars);
-
-        // Process parameters
-        const params = Object.entries(data.parameters).map(([name, value]) => ({
-          name,
-          value,
-        }));
-        setParameters(params);
-
-        // Process formulas
-        const formulasData = data.formulas.map((f) => ({
-          name: f.name,
-          value: f.value,
-        }));
-        setFormulas(formulasData);
-        if (formulasData.length > 0) {
-          setFormula(formulasData[0].value);
-        }
-
-        // Process role weights
-        const roleWeightsData: Record<string, number> = {};
-        roles.forEach((role) => {
-          if (role.paramKey && data.parameters[role.paramKey]) {
-            roleWeightsData[role.id] = parseFloat(
-              data.parameters[role.paramKey],
-            );
-          }
-        });
-        setRoleWeights(roleWeightsData);
-
-        // Process ticket type weights
-        const ticketWeightsData: Record<string, number> = {};
-        ticketTypes.forEach((type) => {
-          if (type.paramKey && data.parameters[type.paramKey]) {
-            ticketWeightsData[type.id] = parseFloat(
-              data.parameters[type.paramKey],
-            );
-          }
-        });
-        setTicketTypeWeights(ticketWeightsData);
-
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching formulas:", err);
-        setError("Failed to load formula configuration");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFormulas();
+    fetchFormulas(selectedMonth);
   }, [selectedMonth]);
 
   const handleFormulaSelect = (index: number) => {
@@ -308,6 +318,54 @@ const FormulaConfig: React.FC = () => {
     setConfirmModal({ open: true, type: "ticket", items: changedItems });
   };
 
+  const handleParameterEditStart = () => {
+    const vals = parameters.reduce(
+      (acc, param) => {
+        acc[param.name] =
+          parameterOriginalValues[param.name] ??
+          parameterEditValues[param.name] ??
+          param.value;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
+    setParameterEditValues(vals);
+    setParameterOriginalValues(vals);
+    setParameterEditMode(true);
+  };
+
+  const handleParameterEditSave = () => {
+    const changedItems: ConfirmItem[] = parameters
+      .filter((param) => {
+        const newValue = (parameterEditValues[param.name] ?? "").trim();
+        const oldValue = (parameterOriginalValues[param.name] ?? "").trim();
+        return newValue !== oldValue;
+      })
+      .map((param) => ({
+        label: param.name,
+        paramKey: param.name,
+        oldValue: parameterOriginalValues[param.name] ?? "-",
+        newValue: (parameterEditValues[param.name] ?? "").trim(),
+        description: `${param.name} parameter for ${MONTHS.find((m) => m.value === selectedMonth)?.label ?? selectedMonth}`,
+      }));
+
+    if (changedItems.some((item) => !item.newValue)) {
+      toast.error("Parameter value is required");
+      return;
+    }
+
+    if (changedItems.length === 0) {
+      setParameterEditMode(false);
+      return;
+    }
+
+    setConfirmModal({
+      open: true,
+      type: "parameter",
+      items: changedItems,
+    });
+  };
+
   const handleConfirmedSave = async () => {
     const { type, items } = confirmModal;
     setSaving(true);
@@ -350,12 +408,33 @@ const FormulaConfig: React.FC = () => {
           ),
         );
         setFormula(items[0].newValue);
+      } else if (type === "parameter") {
+        const changedMap = items.reduce(
+          (acc, item) => {
+            acc[item.paramKey] = item.newValue;
+            return acc;
+          },
+          {} as Record<string, string>,
+        );
+        setParameters((prev) =>
+          prev.map((param) =>
+            changedMap[param.name] !== undefined
+              ? { ...param, value: changedMap[param.name] }
+              : param,
+          ),
+        );
+        setParameterOriginalValues((prev) => ({ ...prev, ...changedMap }));
+        setParameterEditValues((prev) => ({ ...prev, ...changedMap }));
+        setParameterEditMode(false);
       }
       setConfirmModal((prev) => ({ ...prev, open: false }));
       setPendingFormulaSave(null);
+      toast.success("Saved successfully");
+      await fetchFormulas(selectedMonth);
     } catch (err) {
       console.error("Failed to save:", err);
       setError("Failed to save changes");
+      toast.error("Save failed. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -534,9 +613,40 @@ const FormulaConfig: React.FC = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Parameters */}
                 <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-                  <h3 className="font-semibold text-gray-900 text-sm mb-4">
-                    Parameters (Click to insert)
-                  </h3>
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="font-semibold text-gray-900 text-sm">
+                      Parameters (Click to insert)
+                    </h3>
+                    {!parameterEditMode ? (
+                      <button
+                        type="button"
+                        onClick={handleParameterEditStart}
+                        className="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
+                      >
+                        Edit
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleParameterEditSave}
+                          className="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setParameterEditValues(parameterOriginalValues);
+                            setParameterEditMode(false);
+                          }}
+                          className="px-3 py-1.5 text-xs font-medium bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   <div className="space-y-2 max-h-96 overflow-y-auto">
                     {parameters.map((p, i) => (
                       <div
@@ -547,9 +657,28 @@ const FormulaConfig: React.FC = () => {
                         <p className="text-xs font-semibold text-gray-900">
                           {p.name}
                         </p>
-                        <p className="text-xs text-gray-600 mt-0.5">
-                          Value: {p.value}
-                        </p>
+                        <div
+                          className="mt-2 flex items-center gap-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {parameterEditMode ? (
+                            <input
+                              type="text"
+                              value={parameterEditValues[p.name] ?? p.value}
+                              onChange={(e) =>
+                                setParameterEditValues((prev) => ({
+                                  ...prev,
+                                  [p.name]: e.target.value,
+                                }))
+                              }
+                              className="flex-1 px-2.5 py-1.5 text-xs border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          ) : (
+                            <p className="text-xs text-gray-600 mt-0.5">
+                              Value: {parameterOriginalValues[p.name] ?? p.value}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
