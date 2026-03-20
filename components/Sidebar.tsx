@@ -122,9 +122,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <div className="flex flex-col">
             <h1 className="text-base font-semibold text-slate-900 tracking-tight">
-              ODC Manager
+              DZH INTERNAL
             </h1>
-            <p className="text-xs font-light text-slate-500">Admin Console</p>
           </div>
         </div>
 
