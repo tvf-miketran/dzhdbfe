@@ -12,6 +12,13 @@ export const createEmployeeSchema = z.object({
     .string()
     .min(1, "English name is required")
     .max(100, "Name is too long"),
+  employeeId: z
+    .string()
+    .optional()
+    .transform((val) => val?.trim() || undefined)
+    .refine((val) => !val || val.length <= 50, {
+      message: "Employee ID is too long",
+    }),
   email: z
     .string()
     .min(1, "Email is required")
@@ -23,8 +30,11 @@ export const createEmployeeSchema = z.object({
     .max(500, "Description is too long"),
   password: z
     .string()
-    .min(1, "Password is required")
-    .min(6, "Password must be at least 6 characters"),
+    .optional()
+    .transform((val) => val?.trim() || undefined)
+    .refine((val) => !val || val.length >= 6, {
+      message: "Password must be at least 6 characters",
+    }),
   authorizeRole: z.enum(["MEMBER", "ADMIN"]).default("MEMBER"),
   status: z.boolean().default(true),
 });

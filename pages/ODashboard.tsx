@@ -937,50 +937,6 @@ const ODashboard: React.FC = () => {
           )}
         </div>
 
-        {/* Quick Actions */}
-        <div className="rounded-2xl border border-border-light bg-white shadow-lg p-8">
-          <h3 className="text-lg font-semibold text-slate-900 mb-6">
-            Quick Actions
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <button className="flex items-center gap-3 p-4 rounded-lg border border-border-light hover:bg-slate-50 transition-colors">
-              <span className="material-symbols-outlined text-primary text-[28px]">
-                description
-              </span>
-              <div className="text-left">
-                <p className="font-semibold text-slate-900">Log Tickets</p>
-                <p className="text-xs text-slate-600">Add new tickets</p>
-              </div>
-            </button>
-            <button className="flex items-center gap-3 p-4 rounded-lg border border-border-light hover:bg-slate-50 transition-colors">
-              <span className="material-symbols-outlined text-primary text-[28px]">
-                schedule
-              </span>
-              <div className="text-left">
-                <p className="font-semibold text-slate-900">Log Hours</p>
-                <p className="text-xs text-slate-600">Log work hours</p>
-              </div>
-            </button>
-            <button className="flex items-center gap-3 p-4 rounded-lg border border-border-light hover:bg-slate-50 transition-colors">
-              <span className="material-symbols-outlined text-primary text-[28px]">
-                trending_up
-              </span>
-              <div className="text-left">
-                <p className="font-semibold text-slate-900">View Reports</p>
-                <p className="text-xs text-slate-600">Detailed analytics</p>
-              </div>
-            </button>
-            <button className="flex items-center gap-3 p-4 rounded-lg border border-border-light hover:bg-slate-50 transition-colors">
-              <span className="material-symbols-outlined text-primary text-[28px]">
-                help
-              </span>
-              <div className="text-left">
-                <p className="font-semibold text-slate-900">Help</p>
-                <p className="text-xs text-slate-600">Documentation</p>
-              </div>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -26,6 +26,7 @@ export const ENDPOINTS = {
     VERIFY: "/auth/verify",
     REGISTER: "/auth/register",
     FORGOT_PASSWORD: "/auth/forgot-password",
+    UPDATE_PASSWORD: "/auth/update-password",
     RESET_PASSWORD: "/auth/reset-password",
   },
 

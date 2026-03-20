@@ -106,7 +106,7 @@ export const authService = {
    */
   resetPassword: async (data: ResetPasswordData): Promise<{ msg: string }> => {
     const response = await axiosInstance.post(
-      ENDPOINTS.AUTH.RESET_PASSWORD,
+      ENDPOINTS.AUTH.UPDATE_PASSWORD,
       data,
     );
     return response.data;
