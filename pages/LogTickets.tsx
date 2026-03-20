@@ -1457,6 +1457,9 @@ const LogTickets: React.FC = () => {
             isOpen={isFilterOpen}
             filters={filters}
             onFilterChange={setFilters}
+            showSortBy={false}
+            showSortOrder={false}
+            showWeeks={false}
             onReset={() => {
               setFilters({
                 search: '',

@@ -413,28 +413,30 @@ const Logwork: React.FC = () => {
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full lg:w-auto lg:ml-auto lg:pb-2">
-            <button
-              onClick={handleSave}
-              disabled={!hasChanges || isSaving}
-              className={`flex items-center justify-center gap-2 h-10 px-5 rounded-lg font-semibold text-xs transition-all shadow-xl ${
-                hasChanges && !isSaving
-                  ? "bg-primary hover:bg-emerald-600 text-white shadow-primary/20 cursor-pointer"
-                  : "bg-slate-200 text-slate-400 shadow-none cursor-not-allowed"
-              }`}
-            >
-              {isSaving ? (
-                <span className="material-symbols-outlined text-[18px] animate-spin">
-                  progress_activity
+            {!isMember && (
+              <button
+                onClick={handleSave}
+                disabled={!hasChanges || isSaving}
+                className={`flex items-center justify-center gap-2 h-10 px-5 rounded-lg font-semibold text-xs transition-all shadow-xl ${
+                  hasChanges && !isSaving
+                    ? "bg-primary hover:bg-emerald-600 text-white shadow-primary/20 cursor-pointer"
+                    : "bg-slate-200 text-slate-400 shadow-none cursor-not-allowed"
+                }`}
+              >
+                {isSaving ? (
+                  <span className="material-symbols-outlined text-[18px] animate-spin">
+                    progress_activity
+                  </span>
+                ) : (
+                  <span className="material-symbols-outlined text-[18px]">
+                    save
+                  </span>
+                )}
+                <span className="hidden sm:inline">
+                  {isSaving ? "Saving..." : "Save Changes"}
                 </span>
-              ) : (
-                <span className="material-symbols-outlined text-[18px]">
-                  save
-                </span>
-              )}
-              <span className="hidden sm:inline">
-                {isSaving ? "Saving..." : "Save Changes"}
-              </span>
-            </button>
+              </button>
+            )}
           </div>
         </div>
 

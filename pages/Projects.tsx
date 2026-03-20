@@ -121,6 +121,17 @@ const Projects: React.FC = () => {
     ? (addMemberEmployeesData.data as Employee[])
     : (addMemberEmployeesData?.data?.items ?? []);
 
+  const normalizedMemberSearch = memberSearchTerm.trim().toLowerCase();
+  const displayedAddMemberEmployees = addMemberEmployees.filter((employee) => {
+    if (!normalizedMemberSearch) return true;
+
+    return (
+      employee.enFullName?.toLowerCase().includes(normalizedMemberSearch) ||
+      employee.vnFullName?.toLowerCase().includes(normalizedMemberSearch) ||
+      employee.email?.toLowerCase().includes(normalizedMemberSearch)
+    );
+  });
+
   // Fetch project roles for role select in Add Member
   const { data: projectRolesData } = useProjectRoles();
   const projectMemberRoles =
@@ -558,7 +569,7 @@ const Projects: React.FC = () => {
                       <div className="flex items-center justify-center py-6">
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
                       </div>
-                    ) : addMemberEmployees.length === 0 ? (
+                    ) : displayedAddMemberEmployees.length === 0 ? (
                       <div className="flex flex-col items-center py-6 gap-1 text-slate-400">
                         <span className="material-symbols-outlined text-[28px]">
                           person_search
@@ -569,12 +580,12 @@ const Projects: React.FC = () => {
                       <>
                         <div className="px-3 py-1.5 border-b border-slate-100 bg-slate-50">
                           <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
-                            {addMemberEmployees.length} result
-                            {addMemberEmployees.length !== 1 ? "s" : ""}
+                            {displayedAddMemberEmployees.length} result
+                            {displayedAddMemberEmployees.length !== 1 ? "s" : ""}
                           </p>
                         </div>
                         <ul className="max-h-52 overflow-y-auto custom-scrollbar">
-                          {addMemberEmployees.map((emp) => {
+                          {displayedAddMemberEmployees.map((emp) => {
                             const isChecked = memberDrafts.some(
                               (d) => d.userId === emp.id,
                             );
@@ -798,7 +809,7 @@ const Projects: React.FC = () => {
                                     ),
                                   );
                                 }}
-                                className="h-9 w-[84px] rounded-md border border-border-light bg-surface-light px-2 text-sm font-semibold text-slate-700 outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                className="h-9 w-[150px] rounded-md border border-border-light bg-surface-light px-2 text-sm font-semibold text-slate-700 outline-none focus:ring-1 focus:ring-primary focus:border-primary"
                               >
                                 {projectMemberRoles.map((role) => (
                                   <option key={role.id} value={role.id}>
@@ -815,8 +826,10 @@ const Projects: React.FC = () => {
                                   value={entry.allocationPercent}
                                   onChange={(event) => {
                                     let value = event.target.value;
-                                    const numValue = parseFloat(value);
-                                    if (!isNaN(numValue) && numValue > 100) {
+                                    // Remove non-numeric characters
+                                    value = value.replace(/[^0-9]/g, "");
+                                    const numValue = parseInt(value, 10);
+                                    if (value && !isNaN(numValue) && numValue > 100) {
                                       value = "100";
                                     }
                                     setMemberDrafts((prev) =>
@@ -855,10 +868,10 @@ const Projects: React.FC = () => {
                                   ),
                                 )
                               }
-                              className="h-9 w-9 flex items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors"
+                              className="h-7 w-7 flex items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors"
                               aria-label={`Remove ${entry.enFullName}`}
                             >
-                              <span className="material-symbols-outlined text-[18px]">
+                              <span className="material-symbols-outlined text-[16px]">
                                 close
                               </span>
                             </button>
@@ -982,7 +995,7 @@ const Projects: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsConfirmAddMemberOpen(false)}
-                  disabled={isAddingMembers}
+   py             disabled={isAddingMembers}
                   className="h-10 px-4 rounded-lg border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50"
                 >
                   Cancel
@@ -1050,7 +1063,7 @@ const Projects: React.FC = () => {
                           return {
                             userId: m.userId,
                             allocationPercent: parseFloat(m.allocationPercent),
-                            role_id: roleId,
+                            roleId: roleId,
                           };
                         }),
                       },

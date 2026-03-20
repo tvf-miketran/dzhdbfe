@@ -19,6 +19,7 @@ const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
   const [formData, setFormData] = useState({
     vnFullName: "",
     enFullName: "",
+    employeeId: "",
     email: "",
     description: "",
     password: "",
@@ -35,6 +36,7 @@ const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
     setFormData({
       vnFullName: "",
       enFullName: "",
+      employeeId: "",
       email: "",
       description: "",
       password: "",
@@ -63,6 +65,7 @@ const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
         ...formData,
         vnFullName: formData.vnFullName.trim(),
         enFullName: formData.enFullName.trim(),
+        employeeId: formData.employeeId.trim(),
         email: formData.email.trim(),
         description: formData.description.trim(),
         password: formData.password.trim(),
@@ -71,8 +74,22 @@ const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
       // Validate with ZOD
       const validatedData = createEmployeeSchema.parse(trimmedData);
 
+      const payload = {
+        vnFullName: validatedData.vnFullName,
+        enFullName: validatedData.enFullName,
+        email: validatedData.email,
+        description: validatedData.description,
+        employeeId: validatedData.employeeId || "N/A",
+        password: validatedData.password || validatedData.email,
+        authorizeRole: validatedData.authorizeRole || "MEMBER",
+        status:
+          typeof validatedData.status === "boolean"
+            ? validatedData.status
+            : true,
+      };
+
       // Call mutation
-      await createEmployeeMutation.mutateAsync(validatedData);
+      await createEmployeeMutation.mutateAsync(payload);
 
       toast.success("Employee created successfully!");
       handleCloseModal();
@@ -202,6 +219,34 @@ const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
             {/* Email */}
             <div>
               <label
+                htmlFor="employeeId"
+                className="block text-sm font-medium text-slate-700 mb-2"
+              >
+                Employee ID
+              </label>
+              <input
+                id="employeeId"
+                type="text"
+                value={formData.employeeId}
+                onChange={(e) =>
+                  handleInputChange("employeeId", e.target.value)
+                }
+                disabled={isSubmitting}
+                className={`w-full h-11 px-4 rounded-lg border bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                  formErrors.employeeId
+                    ? "border-red-300 focus:ring-red-500 focus:border-red-500"
+                    : "border-slate-300 focus:ring-primary focus:border-primary"
+                }`}
+                placeholder="EE009 (optional)"
+              />
+              {formErrors.employeeId && (
+                <p className="text-xs text-red-600 mt-1">{formErrors.employeeId}</p>
+              )}
+            </div>
+
+            {/* Email */}
+            <div>
+              <label
                 htmlFor="email"
                 className="block text-sm font-medium text-slate-700 mb-2"
               >
@@ -233,7 +278,7 @@ const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
                   htmlFor="password"
                   className="block text-sm font-medium text-slate-700 mb-2"
                 >
-                  Password <span className="text-red-500">*</span>
+                  Password
                 </label>
                 <input
                   id="password"
@@ -248,7 +293,7 @@ const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
                       ? "border-red-300 focus:ring-red-500 focus:border-red-500"
                       : "border-slate-300 focus:ring-primary focus:border-primary"
                   }`}
-                  placeholder="Min 6 characters"
+                  placeholder="Min 6 characters (optional, default = email)"
                 />
                 {formErrors.password && (
                   <p className="text-xs text-red-600 mt-1">
