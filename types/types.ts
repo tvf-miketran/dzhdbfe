@@ -36,6 +36,12 @@ export interface Ticket {
   assignees: string[];
   type: "bug" | "code" | "check";
 }
+export interface WeekOption {
+  id: string;
+  name: string;
+  code?: string;
+}
+
 export interface TicketEntry {
   id: string;
   ticketId: string;
@@ -52,6 +58,8 @@ export interface TicketEntry {
   weekLabel?: string;
   month?: number;
   length?: number;
+  availableWeeks?: WeekOption[] | null;
+  weekLoading?: boolean;
 }
 
 export interface EmployeeProject {
