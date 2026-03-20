@@ -106,6 +106,19 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
               </div>
             </div>
 
+            {/* Employee ID */}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
+                Employee ID
+              </p>
+              <div className="flex items-center gap-2 text-sm text-slate-900">
+                <span className="material-symbols-outlined text-slate-400 text-[18px]">
+                  badge
+                </span>
+                <span>{employee.employeeId || "N/A"}</span>
+              </div>
+            </div>
+
             {/* Role */}
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">

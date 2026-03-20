@@ -38,6 +38,9 @@ const Resources: React.FC = () => {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
     null,
   );
+  const [hoveredEmployeeId, setHoveredEmployeeId] = useState<string | null>(
+    null,
+  );
 
   // Pagination and filters from API
   const [currentPage, setCurrentPage] = useState(1);
@@ -362,11 +365,17 @@ const Resources: React.FC = () => {
                     ({ employee, project, isFirst, rowSpan }, index) => (
                       <tr
                         key={`${employee.id}-${project?.projectId ?? "no-project"}-${project?.roleId ?? "no-role"}-${index}`}
+                        onMouseEnter={() => setHoveredEmployeeId(employee.id)}
+                        onMouseLeave={() => setHoveredEmployeeId(null)}
                         onClick={() => {
                           setSelectedEmployee(employee);
                           setIsDetailModalOpen(true);
                         }}
-                        className="hover:bg-slate-50 transition-colors group cursor-pointer"
+                        className={`transition-colors group cursor-pointer ${
+                          hoveredEmployeeId === employee.id
+                            ? "bg-slate-50"
+                            : "hover:bg-slate-50"
+                        }`}
                       >
                         {isFirst && (
                           <td

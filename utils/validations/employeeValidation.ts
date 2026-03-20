@@ -58,6 +58,13 @@ export const updateEmployeeSchema = z.object({
     .min(1, "English name is required")
     .max(100, "Name is too long")
     .optional(),
+  employeeId: z
+    .string()
+    .optional()
+    .transform((val) => val?.trim() || undefined)
+    .refine((val) => !val || val.length <= 50, {
+      message: "Employee ID is too long",
+    }),
   email: z
     .string()
     .min(1, "Email is required")
