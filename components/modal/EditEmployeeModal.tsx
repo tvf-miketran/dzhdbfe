@@ -22,6 +22,7 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({
   const [formData, setFormData] = useState({
     vnFullName: "",
     enFullName: "",
+    employeeId: "",
     email: "",
     description: "",
     authorizeRole: "MEMBER" as "MEMBER" | "ADMIN",
@@ -49,6 +50,7 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({
       setFormData({
         vnFullName: d.vnFullName ?? "",
         enFullName: d.enFullName ?? "",
+        employeeId: d.employeeId ?? "",
         email: d.email ?? "",
         description: d.description ?? "",
         authorizeRole: d.authorizeRole ?? "MEMBER",
@@ -77,6 +79,7 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({
         ...formData,
         vnFullName: formData.vnFullName.trim(),
         enFullName: formData.enFullName.trim(),
+        employeeId: formData.employeeId.trim(),
         email: formData.email.trim(),
         description: formData.description.trim(),
       };
@@ -249,6 +252,36 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({
                 {formErrors.enFullName && (
                   <p className="text-xs text-red-600 mt-1">
                     {formErrors.enFullName}
+                  </p>
+                )}
+              </div>
+
+              {/* Email */}
+              <div>
+                <label
+                  htmlFor="edit-employeeId"
+                  className="block text-sm font-medium text-slate-700 mb-2"
+                >
+                  Employee ID
+                </label>
+                <input
+                  id="edit-employeeId"
+                  type="text"
+                  value={formData.employeeId}
+                  onChange={(e) =>
+                    handleInputChange("employeeId", e.target.value)
+                  }
+                  disabled={isSubmitting}
+                  className={`w-full h-11 px-4 rounded-lg border bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                    formErrors.employeeId
+                      ? "border-red-300 focus:ring-red-500 focus:border-red-500"
+                      : "border-slate-300 focus:ring-primary focus:border-primary"
+                  }`}
+                  placeholder="EE009"
+                />
+                {formErrors.employeeId && (
+                  <p className="text-xs text-red-600 mt-1">
+                    {formErrors.employeeId}
                   </p>
                 )}
               </div>
