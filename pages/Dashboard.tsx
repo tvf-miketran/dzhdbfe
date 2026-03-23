@@ -270,7 +270,7 @@ const Dashboard: React.FC = () => {
           : `${normalizedMonths.length} months`;
 
       const kpiData: KPIData = {
-        standardKPI: 8.5,
+        standardKPI: 0,
         currentKPI: avgBillablePoint,
         billableStandard: normalizedBillableStandard,
         logworkStandard: normalizedLogworkStandard,
