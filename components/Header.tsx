@@ -50,15 +50,6 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          <button className="lg:hidden h-9 w-9 overflow-hidden rounded-full border border-border-light">
-            <img
-              src="https://picsum.photos/seed/user/40/40"
-              alt="Avatar"
-              className="h-full w-full object-cover"
-            />
-          </button>
-        </div>
       </div>
     </header>
   );
