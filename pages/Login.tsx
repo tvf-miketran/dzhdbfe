@@ -82,29 +82,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </p>
             </div>
 
-            {/* Demo Credentials Info */}
-            <div className="rounded-2xl border border-blue-200/70 bg-blue-50/80 p-4 mb-6">
-              <div className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-blue-700 text-[20px] mt-0.5">
-                  info
-                </span>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-blue-900 mb-2">
-                    Demo Login
-                  </p>
-                  <div className="text-xs text-blue-900/80 space-y-1">
-                    <p>
-                      <span className="font-medium">Email:</span>{" "}
-                      brian.nguyen@techvify.com.vn
-                    </p>
-                    <p>
-                      <span className="font-medium">Password:</span> 123456
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Error Message */}
             {loginMutation.isError && (
               <div className="rounded-2xl border border-red-200/70 bg-red-50/80 p-4 mb-6">
