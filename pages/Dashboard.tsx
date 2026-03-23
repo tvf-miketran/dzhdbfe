@@ -33,6 +33,28 @@ import type { KPIData, PersonalContributionRow } from "../types/index";
 
 const monthOptions = buildRecentMonthOptions();
 
+const EMPTY_WEEKS: [number, number][] = [
+  [0, 0],
+  [0, 0],
+  [0, 0],
+  [0, 0],
+  [0, 0],
+];
+
+const DEFAULT_PERSONAL_KPI: KPIData = {
+  standardKPI: 0,
+  currentKPI: 0,
+  billableStandard: 0,
+  logworkStandard: 0,
+  totalBillable: 0,
+  lastCalculated: "No data available",
+  breakdown: {
+    tickets: 0,
+    logwork: 0,
+    quality: 0,
+  },
+};
+
 type TicketBreakdownItem = NonNullable<
   FormulaResultRow["ticket_breakdown"]
 >[number] & {
@@ -50,48 +72,16 @@ const Dashboard: React.FC = () => {
   ]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [personalKPI, setPersonalKPI] = useState<KPIData>({
-    standardKPI: 8.5,
-    currentKPI: 7.8,
-    billableStandard: 0,
-    logworkStandard: 0,
-    totalBillable: 0,
-    lastCalculated: "2 hours ago",
-    breakdown: {
-      tickets: 3.5,
-      logwork: 2.0,
-      quality: 2.3,
-    },
-  });
+  const [personalKPI, setPersonalKPI] = useState<KPIData>(DEFAULT_PERSONAL_KPI);
   const [personalContribution, setPersonalContribution] =
-    useState<PersonalContributionRow>({
-      name: user?.en_full_name || user?.vn_full_name || "You",
-      weeks: [
-        [0, 0],
-        [0, 0],
-        [0, 0],
-        [0, 0],
-        [0, 0],
-      ],
-      ticket: 0,
-      logwork: 0,
-      member: 0,
-      billable: 0,
-      ee: "-",
-      status: "-",
-    });
+    useState<PersonalContributionRow | null>(null);
   const [monthTicketCount, setMonthTicketCount] = useState(0);
   const [monthLogworkPoint, setMonthLogworkPoint] = useState(0);
   const [monthRolesCount, setMonthRolesCount] = useState(0);
 
-  const [kpiTrendData, setKpiTrendData] = useState([
-    { date: "Jan", personal: 7.2 },
-    { date: "Feb", personal: 7.5 },
-    { date: "Mar", personal: 7.8 },
-    { date: "Apr", personal: 8.0 },
-    { date: "May", personal: 7.9 },
-    { date: "Jun", personal: 7.8 },
-  ]);
+  const [kpiTrendData, setKpiTrendData] = useState<
+    Array<{ date: string; personal: number }>
+  >([]);
 
   const fetchPersonalRowsByMonths = async (
     months: string[],
@@ -128,22 +118,8 @@ const Dashboard: React.FC = () => {
       .filter((monthValue) => months.includes(monthValue));
 
     if (normalizedMonths.length === 0) {
-      setPersonalContribution((prev) => ({
-        ...prev,
-        weeks: [
-          [0, 0],
-          [0, 0],
-          [0, 0],
-          [0, 0],
-          [0, 0],
-        ],
-        ticket: 0,
-        logwork: 0,
-        member: 0,
-        billable: 0,
-        ee: "-",
-        status: "-",
-      }));
+      setPersonalKPI(DEFAULT_PERSONAL_KPI);
+      setPersonalContribution(null);
       setMonthTicketCount(0);
       setMonthLogworkPoint(0);
       setMonthRolesCount(0);
@@ -157,7 +133,8 @@ const Dashboard: React.FC = () => {
         await fetchPersonalRowsByMonths(normalizedMonths);
 
       if (personalRows.length === 0) {
-        setPersonalContribution((prev) => ({ ...prev, ee: "-", status: "-" }));
+        setPersonalKPI(DEFAULT_PERSONAL_KPI);
+        setPersonalContribution(null);
         setMonthTicketCount(0);
         setMonthLogworkPoint(0);
         setMonthRolesCount(0);
@@ -319,7 +296,7 @@ const Dashboard: React.FC = () => {
           user?.en_full_name ??
           user?.vn_full_name ??
           "You",
-        weeks: roleBuckets,
+        weeks: roleBuckets.length > 0 ? roleBuckets : EMPTY_WEEKS,
         ticket: avgTicketPoint,
         logwork: avgLogworkPoint,
         member: avgMemberPoint,
@@ -360,11 +337,19 @@ const Dashboard: React.FC = () => {
         ]);
       }
     } catch (error) {
+      setPersonalKPI(DEFAULT_PERSONAL_KPI);
+      setPersonalContribution(null);
+      setMonthTicketCount(0);
+      setMonthLogworkPoint(0);
+      setMonthRolesCount(0);
+      setKpiTrendData([]);
       toast.error("Failed to fetch dashboard data by month");
     } finally {
       setIsLoading(false);
     }
   };
+
+  const hasDashboardData = personalContribution !== null;
 
   useEffect(() => {
     fetchDashboardByMonth(selectedMonths);
@@ -421,38 +406,46 @@ const Dashboard: React.FC = () => {
               <p className="text-sm text-slate-600 mt-1">Monthly progress</p>
             </div>
             <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height={256}>
-                <LineChart data={kpiTrendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis
-                    dataKey="date"
-                    stroke="#94a3b8"
-                    style={{ fontSize: "12px" }}
-                  />
-                  <YAxis
-                    stroke="#94a3b8"
-                    style={{ fontSize: "12px" }}
-                    domain={["auto", "auto"]}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#f3f4f6",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "8px",
-                    }}
-                    formatter={(value) => (value as number).toFixed(1)}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="personal"
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    dot={{ r: 4, fill: "#3b82f6" }}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              {kpiTrendData.length === 0 ? (
+                <div className="h-64 flex items-center justify-center bg-slate-50 rounded-lg">
+                  <p className="text-sm text-slate-400">
+                    No trend data available
+                  </p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={256}>
+                  <LineChart data={kpiTrendData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis
+                      dataKey="date"
+                      stroke="#94a3b8"
+                      style={{ fontSize: "12px" }}
+                    />
+                    <YAxis
+                      stroke="#94a3b8"
+                      style={{ fontSize: "12px" }}
+                      domain={["auto", "auto"]}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#f3f4f6",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "8px",
+                      }}
+                      formatter={(value) => (value as number).toFixed(1)}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="personal"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      dot={{ r: 4, fill: "#3b82f6" }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
 
@@ -465,10 +458,12 @@ const Dashboard: React.FC = () => {
                     Tickets This Month
                   </p>
                   <p className="text-3xl font-bold text-slate-900 mt-2">
-                    {monthTicketCount}
+                    {hasDashboardData ? monthTicketCount : "-"}
                   </p>
                   <p className="text-xs text-slate-600 mt-1">
-                    From selected month
+                    {hasDashboardData
+                      ? "From selected month"
+                      : "No data available"}
                   </p>
                 </div>
                 <div className="p-3 bg-blue-50 rounded-lg">
@@ -486,9 +481,11 @@ const Dashboard: React.FC = () => {
                     Logwork Hours
                   </p>
                   <p className="text-3xl font-bold text-slate-900 mt-2">
-                    {monthLogworkPoint.toFixed(2)}
+                    {hasDashboardData ? monthLogworkPoint.toFixed(2) : "-"}
                   </p>
-                  <p className="text-xs text-slate-600 mt-1">Logwork point</p>
+                  <p className="text-xs text-slate-600 mt-1">
+                    {hasDashboardData ? "Logwork point" : "No data available"}
+                  </p>
                 </div>
                 <div className="p-3 bg-purple-50 rounded-lg">
                   <span className="material-symbols-outlined text-purple-600 text-[32px]">
@@ -505,10 +502,12 @@ const Dashboard: React.FC = () => {
                     Code Reviews
                   </p>
                   <p className="text-3xl font-bold text-slate-900 mt-2">
-                    {monthRolesCount}
+                    {hasDashboardData ? monthRolesCount : "-"}
                   </p>
                   <p className="text-xs text-slate-600 mt-1">
-                    Roles in breakdown
+                    {hasDashboardData
+                      ? "Roles in breakdown"
+                      : "No data available"}
                   </p>
                 </div>
                 <div className="p-3 bg-emerald-50 rounded-lg">
@@ -605,55 +604,65 @@ const Dashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-3 border-r border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full border border-slate-200 bg-slate-100 text-slate-700 text-[10px] font-semibold flex items-center justify-center">
-                        {getInitials(personalContribution.name)}
+                {!personalContribution ? (
+                  <tr className="border-b border-slate-100">
+                    <td
+                      colSpan={17}
+                      className="px-4 py-6 text-center text-sm text-slate-500"
+                    >
+                      No contribution data for selected month(s).
+                    </td>
+                  </tr>
+                ) : (
+                  <tr className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <td className="px-4 py-3 border-r border-slate-100">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full border border-slate-200 bg-slate-100 text-slate-700 text-[10px] font-semibold flex items-center justify-center">
+                          {getInitials(personalContribution.name)}
+                        </div>
+                        <span className="font-medium text-slate-800 whitespace-nowrap">
+                          {personalContribution.name}
+                        </span>
                       </div>
-                      <span className="font-medium text-slate-800 whitespace-nowrap">
-                        {personalContribution.name}
+                    </td>
+                    {personalContribution.weeks.map(([task, bug], wi) => (
+                      <React.Fragment key={`week-${wi}`}>
+                        <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-100">
+                          {task}
+                        </td>
+                        <td
+                          className={`text-center px-3 py-3 border-r border-slate-200 ${bug > 0 ? "text-red-500 font-medium" : "text-slate-400"}`}
+                        >
+                          {bug}
+                        </td>
+                      </React.Fragment>
+                    ))}
+                    <td className="text-center px-4 py-3 font-semibold text-blue-600 border-r border-slate-100">
+                      {personalContribution.ticket.toFixed(2)}
+                    </td>
+                    <td className="text-center px-4 py-3 font-semibold text-purple-600 border-r border-slate-100">
+                      {personalContribution.logwork.toFixed(2)}
+                    </td>
+                    <td className="text-center px-4 py-3 font-bold text-primary border-r border-slate-100">
+                      {personalContribution.member.toFixed(2)}
+                    </td>
+                    <td className="text-center px-4 py-3 text-slate-700 border-r border-slate-100">
+                      {personalContribution.billable.toFixed(2)}
+                    </td>
+                    <td className="text-center px-4 py-3 text-slate-700 border-r border-slate-100">
+                      {personalContribution.ee}
+                    </td>
+                    <td className="text-center px-4 py-3">
+                      <span className="text-slate-700">
+                        {personalContribution.status}
                       </span>
-                    </div>
-                  </td>
-                  {personalContribution.weeks.map(([task, bug], wi) => (
-                    <React.Fragment key={`week-${wi}`}>
-                      <td className="text-center px-3 py-3 text-slate-700 border-r border-slate-100">
-                        {task}
-                      </td>
-                      <td
-                        className={`text-center px-3 py-3 border-r border-slate-200 ${bug > 0 ? "text-red-500 font-medium" : "text-slate-400"}`}
-                      >
-                        {bug}
-                      </td>
-                    </React.Fragment>
-                  ))}
-                  <td className="text-center px-4 py-3 font-semibold text-blue-600 border-r border-slate-100">
-                    {personalContribution.ticket.toFixed(2)}
-                  </td>
-                  <td className="text-center px-4 py-3 font-semibold text-purple-600 border-r border-slate-100">
-                    {personalContribution.logwork.toFixed(2)}
-                  </td>
-                  <td className="text-center px-4 py-3 font-bold text-primary border-r border-slate-100">
-                    {personalContribution.member.toFixed(2)}
-                  </td>
-                  <td className="text-center px-4 py-3 text-slate-700 border-r border-slate-100">
-                    {personalContribution.billable.toFixed(2)}
-                  </td>
-                  <td className="text-center px-4 py-3 text-slate-700 border-r border-slate-100">
-                    {personalContribution.ee}
-                  </td>
-                  <td className="text-center px-4 py-3">
-                    <span className="text-slate-700">
-                      {personalContribution.status}
-                    </span>
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </div>
-
       </div>
     </div>
   );
