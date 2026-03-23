@@ -18,258 +18,184 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
   onRefresh,
   showTotal = false,
 }) => {
-  const gradientId = useId();
-  const progressValue = Math.min(Math.max((kpi.currentKPI / 10) * 100, 0), 100);
   const billableStandard = kpi.billableStandard ?? 0;
   const logworkStandard = kpi.logworkStandard ?? 0;
+
   const displayNumber = (value: number | undefined) =>
     value === undefined || value === null ? "0" : String(value);
-  const getBreakdownProgressWidth = (value: number, standard: number) => {
-    if (standard <= 0) {
-      return "0%";
-    }
 
+  const getBreakdownProgressWidth = (value: number, standard: number) => {
+    if (standard <= 0) return "0%";
     return `${Math.min((value / standard) * 100, 100)}%`;
   };
 
   return (
-    <div className="mb-8 rounded-2xl border border-border-light bg-white shadow-lg overflow-hidden">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8">
-        <div className="flex flex-col justify-between">
-          <div>
-            <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-4">
+    <div className="mb-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
+        <div className="lg:col-span-5 p-8 bg-slate-50/50 border-b lg:border-b-0 lg:border-r border-slate-100 flex flex-col min-h-[400px]">
+          <div className="flex items-start justify-between mb-8">
+            <p className="text-sm font-bold uppercase tracking-[0.1em] text-slate-400 flex items-center gap-2">
+              <span className="material-symbols-outlined text-base">
+                leaderboard
+              </span>
               KPI Score
             </p>
-            <div className="flex items-center justify-between mb-8">
-              {showTotal ? (
-                <div className="flex items-center gap-4">
-                  <div className="flex flex-col items-start">
-                    <span className="text-xs text-slate-500 font-semibold mb-1">
-                      Total
-                    </span>
-                    <span className="text-4xl font-bold text-slate-700 leading-none">
-                      {displayNumber(kpi.totalBillable)}
-                    </span>
-                  </div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 rounded-md shadow-sm">
+              <span className="material-symbols-outlined text-[13px] text-slate-400">
+                history
+              </span>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                {kpi.lastCalculated}
+              </p>
+            </div>
+          </div>
 
-                  <div className="h-10 w-px bg-slate-300 mx-1"></div>
-
-                  <div className="flex flex-col items-start">
-                    <span className="text-xs text-slate-500 font-semibold mb-1">
-                      Average
-                    </span>
-                    <span className="text-6xl font-bold text-primary leading-none">
-                      {displayNumber(kpi.currentKPI)}
-                    </span>
-                  </div>
-
-                  <span className="text-lg font-semibold text-slate-500 self-end mb-1">
-                    / {displayNumber(kpi.standardKPI)}
+          <div className="flex-1 flex flex-col justify-center w-full">
+            <div className="flex items-center justify-center gap-10">
+              <div className="flex flex-col items-center">
+                {showTotal && (
+                  <span className="text-xs font-bold text-primary uppercase tracking-widest mb-3">
+                    Average
                   </span>
-                </div>
-              ) : (
-                <div className="flex items-baseline gap-3">
-                  <span className="text-6xl font-bold text-primary">
-                    {displayNumber(kpi.currentKPI)}
+                )}
+                <span className="text-7xl font-black leading-none text-primary">
+                  {displayNumber(kpi.currentKPI)}
+                </span>
+              </div>
+
+              {showTotal && (
+                <div className="h-20 w-px bg-slate-200 rounded-full" />
+              )}
+
+              {showTotal && (
+                <div className="flex flex-col items-center">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">
+                    Total
                   </span>
-                  <span className="text-lg font-semibold text-slate-500">
-                    / {displayNumber(kpi.standardKPI)}
+                  <span className="text-5xl font-bold leading-none text-slate-700">
+                    {displayNumber(kpi.totalBillable)}
                   </span>
                 </div>
               )}
-
-              <div className="flex flex-col items-end gap-2">
-                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-200">
-                  <span className="material-symbols-outlined text-sm text-emerald-600">
-                    trending_up
-                  </span>
-                  <span className="text-sm font-semibold text-emerald-700">
-                    {displayNumber(Math.abs(kpi.currentKPI - kpi.standardKPI))}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500">↑ vs Standard</p>
-              </div>
             </div>
-            <p className="text-xs text-slate-400 mb-6">
-              Last calculated:{" "}
-              <span className="font-medium text-slate-600">
-                {kpi.lastCalculated}
-              </span>
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-              <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="material-symbols-outlined text-blue-600 text-base">
-                    paid
-                  </span>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                    Billable Standard
-                  </p>
-                </div>
-                <p className="text-2xl font-bold text-blue-600">
-                  {displayNumber(billableStandard)}
-                </p>
-              </div>
-
-              <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="material-symbols-outlined text-purple-600 text-base">
-                    schedule
-                  </span>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                    Logwork Standard
-                  </p>
-                </div>
-                <p className="text-2xl font-bold text-purple-600">
-                  {displayNumber(logworkStandard)}
-                </p>
-              </div>
-            </div>
-
-            {kpi.breakdown && (
-              <div className="space-y-3">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">
-                  Breakdown
-                </p>
-                <div className="space-y-5">
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-sm font-medium text-slate-600 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-sm text-blue-500">
-                          assignment_turned_in
-                        </span>
-                        Ticket Completion
-                      </span>
-                      <span className="text-sm font-bold text-blue-600">
-                        {displayNumber(kpi.breakdown.tickets)}
-                      </span>
-                    </div>
-                    <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
-                      <div
-                        className="h-2 rounded-full bg-gradient-to-r from-blue-400 to-blue-600"
-                        style={{
-                          width: getBreakdownProgressWidth(
-                            kpi.breakdown.tickets,
-                            kpi.standardKPI,
-                          ),
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-sm font-medium text-slate-600 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-sm text-purple-500">
-                          schedule
-                        </span>
-                        Logwork Compliance
-                      </span>
-                      <span className="text-sm font-bold text-purple-600">
-                        {displayNumber(kpi.breakdown.logwork)}
-                      </span>
-                    </div>
-                    <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
-                      <div
-                        className="h-2 rounded-full bg-gradient-to-r from-purple-400 to-purple-600"
-                        style={{
-                          width: getBreakdownProgressWidth(
-                            kpi.breakdown.logwork,
-                            kpi.standardKPI,
-                          ),
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
-          <div className="mt-10 pt-6 border-t border-slate-200">
+          <div className="mt-10 flex justify-center w-full">
             <button
               onClick={onRefresh}
               disabled={isLoading}
-              className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all duration-200 ${
+              className={`inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${
                 isLoading
-                  ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                  : "bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20 active:scale-95 hover:shadow-xl hover:shadow-primary/30"
+                  ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                  : "bg-primary text-white hover:bg-blue-600 hover:shadow-md active:scale-95"
               }`}
             >
               <span
-                className={`material-symbols-outlined ${isLoading ? "animate-spin" : ""}`}
+                className={`material-symbols-outlined text-[18px] ${isLoading ? "animate-spin" : ""}`}
               >
-                calculate
+                {isLoading ? "sync" : "refresh"}
               </span>
-              {isLoading ? "Loading..." : "Refresh Data"}
+              {isLoading ? "Refreshing..." : "Refresh Data"}
             </button>
           </div>
         </div>
 
-        <div className="flex items-center justify-center">
-          {isKPILoading ? (
-            <div className="relative w-56 h-56 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full animate-pulse"></div>
-          ) : (
-            <div className="relative w-56 h-56">
-              <svg className="w-full h-full" viewBox="0 0 36 36">
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="15.9155"
-                  fill="none"
-                  stroke="#e2e8f0"
-                  strokeWidth="2.5"
-                />
+        <div className="lg:col-span-7 p-8 space-y-8">
+          {/* Standards Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+              <div className="mb-3 flex items-center gap-2">
+                <div className="p-2 bg-blue-50 rounded-lg">
+                  <span className="material-symbols-outlined text-blue-600 text-xl block">
+                    paid
+                  </span>
+                </div>
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Billable Standard
+                </p>
+              </div>
+              <p className="text-3xl font-bold text-slate-800">
+                {displayNumber(billableStandard)}
+              </p>
+            </div>
 
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="15.9155"
-                  fill="none"
-                  stroke={`url(#${gradientId})`}
-                  strokeWidth="2.5"
-                  strokeDasharray={`${progressValue}, 100`}
-                  strokeLinecap="round"
-                  transform="rotate(-90 18 18)"
-                />
+            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+              <div className="mb-3 flex items-center gap-2">
+                <div className="p-2 bg-purple-50 rounded-lg">
+                  <span className="material-symbols-outlined text-purple-600 text-xl block">
+                    schedule
+                  </span>
+                </div>
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Logwork Standard
+                </p>
+              </div>
+              <p className="text-3xl font-bold text-slate-800">
+                {displayNumber(logworkStandard)}
+              </p>
+            </div>
+          </div>
 
-                <defs>
-                  <linearGradient
-                    id={gradientId}
-                    x1="0%"
-                    y1="0%"
-                    x2="100%"
-                    y2="0%"
-                  >
-                    <stop offset="0%" stopColor="#3b82f6" />
-                    <stop offset="100%" stopColor="#8b5cf6" />
-                  </linearGradient>
-                </defs>
+          {/* Breakdown List */}
+          {kpi.breakdown && (
+            <div className="pt-4">
+              <h4 className="mb-6 text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                <span className="h-px w-4 bg-slate-300"></span> Performance
+                Breakdown
+              </h4>
+              <div className="space-y-6">
+                {/* Item 1 */}
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                      <span className="material-symbols-outlined text-blue-500">
+                        task_alt
+                      </span>
+                      Ticket Completion
+                    </span>
+                    <span className="text-sm font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                      {displayNumber(kpi.breakdown.tickets)}
+                    </span>
+                  </div>
+                  <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-500"
+                      style={{
+                        width: getBreakdownProgressWidth(
+                          kpi.breakdown.tickets,
+                          kpi.standardKPI,
+                        ),
+                      }}
+                    />
+                  </div>
+                </div>
 
-                <text
-                  x="50%"
-                  y="50%"
-                  textAnchor="middle"
-                  dy="0.3em"
-                  fontSize="10"
-                  fontWeight="700"
-                  fill="#3b82f6"
-                >
-                  {displayNumber(kpi.currentKPI)}
-                </text>
-                <text
-                  x="50%"
-                  y="65%"
-                  textAnchor="middle"
-                  dy="0.3em"
-                  fontSize="4"
-                  fontWeight="500"
-                  fill="#64748b"
-                >
-                  of {displayNumber(kpi.standardKPI)}
-                </text>
-              </svg>
+                {/* Item 2 */}
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                      <span className="material-symbols-outlined text-purple-500">
+                        timer
+                      </span>
+                      Logwork Compliance
+                    </span>
+                    <span className="text-sm font-black text-purple-600 bg-purple-50 px-2 py-0.5 rounded">
+                      {displayNumber(kpi.breakdown.logwork)}
+                    </span>
+                  </div>
+                  <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-purple-400 to-purple-600 transition-all duration-500"
+                      style={{
+                        width: getBreakdownProgressWidth(
+                          kpi.breakdown.logwork,
+                          kpi.standardKPI,
+                        ),
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
