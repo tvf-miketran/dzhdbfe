@@ -40,12 +40,12 @@ import type {
 } from "../types/index";
 
 const DEFAULT_KPI: KPIData = {
-  standardKPI: 8.5,
+  standardKPI: 0,
   currentKPI: 0,
   billableStandard: 0,
   logworkStandard: 0,
   totalBillable: 0,
-  lastCalculated: "Loading...",
+  lastCalculated: "No data available",
   breakdown: {
     tickets: 0,
     logwork: 0,
@@ -357,6 +357,11 @@ const ODashboard: React.FC = () => {
       .filter((monthValue) => months.includes(monthValue));
 
     if (normalizedMonths.length === 0) {
+      setOdcKPI(DEFAULT_KPI);
+      setIsKPILoading(false);
+      setIsTrendLoading(false);
+      setTeamData([]);
+      setIsTeamLoading(false);
       setContributionRows([]);
       setVisibleContributionCount(CONTRIBUTION_PAGE_SIZE);
       setContributionReloadKey((prev) => prev + 1);
@@ -936,7 +941,6 @@ const ODashboard: React.FC = () => {
             </div>
           )}
         </div>
-
       </div>
     </div>
   );
