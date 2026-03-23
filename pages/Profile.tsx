@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useResetPassword } from "../hooks";
 import toast from "react-hot-toast";
 import axiosInstance from "../helpers/axios";
+import { useAuth } from "../context/AuthContext";
 
 const getInitials = (fullName: string): string => {
   const parts = fullName
@@ -16,6 +17,7 @@ const getInitials = (fullName: string): string => {
 };
 
 const Profile: React.FC = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"personal" | "password">("personal");
   const [isEditMode, setIsEditMode] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -40,6 +42,21 @@ const Profile: React.FC = () => {
     newPassword: "",
     confirmPassword: "",
   });
+
+  const roleFromStorage = (() => {
+    try {
+      const raw = localStorage.getItem("user");
+      if (!raw) return "";
+      const parsed = JSON.parse(raw);
+      return String(parsed?.authorize_role || parsed?.authorizeRole || "");
+    } catch {
+      return "";
+    }
+  })();
+  const currentRole = String(
+    user?.authorize_role || roleFromStorage || formState.role || "",
+  ).toUpperCase();
+  const canEditRole = currentRole === "ADMIN";
 
   // Fetch profile by UUID from localStorage
   useEffect(() => {
@@ -234,7 +251,7 @@ const Profile: React.FC = () => {
                 { label: "Vietnamese Full Name", key: "vnFullName", editable: true, type: "text" },
                 { label: "Employee ID", key: "employeeId", editable: true, type: "text" },
                 { label: "Email", key: "email", editable: true, type: "email" },
-                { label: "Role", key: "role", editable: true, type: "text" },
+                { label: "Role", key: "role", editable: canEditRole, type: "text" },
                 { label: "Description", key: "description", editable: true, type: "text" },
               ].map(({ label, key, editable, type }) => (
                 <div key={key} className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">

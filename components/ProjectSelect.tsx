@@ -54,7 +54,11 @@ const ProjectSelect: React.FC<ProjectSelectProps> = ({
           onChange(selectedId, selectedProject?.name);
         }}
         disabled={disabled || isLoading}
-        className={`h-10 w-full rounded-md border border-border-light bg-surface-light px-3 pr-9 text-sm text-slate-900 outline-none focus:ring-1 focus:ring-primary focus:border-primary appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${className}`}
+        className={`h-10 w-full rounded-md border bg-surface-light px-3 pr-9 text-sm text-slate-900 outline-none appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
+          hasError
+            ? "border-red-300 focus:ring-1 focus:ring-red-500 focus:border-red-500"
+            : "border-border-light focus:ring-1 focus:ring-primary focus:border-primary"
+        } ${className}`}
       >
         <option value="">{placeholder}</option>
         {projects.map((project) => (
