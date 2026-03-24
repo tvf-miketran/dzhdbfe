@@ -4,12 +4,22 @@ export interface KPIBreakdown {
   quality: number;
 }
 
+export interface KPIStandardParams {
+  BILLABLE_PARAM?: string | number;
+  STANDARD_BA?: string | number;
+  STANDARD_DEV?: string | number;
+  STANDARD_QA?: string | number;
+  STANDARD_REVIEWER?: string | number;
+}
+
 export interface KPIData {
   standardKPI: number;
   currentKPI: number;
   billableStandard: number;
   logworkStandard: number;
   totalBillable?: number;
+  averageEE?: number;
+  params?: KPIStandardParams;
   lastCalculated?: string;
   breakdown?: KPIBreakdown;
 }

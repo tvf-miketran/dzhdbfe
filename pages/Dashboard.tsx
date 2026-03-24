@@ -26,6 +26,7 @@ import {
   getCurrentMonth,
   getInitials,
   getRoleColumnIndex,
+  normalizeKPIStandardParams,
   normalizeMonthValue,
   toNumber,
 } from "../utils/dashboardShared";
@@ -96,7 +97,7 @@ const Dashboard: React.FC = () => {
         const root =
           (await formulasService.getFormulaByUser(userId, {
             month: monthParam,
-            latest: false,
+            latest: true,
           })) ?? {};
         const rows = extractFormulaRowsFromResponse(root);
         const aggregateData = extractFormulaAggregateFromResponse(root);
@@ -219,6 +220,8 @@ const Dashboard: React.FC = () => {
         aggregateData.total_billable_point ?? totalBillablePoint;
       const normalizedBillableStandard = aggregateData.billable_standard ?? 0;
       const normalizedLogworkStandard = aggregateData.logwork_standard ?? 0;
+      const normalizedAverageEE = aggregateData.average_ee;
+      const normalizedParams = normalizeKPIStandardParams(aggregateData.params);
 
       const rowCount = personalRows.length;
       const avgTicketPoint =
@@ -275,6 +278,8 @@ const Dashboard: React.FC = () => {
         billableStandard: normalizedBillableStandard,
         logworkStandard: normalizedLogworkStandard,
         totalBillable: normalizedTotalBillablePoint,
+        averageEE: normalizedAverageEE,
+        params: normalizedParams,
         lastCalculated: lastCalculatedLabel,
         breakdown: {
           tickets: normalizedTotalTicketPoint,
@@ -350,6 +355,20 @@ const Dashboard: React.FC = () => {
   };
 
   const hasDashboardData = personalContribution !== null;
+
+  const getStatusClassName = (status: string): string => {
+    const normalizedStatus = status.trim().toLowerCase();
+
+    if (normalizedStatus === "bad") {
+      return "text-red-600 font-bold";
+    }
+
+    if (normalizedStatus === "good") {
+      return "text-emerald-600 font-bold";
+    }
+
+    return "text-slate-700 font-bold";
+  };
 
   useEffect(() => {
     fetchDashboardByMonth(selectedMonths);
@@ -653,7 +672,11 @@ const Dashboard: React.FC = () => {
                       {personalContribution.ee}
                     </td>
                     <td className="text-center px-4 py-3">
-                      <span className="text-slate-700">
+                      <span
+                        className={getStatusClassName(
+                          personalContribution.status,
+                        )}
+                      >
                         {personalContribution.status}
                       </span>
                     </td>
