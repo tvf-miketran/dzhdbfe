@@ -29,6 +29,7 @@ import {
   getCurrentMonth,
   getInitials,
   getRoleColumnIndex,
+  normalizeKPIStandardParams,
   normalizeMonthValue,
   toNumber,
 } from "../utils/dashboardShared";
@@ -67,6 +68,11 @@ type TicketBreakdownItem = NonNullable<
   task?: number;
   bugCount?: number;
   bug?: number;
+};
+
+const toOptionalNumber = (value: unknown): number | undefined => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
 };
 
 const buildFromMemberRows = (
@@ -211,6 +217,8 @@ const buildFromMemberRows = (
   const apiTotalLogwork = aggregateData?.total_logwork_point;
   const apiBillableStandard = aggregateData?.billable_standard;
   const apiLogworkStandard = aggregateData?.logwork_standard;
+  const apiAverageEE = aggregateData?.average_ee;
+  const apiParams = normalizeKPIStandardParams(aggregateData?.params);
 
   const kpiCurrentValue =
     apiAverageBillable !== undefined && apiAverageBillable !== null
@@ -238,6 +246,8 @@ const buildFromMemberRows = (
     ),
     logworkStandard: toNumber(apiLogworkStandard, DEFAULT_KPI.logworkStandard),
     totalBillable: kpiTotalBillableValue,
+    averageEE: apiAverageEE,
+    params: apiParams,
     lastCalculated:
       selectedMonths.length === 1
         ? `${selectedMonths[0]}/${year}`
@@ -288,20 +298,56 @@ const ODashboard: React.FC = () => {
   const [visibleContributionCount, setVisibleContributionCount] = useState(
     CONTRIBUTION_PAGE_SIZE,
   );
+  const [contributionSearch, setContributionSearch] = useState("");
   const latestRequestIdRef = useRef(0);
 
+  const normalizedContributionSearch = contributionSearch.trim().toLowerCase();
+
+  const filteredContributionRows = useMemo(() => {
+    if (!normalizedContributionSearch) {
+      return contributionRows;
+    }
+
+    return contributionRows.filter((row) =>
+      row.name.toLowerCase().includes(normalizedContributionSearch),
+    );
+  }, [contributionRows, normalizedContributionSearch]);
+
   const visibleContributionRows = useMemo(
-    () => contributionRows.slice(0, visibleContributionCount),
-    [contributionRows, visibleContributionCount],
+    () => filteredContributionRows.slice(0, visibleContributionCount),
+    [filteredContributionRows, visibleContributionCount],
   );
 
   const canLoadMoreContributionRows =
-    visibleContributionCount < contributionRows.length;
+    visibleContributionCount < filteredContributionRows.length;
+
+  const noContributionMessage =
+    contributionRows.length > 0 && normalizedContributionSearch
+      ? "No members matched your search."
+      : "No contribution data for selected month(s).";
+
+  useEffect(() => {
+    setVisibleContributionCount(CONTRIBUTION_PAGE_SIZE);
+  }, [contributionSearch]);
 
   const handleLoadMoreContributionRows = () => {
     setVisibleContributionCount((prev) =>
-      Math.min(prev + CONTRIBUTION_PAGE_SIZE, contributionRows.length),
+      Math.min(prev + CONTRIBUTION_PAGE_SIZE, filteredContributionRows.length),
     );
+  };
+
+  const getStatusClassName = (status: string): string => {
+    const normalizedStatus = status.trim().toLowerCase();
+
+    if (normalizedStatus === "bad") {
+      return "text-red-600 font-bold";
+    }
+
+    if (normalizedStatus === "good") {
+      return "text-emerald-600 font-bold";
+    }
+
+    return "text-slate-700 font-bold";
   };
 
   const fetchDashboardPayloadByMonths = async (months: string[]) => {
@@ -473,6 +519,15 @@ const ODashboard: React.FC = () => {
       if (payload.candidate) {
         const candidate = payload.candidate;
         const breakdown = candidate.breakdown ?? candidate.kpiBreakdown ?? {};
+        const paramsFromCandidate =
+          normalizeKPIStandardParams(candidate.params) ??
+          normalizeKPIStandardParams(payload.aggregateData.params);
+
+        const averageEEFromSource =
+          candidate.averageEE ??
+          candidate.average_ee ??
+          payload.aggregateData.average_ee;
+
         const nextKPI: KPIData = {
           standardKPI: toNumber(
             candidate.standardKPI ?? candidate.standard_kpi,
@@ -498,6 +553,8 @@ const ODashboard: React.FC = () => {
             candidate.totalBillable ?? candidate.total_billable,
             DEFAULT_KPI.totalBillable,
           ),
+          averageEE: toOptionalNumber(averageEEFromSource),
+          params: paramsFromCandidate,
           lastCalculated:
             candidate.lastCalculated ?? candidate.last_calculated ?? "just now",
           breakdown: {
@@ -618,8 +675,7 @@ const ODashboard: React.FC = () => {
         />
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* KPI Trend Chart */}
+        {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <div className="rounded-2xl border border-border-light bg-white shadow-lg p-8">
             <div className="mb-6">
               <h3 className="text-lg font-semibold text-slate-900">
@@ -673,7 +729,6 @@ const ODashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Team Performance */}
           <div className="rounded-2xl border border-border-light bg-white shadow-lg p-8">
             <div className="mb-6">
               <h3 className="text-lg font-semibold text-slate-900">
@@ -735,11 +790,11 @@ const ODashboard: React.FC = () => {
               )}
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* KPI Contribution Table */}
         <div className="mb-8 rounded-2xl border border-border-light bg-white shadow-lg overflow-hidden">
-          <div className="px-8 py-5 border-b border-slate-200 flex items-center justify-between">
+          <div className="px-8 py-5 border-b border-slate-200 flex items-center justify-between gap-4 flex-wrap">
             <div>
               <h3 className="text-lg font-semibold text-slate-900">
                 KPI Contribution Detail
@@ -747,6 +802,27 @@ const ODashboard: React.FC = () => {
               <p className="text-sm text-slate-500 mt-0.5">
                 Team performance breakdown by week
               </p>
+            </div>
+
+            <div className="w-full sm:w-[300px]">
+              <label htmlFor="contribution-search" className="sr-only">
+                Search member by name
+              </label>
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+                  search
+                </span>
+                <input
+                  id="contribution-search"
+                  type="text"
+                  value={contributionSearch}
+                  onChange={(event) =>
+                    setContributionSearch(event.target.value)
+                  }
+                  placeholder="Search by member name"
+                  className="w-full h-10 rounded-lg border border-slate-300 bg-white pl-10 pr-3 text-sm text-slate-700 placeholder:text-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
             </div>
           </div>
           <div className="overflow-x-auto">
@@ -870,7 +946,7 @@ const ODashboard: React.FC = () => {
                         colSpan={17}
                         className="px-4 py-6 text-center text-sm text-slate-500"
                       >
-                        No contribution data for selected month(s).
+                        {noContributionMessage}
                       </td>
                     </tr>
                   )}
@@ -921,7 +997,9 @@ const ODashboard: React.FC = () => {
                         {row.ee}
                       </td>
                       <td className="text-center px-4 py-3">
-                        <span className="text-slate-700">{row.status}</span>
+                        <span className={getStatusClassName(row.status)}>
+                          {row.status}
+                        </span>
                       </td>
                     </tr>
                   ))}

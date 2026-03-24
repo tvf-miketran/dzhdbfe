@@ -1144,8 +1144,6 @@ const updateDraftLength = (id: string, newLength: number) => {
                     if (fieldErrors.project) setFieldErrors({...fieldErrors, project: false});
                   }}
                   placeholder="Select a project..."
-                  page={1}
-                  perPage={10}
                   hasError={fieldErrors.project}
                 />
               </div>

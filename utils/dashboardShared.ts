@@ -1,3 +1,5 @@
+import type { KPIData } from "../types";
+
 export interface MonthOption {
   value: string;
   label: string;
@@ -68,4 +70,42 @@ export const getRoleColumnIndex = (roleValue: unknown): number => {
   if (normalizedRole === "REVIEWER" || normalizedRole === "REVIEW") return 4;
 
   return -1;
+};
+
+export const normalizeKPIStandardParams = (
+  params: unknown,
+): KPIData["params"] | undefined => {
+  if (!params || typeof params !== "object" || Array.isArray(params)) {
+    return undefined;
+  }
+
+  const source = params as Record<string, unknown>;
+  const selected: KPIData["params"] = {
+    BILLABLE_PARAM:
+      source.BILLABLE_PARAM !== undefined && source.BILLABLE_PARAM !== null
+        ? String(source.BILLABLE_PARAM)
+        : undefined,
+    STANDARD_BA:
+      source.STANDARD_BA !== undefined && source.STANDARD_BA !== null
+        ? String(source.STANDARD_BA)
+        : undefined,
+    STANDARD_DEV:
+      source.STANDARD_DEV !== undefined && source.STANDARD_DEV !== null
+        ? String(source.STANDARD_DEV)
+        : undefined,
+    STANDARD_QA:
+      source.STANDARD_QA !== undefined && source.STANDARD_QA !== null
+        ? String(source.STANDARD_QA)
+        : undefined,
+    STANDARD_REVIEWER:
+      source.STANDARD_REVIEWER !== undefined && source.STANDARD_REVIEWER !== null
+        ? String(source.STANDARD_REVIEWER)
+        : undefined,
+  };
+
+  const hasAnyParam = Object.values(selected).some(
+    (value) => value !== undefined && String(value).trim() !== "",
+  );
+
+  return hasAnyParam ? selected : undefined;
 };
