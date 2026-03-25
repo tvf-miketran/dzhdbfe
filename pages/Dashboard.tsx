@@ -415,9 +415,9 @@ const Dashboard: React.FC = () => {
         />
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div className="mb-8">
           {/* KPI Trend Chart */}
-          <div className="rounded-2xl border border-border-light bg-white shadow-lg p-8">
+          {/* <div className="rounded-2xl border border-border-light bg-white shadow-lg p-8">
             <div className="mb-6">
               <h3 className="text-lg font-semibold text-slate-900">
                 KPI Trend
@@ -466,10 +466,10 @@ const Dashboard: React.FC = () => {
                 </ResponsiveContainer>
               )}
             </div>
-          </div>
+          </div> */}
 
           {/* Personal Stat Cards */}
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div className="rounded-2xl border border-border-light bg-white shadow-lg p-6">
               <div className="flex items-start justify-between">
                 <div>

@@ -9,6 +9,7 @@ interface MainKPISectionProps {
   isKPILoading?: boolean;
   onRefresh: () => void;
   showTotal?: boolean;
+  totalMembers?: number;
 }
 
 const MainKPISection: React.FC<MainKPISectionProps> = ({
@@ -17,6 +18,7 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
   isKPILoading = false,
   onRefresh,
   showTotal = false,
+  totalMembers,
 }) => {
   const billableStandard = kpi.billableStandard ?? 0;
   const logworkStandard = kpi.logworkStandard ?? 0;
@@ -88,10 +90,12 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
           <div className="flex-1 flex flex-col justify-center items-center space-y-12">
             <div className="text-center group">
               <span className="block text-m font-black text-primary uppercase tracking-[0.3em] mb-2 opacity-70">
-                AVERAGE SCORE
+                {totalMembers !== undefined ? "TOTAL MEMBERS" : "AVERAGE SCORE"}
               </span>
               <span className="text-7xl font-black leading-none text-primary drop-shadow-md">
-                {displayNumber(kpi.currentKPI)}
+                {totalMembers !== undefined
+                  ? String(totalMembers)
+                  : displayNumber(kpi.currentKPI)}
               </span>
             </div>
 
@@ -189,8 +193,7 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
           {kpi.breakdown && (
             <section className="pt-8 border-t border-slate-100">
               <h4 className="mb-8 text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                <span className="h-px w-6 bg-slate-200"></span> Performance
-                Breakdown
+                Performance Breakdown
               </h4>
               <div className="space-y-8">
                 {/* Ticket Completion */}
