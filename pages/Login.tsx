@@ -20,8 +20,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   // Use the login mutation hook
   const loginMutation = useLogin({
     onSuccess: (data) => {
+      const refreshToken =
+        data.user.refresh_token ||
+        data.user.refreshToken ||
+        data.refresh_token ||
+        data.refreshToken;
+
       // Store token and user in auth context
-      login(data.user.access_token, data.user.user);
+      login(data.user.access_token, data.user.user, refreshToken);
 
       // Redirect by role
       onLogin(data.user.user);

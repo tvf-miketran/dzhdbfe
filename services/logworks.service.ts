@@ -21,7 +21,7 @@ export interface Logwork {
 export interface LogworksResponse extends BaseApiResponse<Logwork[]> {}
 
 export interface LogworksFilters {
-  /** Comma-separated month numbers, e.g. "1,2,3" – built from a number[] by the hook */
+  /** Single month number as string, e.g. "3" */
   month?: string;
   year?: number;
   sortBy?: "asc" | "desc";

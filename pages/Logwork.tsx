@@ -6,6 +6,7 @@ import {
   useEmployees,
   useSaveLogworks,
 } from "../hooks";
+import { ConfirmActionModal } from "../components/modal/confirm";
 
 const MONTHS = [
   "Jan",
@@ -29,7 +30,25 @@ interface EmployeeBasic {
 
 const Logwork: React.FC = () => {
   const { user } = useAuth();
-  const isMember = (user?.authorize_role ?? "").toUpperCase() !== "ADMIN";
+  const roleFromStorage = (() => {
+    const raw = localStorage.getItem("user");
+    if (!raw) return "";
+
+    try {
+      const parsed = JSON.parse(raw);
+      return String(parsed?.authorize_role || parsed?.authorizeRole || "");
+    } catch {
+      return "";
+    }
+  })();
+
+  const currentRole = String(
+    (user as any)?.authorize_role ||
+      (user as any)?.authorizeRole ||
+      roleFromStorage,
+  ).toUpperCase();
+  const isMember = currentRole !== "ADMIN";
+  const currentMonth = new Date().getMonth() + 1;
 
   // ─── Filter States ──────────────────────────────────────────────────────────
   const [selectedYear, setSelectedYear] = useState<number>(
@@ -44,6 +63,7 @@ const Logwork: React.FC = () => {
   const [changedCells, setChangedCells] = useState<Map<string, number>>(
     new Map(),
   );
+  const [isSaveConfirmOpen, setIsSaveConfirmOpen] = useState(false);
 
   // ─── Save mutation ───────────────────────────────────────────────────────────
   const { mutate: saveLogworks, isPending: isSaving } = useSaveLogworks();
@@ -70,15 +90,23 @@ const Logwork: React.FC = () => {
 
   // ─── Fetch logworks ──────────────────────────────────────────────────────────
   const adminFilters = {
+    month:
+      selectedMonths.length > 0
+        ? String(selectedMonths[0])
+        : String(currentMonth),
     year: selectedYear,
-    months: selectedMonths.length > 0 ? selectedMonths : undefined,
-    userName: searchName || undefined,
+    userName: searchName,
+    quarter: selectedQuarter,
     sortBy: "desc" as const,
   };
 
   const memberFilters = {
+    month:
+      selectedMonths.length > 0
+        ? String(selectedMonths[0])
+        : String(currentMonth),
     year: selectedYear,
-    months: selectedMonths.length > 0 ? selectedMonths : undefined,
+    quarter: selectedQuarter,
     sortBy: "desc" as const,
   };
 
@@ -263,6 +291,16 @@ const Logwork: React.FC = () => {
     );
   };
 
+  const handleOpenSaveConfirm = () => {
+    if (!hasChanges || isSaving) return;
+    setIsSaveConfirmOpen(true);
+  };
+
+  const handleConfirmSave = () => {
+    setIsSaveConfirmOpen(false);
+    handleSave();
+  };
+
   // ─── Helpers ─────────────────────────────────────────────────────────────────
   function getInitials(name: string): string {
     return name
@@ -415,7 +453,7 @@ const Logwork: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full lg:w-auto lg:ml-auto lg:pb-2">
             {!isMember && (
               <button
-                onClick={handleSave}
+                onClick={handleOpenSaveConfirm}
                 disabled={!hasChanges || isSaving}
                 className={`flex items-center justify-center gap-2 h-10 px-5 rounded-lg font-semibold text-xs transition-all shadow-xl ${
                   hasChanges && !isSaving
@@ -630,6 +668,21 @@ const Logwork: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <ConfirmActionModal
+        isOpen={isSaveConfirmOpen}
+        title="Confirm Save Changes"
+        message="Are you sure you want to save logwork changes?"
+        icon="save"
+        confirmText="Save"
+        cancelText="Cancel"
+        isPending={isSaving}
+        onCancel={() => {
+          if (isSaving) return;
+          setIsSaveConfirmOpen(false);
+        }}
+        onConfirm={handleConfirmSave}
+      />
     </div>
   );
 };

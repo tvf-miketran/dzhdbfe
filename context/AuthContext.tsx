@@ -11,7 +11,12 @@ import React, {
   useCallback,
   ReactNode,
 } from "react";
-import { getAuthToken, removeAuthToken, setAuthToken } from "../helpers/axios";
+import {
+  getAuthToken,
+  removeAuthToken,
+  setAuthToken,
+  setRefreshToken,
+} from "../helpers/axios";
 import { User } from "../types/index";
 import axiosInstance from "../helpers/axios";
 import { ENDPOINTS } from "../config/api";
@@ -20,7 +25,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   token: string | null;
   user: User | null;
-  login: (token: string, user: User) => void;
+  login: (token: string, user: User, refreshToken?: string) => void;
   logout: () => void;
   checkAuth: () => boolean;
 }
@@ -60,9 +65,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  const login = useCallback((accessToken: string, userData: User) => {
+  const login = useCallback(
+    (accessToken: string, userData: User, refreshToken?: string) => {
     // Store token and user in localStorage
     setAuthToken(accessToken);
+    if (refreshToken) {
+      setRefreshToken(refreshToken);
+    }
     localStorage.setItem("isAuthenticated", "true");
     localStorage.setItem("user", JSON.stringify(userData));
 
@@ -71,7 +80,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setToken(accessToken);
     setUser(userData);
     setIsAuthenticated(true);
-  }, []);
+    },
+    [],
+  );
 
   const logout = useCallback(() => {
     removeAuthToken();
@@ -86,6 +97,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  useEffect(() => {
+    const handleUserUpdated = () => {
+      const storedUser = localStorage.getItem("user");
+      if (!storedUser) return;
+
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error("Failed to parse updated user data:", error);
+      }
+    };
+
+    window.addEventListener("auth:user-updated", handleUserUpdated);
+    return () => {
+      window.removeEventListener("auth:user-updated", handleUserUpdated);
+    };
+  }, []);
 
   // Periodic check for user status (every 10 seconds)
   useEffect(() => {

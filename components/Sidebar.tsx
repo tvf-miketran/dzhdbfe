@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Page } from "../types/index";
 import axiosInstance from "../helpers/axios";
 import { useAuth } from "../context/AuthContext";
+import { ENDPOINTS } from "../config/api";
 
 interface SidebarProps {
   activePage: Page;
@@ -54,35 +55,61 @@ const Sidebar: React.FC<SidebarProps> = ({
     const fetchEmployeeInfo = async () => {
       setEmployeeLoading(true);
       try {
-        const storedUserRaw = localStorage.getItem("user");
-        const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null;
-        const employeeUuid = storedUser?.UUID || storedUser?.id;
-
-        if (!employeeUuid) {
-          setEmployeeName("Unknown User");
-          setEmployeeRole("Member");
-          return;
-        }
-
-        const response = await axiosInstance.get(`/employees/${employeeUuid}`);
+        const response = await axiosInstance.get(ENDPOINTS.EMPLOYEES.ME);
         const employee = response?.data?.data ?? response?.data;
+
+        localStorage.setItem("user", JSON.stringify(employee));
 
         setEmployeeName(
           employee?.enFullName || employee?.vnFullName || "Unknown User",
         );
         setEmployeeRole(
-          employee?.authorizeRole || employee?.description || "Member",
+          employee?.authorizeRole ||
+            employee?.authorize_role ||
+            employee?.description ||
+            "Member",
         );
       } catch (error) {
         console.error("Failed to fetch sidebar employee info:", error);
-        setEmployeeName("Unknown User");
-        setEmployeeRole("Member");
+        const storedUserRaw = localStorage.getItem("user");
+        if (storedUserRaw) {
+          try {
+            const storedUser = JSON.parse(storedUserRaw);
+            setEmployeeName(
+              storedUser?.enFullName ||
+                storedUser?.vnFullName ||
+                storedUser?.name ||
+                "Unknown User",
+            );
+            setEmployeeRole(
+              storedUser?.authorizeRole ||
+                storedUser?.authorize_role ||
+                storedUser?.description ||
+                "Member",
+            );
+          } catch {
+            setEmployeeName("Unknown User");
+            setEmployeeRole("Member");
+          }
+        } else {
+          setEmployeeName("Unknown User");
+          setEmployeeRole("Member");
+        }
       } finally {
         setEmployeeLoading(false);
       }
     };
 
     fetchEmployeeInfo();
+
+    const handleUserUpdated = () => {
+      fetchEmployeeInfo();
+    };
+
+    window.addEventListener("auth:user-updated", handleUserUpdated);
+    return () => {
+      window.removeEventListener("auth:user-updated", handleUserUpdated);
+    };
   }, []);
 
   const menuItems = [
