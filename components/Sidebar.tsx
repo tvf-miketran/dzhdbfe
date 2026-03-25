@@ -62,8 +62,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         const response = await axiosInstance.get(ENDPOINTS.EMPLOYEES.ME);
         const employee = response?.data?.data ?? response?.data;
 
-        localStorage.setItem("user", JSON.stringify(employee));
-
         setEmployeeName(
           employee?.enFullName || employee?.vnFullName || "Unknown User",
         );

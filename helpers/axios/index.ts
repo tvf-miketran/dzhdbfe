@@ -102,9 +102,7 @@ const syncCurrentUserProfile = async (accessToken: string): Promise<void> => {
 
     const profile = response?.data?.data ?? response?.data;
     if (profile) {
-      localStorage.setItem("user", JSON.stringify(profile));
       localStorage.setItem("isAuthenticated", "true");
-      window.dispatchEvent(new Event("auth:user-updated"));
     }
   } catch (syncError) {
     if (import.meta.env.DEV) {
