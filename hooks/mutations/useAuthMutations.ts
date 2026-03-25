@@ -16,7 +16,12 @@ import {
   ForgotPasswordData,
   ResetPasswordData,
 } from "../../services";
-import { setAuthToken, removeAuthToken, ApiError } from "../../helpers/axios";
+import {
+  setAuthToken,
+  setRefreshToken,
+  removeAuthToken,
+  ApiError,
+} from "../../helpers/axios";
 import { queryKeys } from "../queries";
 import toast from "react-hot-toast";
 
@@ -45,6 +50,14 @@ export const useLogin = (
 
       // Store access token and user information
       setAuthToken(data.user.access_token);
+      const refreshToken =
+        data.user.refresh_token ||
+        data.user.refreshToken ||
+        data.refresh_token ||
+        data.refreshToken;
+      if (refreshToken) {
+        setRefreshToken(refreshToken);
+      }
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("user", JSON.stringify(data.user.user));
 
@@ -74,6 +87,7 @@ export const useLogout = (
       // Remove tokens
       removeAuthToken();
       localStorage.removeItem("isAuthenticated");
+      localStorage.removeItem("user");
 
       // Clear all cached data
       queryClient.clear();
@@ -98,6 +112,14 @@ export const useRegister = (
     onSuccess: (data) => {
       // Store access token and user information
       setAuthToken(data.user.access_token);
+      const refreshToken =
+        data.user.refresh_token ||
+        data.user.refreshToken ||
+        data.refresh_token ||
+        data.refreshToken;
+      if (refreshToken) {
+        setRefreshToken(refreshToken);
+      }
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("user", JSON.stringify(data.user.user));
 

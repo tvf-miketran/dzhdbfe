@@ -137,7 +137,7 @@ export const useDeleteEmployee = (
     UseMutationOptions<
       Awaited<ReturnType<typeof userService.deleteEmployee>>,
       Error,
-      string
+      { id: string; data: Parameters<typeof userService.deleteEmployee>[1] }
     >,
     "mutationFn"
   >,
@@ -145,7 +145,7 @@ export const useDeleteEmployee = (
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: userService.deleteEmployee,
+    mutationFn: ({ id, data }) => userService.deleteEmployee(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.lists() });
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.details() });

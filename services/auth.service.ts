@@ -13,8 +13,14 @@ export interface LoginCredentials {
 }
 
 export interface LoginResponse {
+  access_token?: string;
+  refresh_token?: string;
+  token?: string;
+  refreshToken?: string;
   user: {
     access_token: string;
+    refresh_token?: string;
+    refreshToken?: string;
     token_type: string;
     user: User;
   };

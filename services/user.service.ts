@@ -220,9 +220,15 @@ export const userService = {
 
   /**
    * Delete an employee
+   * DELETE /api/employees/:id
    */
-  deleteEmployee: async (id: string): Promise<BaseApiResponse<null>> => {
-    const response = await axiosInstance.delete(ENDPOINTS.EMPLOYEES.DELETE(id));
+  deleteEmployee: async (
+    id: string,
+    data: { confirm: boolean; reason?: string },
+  ): Promise<BaseApiResponse<null>> => {
+    const response = await axiosInstance.delete(ENDPOINTS.EMPLOYEES.DELETE(id), {
+      data,
+    });
     return response.data;
   },
 
