@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { z } from "zod";
 import toast from "react-hot-toast";
 import { useCreateEmployee } from "../../hooks/mutations/useUserMutations";
+import { ConfirmActionModal } from "./confirm";
 import {
   createEmployeeSchema,
   type CreateEmployeeFormData,
@@ -29,6 +30,20 @@ const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [pendingCreatePayload, setPendingCreatePayload] = useState<
+    | {
+        vnFullName: string;
+        enFullName: string;
+        email: string;
+        employeeId: string;
+        password: string;
+        description: string;
+        authorizeRole: "MEMBER" | "ADMIN";
+        status: boolean;
+      }
+    | null
+  >(null);
 
   const createEmployeeMutation = useCreateEmployee();
 
@@ -45,7 +60,33 @@ const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
     });
     setFormErrors({});
     setIsSubmitting(false);
+    setIsConfirmOpen(false);
+    setPendingCreatePayload(null);
     onClose();
+  };
+
+  const handleConfirmCreate = async () => {
+    if (!pendingCreatePayload) return;
+
+    try {
+      setIsSubmitting(true);
+
+      await createEmployeeMutation.mutateAsync(pendingCreatePayload);
+
+      toast.success("Employee created successfully!");
+      handleCloseModal();
+    } catch (error) {
+      const apiError = error as any;
+      if (Array.isArray(apiError?.errors) && apiError.errors.length > 0) {
+        apiError.errors.forEach((errorMsg: string) => {
+          toast.error(errorMsg, { duration: 5000 });
+        });
+      } else {
+        toast.error(apiError?.message || "Failed to create employee");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,7 +98,6 @@ const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
     }
 
     try {
-      setIsSubmitting(true);
       setFormErrors({});
 
       // Trim all string values
@@ -88,11 +128,8 @@ const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
             : true,
       };
 
-      // Call mutation
-      await createEmployeeMutation.mutateAsync(payload);
-
-      toast.success("Employee created successfully!");
-      handleCloseModal();
+      setPendingCreatePayload(payload);
+      setIsConfirmOpen(true);
     } catch (error) {
       if (error instanceof z.ZodError) {
         // Handle ZOD validation errors
@@ -104,19 +141,7 @@ const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
         });
         setFormErrors(errors);
         toast.error("Please fix the validation errors");
-      } else {
-        // Handle API errors (interceptor transforms to ApiError shape)
-        const apiError = error as any;
-        if (Array.isArray(apiError?.errors) && apiError.errors.length > 0) {
-          apiError.errors.forEach((errorMsg: string) => {
-            toast.error(errorMsg, { duration: 5000 });
-          });
-        } else {
-          toast.error(apiError?.message || "Failed to create employee");
-        }
       }
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -413,6 +438,25 @@ const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
           </div>
         </form>
       </div>
+
+      <ConfirmActionModal
+        isOpen={isConfirmOpen}
+        title="Confirm Create User"
+        message={
+          pendingCreatePayload
+            ? `Create user ${pendingCreatePayload.enFullName} (${pendingCreatePayload.email})?`
+            : "Create this user?"
+        }
+        icon="person_add"
+        confirmText="Create"
+        cancelText="Back"
+        isPending={isSubmitting}
+        onCancel={() => {
+          if (isSubmitting) return;
+          setIsConfirmOpen(false);
+        }}
+        onConfirm={handleConfirmCreate}
+      />
     </div>
   );
 };

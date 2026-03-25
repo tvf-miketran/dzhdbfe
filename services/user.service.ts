@@ -219,6 +219,14 @@ export const userService = {
   },
 
   /**
+   * Delete an employee
+   */
+  deleteEmployee: async (id: string): Promise<BaseApiResponse<null>> => {
+    const response = await axiosInstance.delete(ENDPOINTS.EMPLOYEES.DELETE(id));
+    return response.data;
+  },
+
+  /**
    * Reset employee password (resets to employee's email)
    */
   resetEmployeePassword: async (
