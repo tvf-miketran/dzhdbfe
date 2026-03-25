@@ -16,6 +16,8 @@ import toast from "react-hot-toast";
 import { formulasService } from "../services";
 import MultiSelectDropdown from "../components/MultiSelectDropdown";
 import MainKPISection from "../components/MainKPISection";
+import TicketConsumptionDashboard from "../components/TicketConsumptionDashboard";
+import StatusOverviewDonut from "../components/StatusOverviewDonut";
 import {
   extractFormulaAggregateFromResponse,
   extractFormulaCandidateFromResponse,
@@ -674,6 +676,12 @@ const ODashboard: React.FC = () => {
           showTotal
           totalMembers={contributionRows.length}
         />
+
+        {/* Analytics Overview */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+          <TicketConsumptionDashboard />
+          <StatusOverviewDonut />
+        </div>
 
         {/* Charts Section */}
         {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">

@@ -51,6 +51,7 @@ const App: React.FC = () => {
     getDefaultPageByRole(getStoredRole()),
   );
   const [currentView, setCurrentView] = useState<string>("default"); // 'default', 'performance', 'logwork'
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const handleNavigate = (nextPage: Page) => {
     const currentRole = normalizeRole(user?.authorize_role ?? getStoredRole());
@@ -221,9 +222,14 @@ const App: React.FC = () => {
         activePage={activePage}
         onNavigate={handleNavigate}
         onLogout={handleLogout}
+        isMobileOpen={isMobileSidebarOpen}
+        onClose={() => setIsMobileSidebarOpen(false)}
       />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Header activePage={activePage} />
+        <Header
+          activePage={activePage}
+          onMenuClick={() => setIsMobileSidebarOpen((prev) => !prev)}
+        />
         <main className="flex-1 overflow-y-auto custom-scrollbar">
           {renderContent()}
         </main>
