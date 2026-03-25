@@ -91,6 +91,10 @@ const LogTickets: React.FC = () => {
   >([]);
   const [showAlreadyExistModal, setShowAlreadyExistModal] = useState(false);
   const [isUpdatingAlreadyExist, setIsUpdatingAlreadyExist] = useState(false);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
+    open: boolean;
+    ids: string[];
+  }>({ open: false, ids: [] });
   const [selectedDraftIds, setSelectedDraftIds] = useState<Set<string>>(
     new Set(),
   );
@@ -534,14 +538,7 @@ const LogTickets: React.FC = () => {
   const handleSubmitDraft = () => {
     if (draftEntries.length === 0) return;
 
-    const entriesToSubmit = draftEntries.filter((e) =>
-      selectedDraftIds.has(e.id),
-    );
-
-    if (entriesToSubmit.length === 0) {
-      toast.error("Please select at least one draft ticket to submit.");
-      return;
-    }
+    const entriesToSubmit = draftEntries;
 
     if (!validateDraftBeforeSubmit(entriesToSubmit)) return;
 
@@ -1094,25 +1091,17 @@ const LogTickets: React.FC = () => {
       return;
     }
 
-    const result = await Swal.fire({
-      title: "Delete ticket" + (validIds.length > 1 ? "s" : ""),
-      text:
-        validIds.length === 1
-          ? "Are you sure you want to delete this ticket? This action cannot be undone."
-          : `Are you sure you want to delete ${validIds.length} tickets? This action cannot be undone.`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      cancelButtonColor: "#64748b",
-      confirmButtonText:
-        validIds.length === 1
-          ? "Yes, delete it"
-          : `Yes, delete ${validIds.length}`,
-      cancelButtonText: "Cancel",
-      reverseButtons: true,
-    });
+    setDeleteConfirmModal({ open: true, ids: validIds });
+  };
 
-    if (!result.isConfirmed) return;
+  const handleConfirmDeleteFinalTickets = async () => {
+    const validIds = deleteConfirmModal.ids.filter((id) => isValidUUID(id));
+
+    if (validIds.length === 0) {
+      toast.error("No valid ticket IDs selected for deletion.");
+      setDeleteConfirmModal({ open: false, ids: [] });
+      return;
+    }
 
     try {
       const response = await deleteTicketsBulk({ ids: validIds });
@@ -1142,6 +1131,8 @@ const LogTickets: React.FC = () => {
         validIds.forEach((id) => next.delete(id));
         return next;
       });
+
+      setDeleteConfirmModal({ open: false, ids: [] });
 
       fetchMyTickets();
     } catch (error: any) {
@@ -1618,6 +1609,68 @@ const LogTickets: React.FC = () => {
         isUpdating={isUpdatingExisting}
       />
 
+      {/* Delete Confirm Modal */}
+      <div
+        className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-300 ${
+          deleteConfirmModal.open
+            ? "bg-black/50 opacity-100"
+            : "pointer-events-none opacity-0"
+        }`}
+        onClick={() =>
+          !isDeletingFinal && setDeleteConfirmModal({ open: false, ids: [] })
+        }
+      >
+        <div
+          className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden flex flex-col"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-red-50 to-rose-50 flex items-center gap-3">
+            <span className="material-symbols-outlined text-red-600 text-[24px]">
+              warning
+            </span>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest">
+                Confirm Delete
+              </h3>
+              <p className="text-xs text-slate-600 mt-1">
+                {deleteConfirmModal.ids.length === 1
+                  ? "Are you sure you want to delete this ticket? This action cannot be undone."
+                  : `Are you sure you want to delete ${deleteConfirmModal.ids.length} tickets? This action cannot be undone.`}
+              </p>
+            </div>
+          </div>
+
+          <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3">
+            <button
+              onClick={() => setDeleteConfirmModal({ open: false, ids: [] })}
+              disabled={isDeletingFinal}
+              className="h-10 px-4 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-semibold hover:bg-slate-100 disabled:bg-slate-100 disabled:text-slate-400 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirmDeleteFinalTickets}
+              disabled={isDeletingFinal}
+              className="h-10 px-4 rounded-lg bg-red-500 hover:bg-red-600 disabled:bg-slate-300 text-white text-sm font-semibold transition-colors flex items-center gap-2"
+            >
+              {isDeletingFinal ? (
+                <>
+                  <span className="inline-flex w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[18px]">
+                    delete
+                  </span>
+                  Delete
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Already Exist Tickets Modal */}
       <div
         className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-300 ${
@@ -1778,12 +1831,12 @@ const LogTickets: React.FC = () => {
           <button
             type="button"
             onClick={handleSubmitDraft}
-            disabled={selectedDraftIds.size === 0 || isSubmittingFinal}
+            disabled={draftEntries.length === 0 || isSubmittingFinal}
             className="h-10 px-4 rounded-lg bg-primary text-white text-sm font-semibold shadow-md transition-colors hover:bg-emerald-600 disabled:bg-slate-300 disabled:text-slate-500"
           >
             {isSubmittingFinal
               ? "Submitting..."
-              : `Submit to Final (${selectedDraftIds.size})`}
+              : `Submit to Final (${draftEntries.length})`}
           </button>
         )}
       </div>
