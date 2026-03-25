@@ -6,6 +6,7 @@ import {
   useToggleEmployeeStatus,
   useResetEmployeePassword,
 } from "../hooks/mutations/useUserMutations";
+import { useRemoveProjectMember } from "../hooks/mutations/useProjectsMutations";
 import { useAuth } from "../context/AuthContext";
 import type { Employee, EmployeeProject } from "../types/index";
 import CreateEmployeeModal from "../components/modal/CreateEmployeeModal";
@@ -14,6 +15,7 @@ import UserDetailModal from "../components/modal/UserDetailModal";
 import {
   ConfirmStatusModal,
   ConfirmResetPasswordModal,
+  ConfirmActionModal,
 } from "../components/modal/confirm";
 import { Pagination } from "../components/pagination";
 import ProjectFilter from "../components/ProjectFilter";
@@ -31,6 +33,10 @@ const Resources: React.FC = () => {
     nextStatus: "Active" | "Inactive";
   }>(null);
   const [resetConfirm, setResetConfirm] = useState<null | {
+    id: string;
+    name: string;
+  }>(null);
+  const [deleteUserConfirm, setDeleteUserConfirm] = useState<null | {
     id: string;
     name: string;
   }>(null);
@@ -158,6 +164,9 @@ const Resources: React.FC = () => {
 
   // Reset employee password mutation
   const resetPasswordMutation = useResetEmployeePassword();
+
+  // Remove member mutation
+  const removeProjectMemberMutation = useRemoveProjectMember();
 
   const statuses = ["All", "Active", "Inactive"];
 
@@ -507,6 +516,23 @@ const Resources: React.FC = () => {
                                 </span>
                                 Edit
                               </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteUserConfirm({
+                                    id: employee.id,
+                                    name: employee.enFullName,
+                                  });
+                                }}
+                                disabled={removeProjectMemberMutation.isPending}
+                                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-red-500 text-red-600 text-xs font-semibold bg-white hover:bg-red-50 transition-colors disabled:opacity-60"
+                              >
+                                <span className="material-symbols-outlined text-[14px]">
+                                  delete
+                                </span>
+                                Delete
+                              </button>
                             </div>
                           </td>
                         )}
@@ -593,6 +619,44 @@ const Resources: React.FC = () => {
               setResetConfirm(null);
             },
           });
+        }}
+      />
+
+      <ConfirmActionModal
+        isOpen={!!deleteUserConfirm}
+        title="Confirm Delete User"
+        message={
+          deleteUserConfirm
+            ? `Delete user ${deleteUserConfirm.name}?`
+            : "Delete user?"
+        }
+        icon="delete"
+        variant="danger"
+        confirmText="Delete"
+        cancelText="Cancel"
+        isPending={removeProjectMemberMutation.isPending}
+        onCancel={() => setDeleteUserConfirm(null)}
+        onConfirm={() => {
+          if (!deleteUserConfirm) return;
+          removeProjectMemberMutation.mutate(
+            {
+              projectId: deleteUserConfirm.id,
+              userId: deleteUserConfirm.id,
+            },
+            {
+              onSuccess: (res: any) => {
+                toast.success(
+                  res?.message || `Deleted member ${deleteUserConfirm.name}`,
+                );
+                setDeleteUserConfirm(null);
+              },
+              onError: (err: any) => {
+                toast.error(
+                  err?.response?.data?.message || "Failed to delete member",
+                );
+              },
+            },
+          );
         }}
       />
 

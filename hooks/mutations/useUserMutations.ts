@@ -130,6 +130,31 @@ export const useUpdateEmployee = (
 };
 
 /**
+ * Hook for deleting an employee
+ */
+export const useDeleteEmployee = (
+  options?: Omit<
+    UseMutationOptions<
+      Awaited<ReturnType<typeof userService.deleteEmployee>>,
+      Error,
+      string
+    >,
+    "mutationFn"
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: userService.deleteEmployee,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.lists() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.details() });
+    },
+    ...options,
+  });
+};
+
+/**
  * Hook for resetting employee password
  */
 export const useResetEmployeePassword = (
