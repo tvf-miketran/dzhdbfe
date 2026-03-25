@@ -2079,7 +2079,7 @@ const LogTickets: React.FC = () => {
                           />
                         </td>
                         <td className="py-4 px-6 text-center">
-                          <span className="font-mono font-bold text-slate-900 text-sm">
+                          <span className="font-bold text-slate-900 text-sm">
                             {entry.ticketId}
                           </span>
                         </td>
@@ -2512,7 +2512,7 @@ const LogTickets: React.FC = () => {
                         />
                       </td>
                       <td className="py-4 px-6 text-center">
-                        <span className="font-mono font-bold text-slate-900 text-sm">
+                        <span className="font-bold text-slate-900 text-sm">
                           {entry.ticketId}
                         </span>
                       </td>

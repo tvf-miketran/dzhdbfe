@@ -63,9 +63,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
             onClick={onClose}
             className="text-slate-400 hover:text-slate-600 transition-colors"
           >
-            <span className="material-symbols-outlined text-[24px]">
-              close
-            </span>
+            <span className="material-symbols-outlined text-[24px]">close</span>
           </button>
         </div>
 
@@ -186,9 +184,6 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <div className="flex-1">
                         <p className="text-sm font-semibold text-slate-900">
                           {project.projectName || "N/A"}
-                        </p>
-                        <p className="text-xs text-slate-600 mt-1">
-                          Role ID: {project.roleId || "N/A"}
                         </p>
                         {project.roleName && (
                           <p className="text-xs text-slate-600">

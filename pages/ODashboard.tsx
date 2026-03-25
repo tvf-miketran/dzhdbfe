@@ -672,6 +672,7 @@ const ODashboard: React.FC = () => {
           isKPILoading={isKPILoading}
           onRefresh={() => fetchDashboardByMonth(selectedMonths)}
           showTotal
+          totalMembers={contributionRows.length}
         />
 
         {/* Charts Section */}
