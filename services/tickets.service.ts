@@ -108,6 +108,10 @@ export interface BulkCreateTicketsPayload {
   tickets: BulkCreateTicketItem[];
 }
 
+export interface BulkDeleteTicketsPayload {
+  ids: string[];
+}
+
 export interface BulkTicketItem {
   id: string;
   ticketId: string;
@@ -140,6 +144,12 @@ export interface BulkCreateTicketsResponse
     }>;
     total_created: number;
     total_existing: number;
+  }> {}
+
+export interface BulkDeleteTicketsResponse
+  extends BaseApiResponse<{
+    deleted?: number;
+    ids?: string[];
   }> {}
 
 /**
@@ -403,6 +413,21 @@ export const ticketsService = {
   },
 
   /**
+   * Bulk delete tickets
+   */
+  bulkDeleteTickets: async (
+    payload: BulkDeleteTicketsPayload,
+  ): Promise<BulkDeleteTicketsResponse> => {
+    const response = await axiosInstance.delete<BulkDeleteTicketsResponse>(
+      ENDPOINTS.TICKETS.BULK,
+      {
+        data: payload,
+      },
+    );
+    return response.data;
+  },
+
+  /**
    * Update existing ticket from bulk operation
    */
   bulkUpdateTicket: async (
@@ -411,6 +436,19 @@ export const ticketsService = {
   ): Promise<BulkTicketItem> => {
     const response = await axiosInstance.put<BulkTicketItem>(
       ENDPOINTS.TICKETS.BULK_UPDATE(id),
+      payload,
+    );
+    return response.data;
+  },
+
+  /**
+   * Bulk update multiple tickets (PUT /api/tickets/bulk)
+   */
+  bulkUpdateTickets: async (payload: {
+    tickets: Array<BulkCreateTicketItem & { id: string }>;
+  }): Promise<BulkCreateTicketsResponse> => {
+    const response = await axiosInstance.put<BulkCreateTicketsResponse>(
+      ENDPOINTS.TICKETS.BULK,
       payload,
     );
     return response.data;

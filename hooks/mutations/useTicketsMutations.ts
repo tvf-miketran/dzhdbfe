@@ -15,6 +15,9 @@ import {
   CreateTicketEntryData,
   BulkCreateTicketsPayload,
   BulkCreateTicketsResponse,
+  BulkDeleteTicketsPayload,
+  BulkDeleteTicketsResponse,
+  BulkCreateTicketItem,
 } from "../../services";
 import { Ticket, TicketEntry } from "../../types/index";
 import { queryKeys } from "../queries";
@@ -176,6 +179,47 @@ export const useBulkCreateTickets = (
       queryClient.invalidateQueries({ queryKey: queryKeys.tickets.entries() });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
     },
+    ...options,
+  });
+};
+
+/**
+ * Hook for bulk deleting tickets
+ */
+export const useBulkDeleteTickets = (
+  options?: Omit<
+    UseMutationOptions<BulkDeleteTicketsResponse, Error, BulkDeleteTicketsPayload>,
+    "mutationFn"
+  >,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ticketsService.bulkDeleteTickets,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tickets.lists() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tickets.entries() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+    },
+    ...options,
+  });
+};
+
+/**
+ * Hook for bulk updating tickets (PUT /api/tickets/bulk)
+ */
+export const useBulkUpdateTickets = (
+  options?: Omit<
+    UseMutationOptions<
+      BulkCreateTicketsResponse,
+      Error,
+      { tickets: Array<BulkCreateTicketItem & { id: string }> }
+    >,
+    "mutationFn"
+  >,
+) => {
+  return useMutation({
+    mutationFn: ticketsService.bulkUpdateTickets,
     ...options,
   });
 };

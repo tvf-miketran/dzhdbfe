@@ -37,20 +37,6 @@ const Header: React.FC<HeaderProps> = ({ activePage }) => {
           {getPageTitle()}
         </h2>
       </div>
-
-      <div className="flex items-center gap-4">
-        <div className="hidden md:relative md:flex items-center">
-          <span className="material-symbols-outlined absolute left-3 text-slate-400 text-[18px]">
-            search
-          </span>
-          <input
-            type="text"
-            placeholder="Search resources, projects..."
-            className="h-9 w-64 rounded-md border border-border-light bg-surface-light px-10 text-sm text-slate-900 placeholder-slate-400 outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-          />
-        </div>
-
-      </div>
     </header>
   );
 };
