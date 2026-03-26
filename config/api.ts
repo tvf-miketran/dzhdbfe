@@ -140,6 +140,7 @@ export const ENDPOINTS = {
     VALIDATE: "/formulas/validate",
     CALCULATE: "/formulas/calculate",
     CALCULATE_USER: (userId: string) => `/formulas/calculate/${userId}`,
+    KPI_CLOSED_TICKETS: "/formulas/kpi/closed-tickets",
   },
 
   // Logworks endpoints

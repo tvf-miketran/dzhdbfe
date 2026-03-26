@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useMemo } from "react";
 import {
   BarChart,
   Bar,
@@ -9,40 +9,19 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Cell,
 } from "recharts";
-
-type MonthRange = 3 | 6 | 9;
-type RoleKey = "dev" | "ba" | "eqa" | "iqa";
-
-interface MonthDataRow {
-  month: string;
-  dev: number;
-  ba: number;
-  eqa: number;
-  iqa: number;
-  total: number;
-}
-
-const ALL_MONTHLY_DATA: MonthDataRow[] = [
-  { month: "Jul/25", dev: 45, ba: 12, eqa: 28, iqa: 18, total: 103 },
-  { month: "Aug/25", dev: 52, ba: 15, eqa: 32, iqa: 22, total: 121 },
-  { month: "Sep/25", dev: 38, ba: 10, eqa: 25, iqa: 16, total: 89 },
-  { month: "Oct/25", dev: 61, ba: 18, eqa: 35, iqa: 24, total: 138 },
-  { month: "Nov/25", dev: 48, ba: 14, eqa: 30, iqa: 20, total: 112 },
-  { month: "Dec/25", dev: 55, ba: 16, eqa: 33, iqa: 21, total: 125 },
-  { month: "Jan/26", dev: 42, ba: 11, eqa: 27, iqa: 17, total: 97 },
-  { month: "Feb/26", dev: 58, ba: 17, eqa: 36, iqa: 23, total: 134 },
-  { month: "Mar/26", dev: 50, ba: 15, eqa: 31, iqa: 20, total: 116 },
-];
+import type {
+  ClosedByRoleChart,
+  TotalTrendItem,
+} from "../services/formulas.service";
 
 const ROLE_CONFIG: Array<{
-  key: RoleKey;
+  key: keyof Omit<ClosedByRoleChart, "months">;
   label: string;
   icon: string;
   color: string;
 }> = [
-  { key: "dev", label: "Developer", icon: "code", color: "#3b82f6" },
+  { key: "developers", label: "Developer", icon: "code", color: "#3b82f6" },
   { key: "ba", label: "BA", icon: "business_center", color: "#60a5fa" },
   { key: "eqa", label: "EQA", icon: "verified", color: "#93c5fd" },
   { key: "iqa", label: "IQA", icon: "fact_check", color: "#bfdbfe" },
@@ -53,6 +32,29 @@ interface RoleBarTickProps {
   y?: number;
   payload?: { value: string };
 }
+
+const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+const formatMonthLabel = (monthNum: number): string => {
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+  const year = monthNum <= currentMonth ? currentYear : currentYear - 1;
+  return `${MONTH_NAMES[monthNum - 1]}/${String(year).slice(-2)}`;
+};
 
 const RoleBarTick: React.FC<RoleBarTickProps> = ({ x = 0, y = 0, payload }) => {
   if (!payload) return null;
@@ -93,26 +95,35 @@ const RoleBarTick: React.FC<RoleBarTickProps> = ({ x = 0, y = 0, payload }) => {
   );
 };
 
-const TicketConsumptionDashboard: React.FC = () => {
-  const [monthRange, setMonthRange] = useState<MonthRange>(3);
-
-  const filteredData = useMemo(
-    () => ALL_MONTHLY_DATA.slice(-monthRange),
-    [monthRange],
-  );
-
+const TicketConsumptionDashboard: React.FC<{
+  closedByRole?: ClosedByRoleChart;
+  totalTrend?: TotalTrendItem[];
+  isLoading?: boolean;
+}> = ({ closedByRole, totalTrend, isLoading = false }) => {
   const barData = useMemo(
     () =>
-      ROLE_CONFIG.map((role) => ({
-        role: role.label,
-        count: filteredData.reduce((sum, m) => sum + m[role.key], 0),
-        color: role.color,
+      ROLE_CONFIG.map(({ key, label, color }) => ({
+        role: label,
+        count: closedByRole?.[key] ?? 0,
+        color,
       })),
-    [filteredData],
+    [closedByRole],
   );
 
+  const trendData = useMemo(
+    () =>
+      (totalTrend ?? []).map((d) => ({
+        month: formatMonthLabel(d.month),
+        total: d.total_closed,
+      })),
+    [totalTrend],
+  );
+
+  const hasData =
+    closedByRole !== undefined || (totalTrend && totalTrend.length > 0);
+
   return (
-    <div className="rounded-2xl border border-border-light bg-white shadow-lg p-6 h-full">
+    <div className="rounded-2xl border border-border-light bg-white shadow-lg p-6 h-full overflow-hidden min-w-0">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-lg font-semibold text-slate-900">
@@ -122,109 +133,118 @@ const TicketConsumptionDashboard: React.FC = () => {
             Ticket consumption breakdown across roles
           </p>
         </div>
-        <select
-          value={monthRange}
-          onChange={(e) => setMonthRange(Number(e.target.value) as MonthRange)}
-          className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-        >
-          <option value={3}>Last 3 months</option>
-          <option value={6}>Last 6 months</option>
-          <option value={9}>Last 9 months</option>
-        </select>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-        {/* Left: Bar Chart – by role */}
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">
-            By Role
-          </p>
-          <ResponsiveContainer width="100%" height={230}>
-            <BarChart
-              data={barData}
-              margin={{ top: 5, right: 8, left: -16, bottom: 48 }}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="#f1f5f9"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="role"
-                tick={<RoleBarTick />}
-                axisLine={false}
-                tickLine={false}
-                interval={0}
-                height={58}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: "#94a3b8", fontSize: 11 }}
-              />
-              <Tooltip
-                cursor={{ fill: "#f8fafc" }}
-                contentStyle={{
-                  backgroundColor: "#fff",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                }}
-                formatter={(value) => [`${value} tickets`, "Closed"]}
-              />
-              <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={56}>
-                {barData.map((entry, index) => (
-                  <Cell key={`bar-cell-${index}`} fill={entry.color} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+      {isLoading && (
+        <div className="flex items-center justify-center h-56">
+          <div className="w-10 h-10 rounded-full border-4 border-slate-200 border-t-primary animate-spin" />
         </div>
+      )}
 
-        {/* Right: Line Chart – total trend */}
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">
-            Total Trend
-          </p>
-          <ResponsiveContainer width="100%" height={230}>
-            <LineChart
-              data={filteredData}
-              margin={{ top: 5, right: 8, left: -16, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis
-                dataKey="month"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: "#94a3b8", fontSize: 11 }}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: "#94a3b8", fontSize: 11 }}
-                domain={["auto", "auto"]}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#fff",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                }}
-                formatter={(value) => [`${value} tickets`, "Total Closed"]}
-              />
-              <Line
-                type="monotone"
-                dataKey="total"
-                stroke="#fb923c"
-                strokeWidth={2.5}
-                dot={{ r: 4, fill: "#fb923c", strokeWidth: 2, stroke: "#fff" }}
-                activeDot={{ r: 6, fill: "#fb923c" }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+      {!isLoading && !hasData && (
+        <div className="flex items-center justify-center h-56 text-sm text-slate-400">
+          No ticket data available.
         </div>
-      </div>
+      )}
+
+      {!isLoading && hasData && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+          <div className="min-w-0 overflow-hidden">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">
+              By Role
+            </p>
+            <ResponsiveContainer width="100%" height={230}>
+              <BarChart
+                data={barData}
+                margin={{ top: 5, right: 8, left: -16, bottom: 48 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#f1f5f9"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="role"
+                  tick={<RoleBarTick />}
+                  axisLine={false}
+                  tickLine={false}
+                  interval={0}
+                  height={58}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#94a3b8", fontSize: 11 }}
+                />
+                <Tooltip
+                  cursor={{ fill: "#f8fafc" }}
+                  contentStyle={{
+                    backgroundColor: "#fff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                  }}
+                  formatter={(value) => [`${value} tickets`, "Closed"]}
+                />
+                <Bar
+                  dataKey="count"
+                  radius={[6, 6, 0, 0]}
+                  maxBarSize={56}
+                  fill="#3b82f6"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="min-w-0 overflow-hidden">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">
+              Total Trend
+            </p>
+            <ResponsiveContainer width="100%" height={230}>
+              <LineChart
+                data={trendData}
+                margin={{ top: 5, right: 8, left: -16, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis
+                  dataKey="month"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#94a3b8", fontSize: 11 }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#94a3b8", fontSize: 11 }}
+                  domain={[0, "auto"]}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#fff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                  }}
+                  formatter={(value) => [`${value} tickets`, "Total Closed"]}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="total"
+                  stroke="#fb923c"
+                  strokeWidth={2.5}
+                  dot={{
+                    r: 4,
+                    fill: "#fb923c",
+                    strokeWidth: 2,
+                    stroke: "#fff",
+                  }}
+                  activeDot={{ r: 6, fill: "#fb923c" }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

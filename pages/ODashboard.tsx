@@ -14,10 +14,12 @@ import {
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import { formulasService } from "../services";
+import type { KpiClosedTicketsData } from "../services/formulas.service";
 import MultiSelectDropdown from "../components/MultiSelectDropdown";
 import MainKPISection from "../components/MainKPISection";
 import TicketConsumptionDashboard from "../components/TicketConsumptionDashboard";
 import StatusOverviewDonut from "../components/StatusOverviewDonut";
+import ProjectPerformanceTable from "../components/ProjectPerformanceTable";
 import {
   extractFormulaAggregateFromResponse,
   extractFormulaCandidateFromResponse,
@@ -41,6 +43,7 @@ import type {
   TeamData,
   TrendData,
 } from "../types/index";
+import * as theme from "../theme/colors";
 
 const DEFAULT_KPI: KPIData = {
   standardKPI: 0,
@@ -303,6 +306,19 @@ const ODashboard: React.FC = () => {
   const [contributionSearch, setContributionSearch] = useState("");
   const latestRequestIdRef = useRef(0);
 
+  // --- Closed Tickets KPI state ---
+  const [ticketMonth, setTicketMonth] = useState<number>(1);
+  const [ticketProjectId, setTicketProjectId] = useState<string | null>(null);
+  const [allProjectOptions, setAllProjectOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [closedTicketData, setClosedTicketData] =
+    useState<KpiClosedTicketsData | null>(null);
+  const [isClosedTicketsLoading, setIsClosedTicketsLoading] = useState(true);
+  const [closedTicketError, setClosedTicketError] = useState<string | null>(
+    null,
+  );
+
   const normalizedContributionSearch = contributionSearch.trim().toLowerCase();
 
   const filteredContributionRows = useMemo(() => {
@@ -351,6 +367,53 @@ const ODashboard: React.FC = () => {
 
     return "text-slate-700 font-bold";
   };
+
+  const filteredProjectOverview = closedTicketData?.project_overview_table;
+
+  const fetchClosedTickets = async (
+    month: number,
+    projectId?: string | null,
+  ) => {
+    setIsClosedTicketsLoading(true);
+    setClosedTicketError(null);
+    try {
+      const params: { month: number; project?: string } = { month };
+      if (projectId) params.project = projectId;
+      const raw = await formulasService.getKpiClosedTickets(params);
+      const rawAny = raw as Record<string, unknown>;
+      const inner: KpiClosedTicketsData | null =
+        rawAny?.project_overview_table !== undefined
+          ? (raw as unknown as KpiClosedTicketsData)
+          : ((rawAny?.data as KpiClosedTicketsData | undefined) ?? null);
+      if (inner) {
+        setClosedTicketData(inner);
+        if (!projectId && inner.project_overview_table?.length) {
+          setAllProjectOptions(
+            inner.project_overview_table.map((p) => ({
+              value: p.project_id,
+              label: p.project_name,
+            })),
+          );
+        }
+      } else {
+        setClosedTicketError("No data returned from API.");
+      }
+    } catch (error: unknown) {
+      const msg =
+        (error as { message?: string })?.message ||
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message ||
+        "Failed to fetch closed tickets data";
+      setClosedTicketError(msg);
+      toast.error(msg);
+    } finally {
+      setIsClosedTicketsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchClosedTickets(ticketMonth, ticketProjectId);
+  }, [ticketMonth, ticketProjectId]);
 
   const fetchDashboardPayloadByMonths = async (months: string[]) => {
     const monthParamCandidates = buildMonthRequestCandidates(months);
@@ -636,7 +699,7 @@ const ODashboard: React.FC = () => {
   }, [selectedMonths]);
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="w-full min-h-full bg-gradient-to-br from-slate-50 to-slate-100">
       <div className="w-full px-6 py-8 md:px-8">
         {/* Header */}
         <div className="mb-8">
@@ -678,137 +741,113 @@ const ODashboard: React.FC = () => {
         />
 
         {/* Analytics Overview */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
-          <TicketConsumptionDashboard />
-          <StatusOverviewDonut />
+        <div className="mb-6">
+          <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
+            <div>
+              <h2 className="text-base font-semibold text-slate-700">
+                Closed Tickets KPI
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Ticket analytics by role, trend, and status
+              </p>
+            </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* Period filter */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
+                  Period
+                </span>
+                <div className="min-w-[130px]">
+                  <MultiSelectDropdown
+                    options={[
+                      { value: "1", label: "1 month" },
+                      { value: "3", label: "3 months" },
+                      { value: "6", label: "6 months" },
+                      { value: "9", label: "9 months" },
+                    ]}
+                    selectedValues={[String(ticketMonth)]}
+                    onChange={(vals) => {
+                      // Detect the newly selected item (not in previous selection)
+                      const prev = String(ticketMonth);
+                      const next = vals.find((v) => v !== prev);
+                      if (next !== undefined) setTicketMonth(Number(next));
+                    }}
+                    disabled={isClosedTicketsLoading}
+                    placeholder="Select period"
+                  />
+                </div>
+              </div>
+              {/* Project filter — uses allProjectOptions so list persists after filtered fetches */}
+              {allProjectOptions.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
+                    Project
+                  </span>
+                  <div className="min-w-[180px]">
+                    <MultiSelectDropdown
+                      options={[
+                        { value: "", label: "All Projects" },
+                        ...allProjectOptions,
+                      ]}
+                      selectedValues={[ticketProjectId ?? ""]}
+                      onChange={(vals) => {
+                        // Detect the newly selected item (not in previous selection)
+                        const prev = ticketProjectId ?? "";
+                        const next = vals.find((v) => v !== prev);
+                        if (next !== undefined) {
+                          setTicketProjectId(next || null);
+                        } else if (vals.length === 0) {
+                          setTicketProjectId(null);
+                        }
+                      }}
+                      disabled={isClosedTicketsLoading}
+                      placeholder="All Projects"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Charts Section */}
-        {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          <div className="rounded-2xl border border-border-light bg-white shadow-lg p-8">
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-slate-900">
-                KPI Trend
-              </h3>
-              <p className="text-sm text-slate-600 mt-1">Monthly progress</p>
-            </div>
-            <div className="h-64 w-full">
-              {isTrendLoading ? (
-                <div className="h-64 bg-gradient-to-r from-slate-100 to-slate-200 rounded-lg animate-pulse"></div>
-              ) : kpiTrendData.length === 0 ? (
-                <div className="h-64 flex items-center justify-center bg-slate-50 rounded-lg">
-                  <p className="text-sm text-slate-400">
-                    No trend data available
-                  </p>
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={256}>
-                  <LineChart data={kpiTrendData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis
-                      dataKey="date"
-                      stroke="#94a3b8"
-                      style={{ fontSize: "12px" }}
-                    />
-                    <YAxis
-                      stroke="#94a3b8"
-                      style={{ fontSize: "12px" }}
-                      domain={["auto", "auto"]}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#f3f4f6",
-                        border: "1px solid #d1d5db",
-                        borderRadius: "8px",
-                      }}
-                      formatter={(value) => (value as number).toFixed(1)}
-                    />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="odc"
-                      stroke="#8b5cf6"
-                      strokeWidth={2}
-                      dot={{ r: 4, fill: "#8b5cf6" }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          </div>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8 min-w-0">
+          <TicketConsumptionDashboard
+            closedByRole={closedTicketData?.closed_by_role_chart}
+            totalTrend={closedTicketData?.total_trend_chart?.data}
+            isLoading={isClosedTicketsLoading}
+          />
+          <StatusOverviewDonut
+            totals={
+              closedTicketData?.status_overview_chart
+                ? {
+                    total: closedTicketData.status_overview_chart.total_tickets,
+                    closed:
+                      closedTicketData.status_overview_chart
+                        .total_tickets_closed,
+                    inQA: closedTicketData.status_overview_chart
+                      .total_tickets_inqa,
+                    open: closedTicketData.status_overview_chart
+                      .total_tickets_open,
+                  }
+                : undefined
+            }
+            isLoading={isClosedTicketsLoading}
+            error={closedTicketError}
+          />
+        </div>
 
-          <div className="rounded-2xl border border-border-light bg-white shadow-lg p-8">
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-slate-900">
-                Team Performance
-              </h3>
-              <p className="text-sm text-slate-600 mt-1">By role</p>
-            </div>
-            <div className="h-64 w-full">
-              {isTeamLoading ? (
-                <div className="h-64 bg-gradient-to-r from-slate-100 to-slate-200 rounded-lg animate-pulse"></div>
-              ) : teamData.length === 0 ? (
-                <div className="h-64 flex items-center justify-center bg-slate-50 rounded-lg">
-                  <p className="text-sm text-slate-400">
-                    No team data available
-                  </p>
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={256}>
-                  <BarChart data={teamData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis
-                      dataKey="role"
-                      stroke="#94a3b8"
-                      style={{ fontSize: "12px" }}
-                    />
-                    <YAxis
-                      stroke="#94a3b8"
-                      style={{ fontSize: "12px" }}
-                      yAxisId="left"
-                    />
-                    <YAxis
-                      stroke="#94a3b8"
-                      style={{ fontSize: "12px" }}
-                      yAxisId="right"
-                      orientation="right"
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#f3f4f6",
-                        border: "1px solid #d1d5db",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Legend />
-                    <Bar
-                      yAxisId="left"
-                      dataKey="count"
-                      fill="#3b82f6"
-                      name="Team Size"
-                    />
-                    <Bar
-                      yAxisId="right"
-                      dataKey="kpi"
-                      fill="#8b5cf6"
-                      name="Avg KPI"
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          </div>
-        </div> */}
+        {/* Project Performance Table */}
+        <ProjectPerformanceTable
+          data={filteredProjectOverview}
+          isLoading={isClosedTicketsLoading}
+        />
 
         {/* KPI Contribution Table */}
-        <div className="mb-8 rounded-2xl border border-border-light bg-white shadow-lg overflow-hidden">
+        <div className={`mb-8 ${theme.card}`}>
           <div className="px-8 py-5 border-b border-slate-200 flex items-center justify-between gap-4 flex-wrap">
             <div>
-              <h3 className="text-lg font-semibold text-slate-900">
-                KPI Contribution Detail
-              </h3>
-              <p className="text-sm text-slate-500 mt-0.5">
+              <h3 className={theme.heading}>KPI Contribution Detail</h3>
+              <p className={theme.subtitle}>
                 Team performance breakdown by week
               </p>
             </div>
@@ -829,7 +868,7 @@ const ODashboard: React.FC = () => {
                     setContributionSearch(event.target.value)
                   }
                   placeholder="Search by member name"
-                  className="w-full h-10 rounded-lg border border-slate-300 bg-white pl-10 pr-3 text-sm text-slate-700 placeholder:text-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  className="w-full h-10 rounded-lg border border-slate-300 bg-white pl-10 pr-3 text-sm text-slate-700 placeholder:text-slate-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
@@ -837,42 +876,42 @@ const ODashboard: React.FC = () => {
           <div className="overflow-x-auto">
             <table key={contributionReloadKey} className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200"></th>
+                <tr className={theme.tableHead}>
+                  <th className={`text-left ${theme.thBordered}`}></th>
                   <th
                     colSpan={2}
-                    className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200"
+                    className={`text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200`}
                   >
                     BA
                   </th>
                   <th
                     colSpan={2}
-                    className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200"
+                    className={`text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200`}
                   >
                     QA Internal
                   </th>
                   <th
                     colSpan={2}
-                    className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200"
+                    className={`text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200`}
                   >
                     QA Stand Alone
                   </th>
                   <th
                     colSpan={2}
-                    className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200"
+                    className={`text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200`}
                   >
                     DEV
                   </th>
                   <th
                     colSpan={2}
-                    className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200"
+                    className={`text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200`}
                   >
                     Reviewer
                   </th>
                   <th colSpan={6} className="px-4 py-2"></th>
                 </tr>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">
+                <tr className={theme.tableHead}>
+                  <th className={`text-left ${theme.thBordered}`}>
                     Member's Name
                   </th>
                   {[1, 2, 3, 4, 5].map((w) => (
@@ -885,24 +924,20 @@ const ODashboard: React.FC = () => {
                       </th>
                     </React.Fragment>
                   ))}
-                  <th className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">
+                  <th className={`text-center ${theme.thBordered}`}>
                     Ticket Contribution Point
                   </th>
-                  <th className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">
+                  <th className={`text-center ${theme.thBordered}`}>
                     LogWork Contr. Point
                   </th>
-                  <th className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">
+                  <th className={`text-center ${theme.thBordered}`}>
                     Member Contr. Point
                   </th>
-                  <th className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">
+                  <th className={`text-center ${theme.thBordered}`}>
                     Billable
                   </th>
-                  <th className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">
-                    EE
-                  </th>
-                  <th className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">
-                    Status
-                  </th>
+                  <th className={`text-center ${theme.th}`}>EE</th>
+                  <th className={`text-center ${theme.th}`}>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -910,7 +945,7 @@ const ODashboard: React.FC = () => {
                   Array.from({ length: 6 }, (_, index) => index).map((row) => (
                     <tr
                       key={`loading-${row}`}
-                      className="border-b border-slate-100 animate-pulse"
+                      className={`border-b border-slate-100 animate-pulse`}
                     >
                       <td className="px-4 py-3 border-r border-slate-100">
                         <div className="h-4 w-40 rounded bg-slate-200"></div>
@@ -964,7 +999,7 @@ const ODashboard: React.FC = () => {
                   visibleContributionRows.map((row, idx) => (
                     <tr
                       key={`${row.avatar}-${row.name}-${idx}`}
-                      className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                      className={theme.tableRow}
                     >
                       <td className="px-4 py-3 border-r border-slate-100">
                         <div className="flex items-center gap-2">

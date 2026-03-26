@@ -163,7 +163,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         ? "border-red-300 ring-red-200 focus:ring-red-300"
                         : "border-transparent ring-slate-200 focus:ring-primary/40 focus:border-primary"
                     }`}
-                    placeholder="demo123"
+                    placeholder="123456"
                     required
                   />
                   <button

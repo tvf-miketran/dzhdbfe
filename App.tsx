@@ -230,7 +230,7 @@ const App: React.FC = () => {
           activePage={activePage}
           onMenuClick={() => setIsMobileSidebarOpen((prev) => !prev)}
         />
-        <main className="flex-1 overflow-y-auto custom-scrollbar">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
           {renderContent()}
         </main>
       </div>
