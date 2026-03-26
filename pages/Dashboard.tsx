@@ -31,6 +31,7 @@ import {
   toNumber,
 } from "../utils/dashboardShared";
 import type { KPIData, PersonalContributionRow } from "../types/index";
+import * as theme from "../theme/colors";
 
 const monthOptions = buildRecentMonthOptions();
 
@@ -416,58 +417,6 @@ const Dashboard: React.FC = () => {
 
         {/* Charts Section */}
         <div className="mb-8">
-          {/* KPI Trend Chart */}
-          {/* <div className="rounded-2xl border border-border-light bg-white shadow-lg p-8">
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-slate-900">
-                KPI Trend
-              </h3>
-              <p className="text-sm text-slate-600 mt-1">Monthly progress</p>
-            </div>
-            <div className="h-64 w-full">
-              {kpiTrendData.length === 0 ? (
-                <div className="h-64 flex items-center justify-center bg-slate-50 rounded-lg">
-                  <p className="text-sm text-slate-400">
-                    No trend data available
-                  </p>
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={256}>
-                  <LineChart data={kpiTrendData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis
-                      dataKey="date"
-                      stroke="#94a3b8"
-                      style={{ fontSize: "12px" }}
-                    />
-                    <YAxis
-                      stroke="#94a3b8"
-                      style={{ fontSize: "12px" }}
-                      domain={["auto", "auto"]}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#f3f4f6",
-                        border: "1px solid #d1d5db",
-                        borderRadius: "8px",
-                      }}
-                      formatter={(value) => (value as number).toFixed(1)}
-                    />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="personal"
-                      stroke="#3b82f6"
-                      strokeWidth={2}
-                      dot={{ r: 4, fill: "#3b82f6" }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          </div> */}
-
           {/* Personal Stat Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div className="rounded-2xl border border-border-light bg-white shadow-lg p-6">
@@ -540,13 +489,11 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* KPI Contribution Table */}
-        <div className="mb-8 rounded-2xl border border-border-light bg-white shadow-lg overflow-hidden">
+        <div className={`mb-8 ${theme.card}`}>
           <div className="px-8 py-5 border-b border-slate-200 flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-slate-900">
-                KPI Contribution Detail
-              </h3>
-              <p className="text-sm text-slate-500 mt-0.5">
+              <h3 className={theme.heading}>KPI Contribution Detail</h3>
+              <p className={theme.subtitle}>
                 Your performance breakdown by week
               </p>
             </div>
@@ -554,17 +501,17 @@ const Dashboard: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200"></th>
+                <tr className={theme.tableHead}>
+                  <th className={`text-left ${theme.thBordered}`}></th>
                   <th
                     colSpan={2}
-                    className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200"
+                    className={`text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200`}
                   >
                     BA
                   </th>
                   <th
                     colSpan={2}
-                    className="text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200"
+                    className={`text-center px-4 py-2 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200`}
                   >
                     QA Internal
                   </th>
@@ -588,8 +535,8 @@ const Dashboard: React.FC = () => {
                   </th>
                   <th colSpan={6} className="px-4 py-2"></th>
                 </tr>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">
+                <tr className={theme.tableHead}>
+                  <th className={`text-left ${theme.thBordered}`}>
                     Member's Name
                   </th>
                   {[1, 2, 3, 4, 5].map((w) => (
@@ -602,24 +549,20 @@ const Dashboard: React.FC = () => {
                       </th>
                     </React.Fragment>
                   ))}
-                  <th className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">
+                  <th className={`text-center ${theme.thBordered}`}>
                     Ticket Contribution Point
                   </th>
-                  <th className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">
+                  <th className={`text-center ${theme.thBordered}`}>
                     LogWork Contr. Point
                   </th>
-                  <th className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">
+                  <th className={`text-center ${theme.thBordered}`}>
                     Member Contr. Point
                   </th>
-                  <th className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap border-r border-slate-200">
+                  <th className={`text-center ${theme.thBordered}`}>
                     Billable
                   </th>
-                  <th className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">
-                    EE
-                  </th>
-                  <th className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">
-                    Status
-                  </th>
+                  <th className={`text-center ${theme.th}`}>EE</th>
+                  <th className={`text-center ${theme.th}`}>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -633,7 +576,7 @@ const Dashboard: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  <tr className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                  <tr className={theme.tableRow}>
                     <td className="px-4 py-3 border-r border-slate-100">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-full border border-slate-200 bg-slate-100 text-slate-700 text-[10px] font-semibold flex items-center justify-center">

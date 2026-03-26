@@ -16,6 +16,7 @@ import { useAuth } from "../context/AuthContext";
 import type { ProjectItem, Employee } from "../types/index";
 import { Pagination } from "../components/pagination";
 import { CreateProjectModal, EditProjectModal } from "../components/modal";
+import * as theme from "../theme/colors";
 
 interface MemberAssignment {
   userId: string;
@@ -473,9 +474,7 @@ const Projects: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
           <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-border-light h-[80vh] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-white">
-              <h2 className="text-lg font-semibold text-slate-900">
-                Add Member
-              </h2>
+              <h2 className={theme.heading}>Add Member</h2>
               <button
                 className="text-slate-400 hover:text-slate-900"
                 onClick={handleCloseAddMember}
@@ -581,7 +580,9 @@ const Projects: React.FC = () => {
                         <div className="px-3 py-1.5 border-b border-slate-100 bg-slate-50">
                           <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
                             {displayedAddMemberEmployees.length} result
-                            {displayedAddMemberEmployees.length !== 1 ? "s" : ""}
+                            {displayedAddMemberEmployees.length !== 1
+                              ? "s"
+                              : ""}
                           </p>
                         </div>
                         <ul className="max-h-52 overflow-y-auto custom-scrollbar">
@@ -829,7 +830,11 @@ const Projects: React.FC = () => {
                                     // Remove non-numeric characters
                                     value = value.replace(/[^0-9]/g, "");
                                     const numValue = parseInt(value, 10);
-                                    if (value && !isNaN(numValue) && numValue > 100) {
+                                    if (
+                                      value &&
+                                      !isNaN(numValue) &&
+                                      numValue > 100
+                                    ) {
                                       value = "100";
                                     }
                                     setMemberDrafts((prev) =>
@@ -995,7 +1000,8 @@ const Projects: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsConfirmAddMemberOpen(false)}
-   py             disabled={isAddingMembers}
+                  py
+                  disabled={isAddingMembers}
                   className="h-10 px-4 rounded-lg border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50"
                 >
                   Cancel
@@ -1119,9 +1125,7 @@ const Projects: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200">
             <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between shrink-0">
-              <h3 className="text-lg font-semibold text-slate-900">
-                Project Details
-              </h3>
+              <h3 className={theme.heading}>Project Details</h3>
               <button
                 onClick={() => {
                   setIsDetailModalOpen(false);
@@ -1329,9 +1333,7 @@ const Projects: React.FC = () => {
                 <span className="material-symbols-outlined text-primary text-[20px]">
                   account_balance
                 </span>
-                <h3 className="text-lg font-semibold text-slate-900">
-                  Add New Bank
-                </h3>
+                <h3 className={theme.heading}>Add New Bank</h3>
               </div>
               <button
                 onClick={handleCloseAddBankModal}
