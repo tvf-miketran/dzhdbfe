@@ -96,7 +96,7 @@ export interface BulkCreateTicketItem {
   ticketId: string;
   ticketLink: string;
   projectId: string;
-  roleId: string[];
+  roleIds: string[];
   employeeId: string;
   ticketTypeId: string;
   ticketStatusId: string;

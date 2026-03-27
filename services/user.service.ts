@@ -13,7 +13,7 @@ export interface UserProfile {
   enFullName: string;
   vnFullName: string;
   employeeId: string;
-  authorizeRole: "ADMIN" | "MEMBER";
+  authorizeRole: "MANAGER" | "MEMBER";
   description?: string | null;
   status: boolean;
   createdAt: string;
@@ -142,7 +142,7 @@ export const userService = {
     employeeId?: string | null;
     password: string;
     description?: string;
-    authorizeRole?: "MEMBER" | "ADMIN";
+    authorizeRole?: "MEMBER" | "MANAGER";
     status?: boolean;
   }): Promise<
     BaseApiResponse<{
@@ -151,7 +151,7 @@ export const userService = {
       email: string;
       vnFullName: string;
       enFullName: string;
-      authorizeRole: "ADMIN" | "MEMBER";
+      authorizeRole: "MANAGER" | "MEMBER";
       status: boolean;
       description?: string;
       createdAt: string;
@@ -168,7 +168,7 @@ export const userService = {
     id: string,
   ): Promise<
     BaseApiResponse<{
-      authorizeRole: "ADMIN" | "MEMBER";
+      authorizeRole: "MANAGER" | "MEMBER";
       createdAt: string;
       description?: string;
       email: string;
@@ -195,12 +195,12 @@ export const userService = {
       email?: string;
       employeeId?: string;
       description?: string;
-      authorizeRole?: "MEMBER" | "ADMIN";
+      authorizeRole?: "MEMBER" | "MANAGER";
       status?: boolean;
     },
   ): Promise<
     BaseApiResponse<{
-      authorizeRole: "ADMIN" | "MEMBER";
+      authorizeRole: "MANAGER" | "MEMBER";
       description?: string;
       email: string;
       employeeId: string;
@@ -252,7 +252,7 @@ export const userService = {
     id: string,
   ): Promise<
     BaseApiResponse<{
-      authorizeRole: "ADMIN" | "MEMBER";
+      authorizeRole: "MANAGER" | "MEMBER";
       description?: string;
       email: string;
       employeeId: string;
