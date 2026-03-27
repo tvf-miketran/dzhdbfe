@@ -25,7 +25,7 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({
     employeeId: "",
     email: "",
     description: "",
-    authorizeRole: "MEMBER" as "MEMBER" | "ADMIN",
+    authorizeRole: "MEMBER" as "MEMBER" | "MANAGER",
     status: true,
   });
 
@@ -328,7 +328,7 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({
                   onChange={(e) =>
                     handleInputChange(
                       "authorizeRole",
-                      e.target.value as "MEMBER" | "ADMIN",
+                      e.target.value as "MEMBER" | "MANAGER",
                     )
                   }
                   disabled={isSubmitting}
@@ -339,7 +339,7 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({
                   }`}
                 >
                   <option value="MEMBER">MEMBER</option>
-                  <option value="ADMIN">ADMIN</option>
+                  <option value="MANAGER">MANAGER</option>
                 </select>
                 {formErrors.authorizeRole && (
                   <p className="text-xs text-red-600 mt-1">

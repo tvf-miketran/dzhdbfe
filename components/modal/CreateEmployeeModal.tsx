@@ -24,26 +24,23 @@ const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
     email: "",
     description: "",
     password: "",
-    authorizeRole: "MEMBER" as "MEMBER" | "ADMIN",
+    authorizeRole: "MEMBER" as "MEMBER" | "MANAGER",
     status: true,
   });
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [pendingCreatePayload, setPendingCreatePayload] = useState<
-    | {
-        vnFullName: string;
-        enFullName: string;
-        email: string;
-        employeeId: string;
-        password: string;
-        description: string;
-        authorizeRole: "MEMBER" | "ADMIN";
-        status: boolean;
-      }
-    | null
-  >(null);
+  const [pendingCreatePayload, setPendingCreatePayload] = useState<{
+    vnFullName: string;
+    enFullName: string;
+    email: string;
+    employeeId: string;
+    password: string;
+    description: string;
+    authorizeRole: "MEMBER" | "MANAGER";
+    status: boolean;
+  } | null>(null);
 
   const createEmployeeMutation = useCreateEmployee();
 
@@ -265,7 +262,9 @@ const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
                 placeholder="EE009 (optional)"
               />
               {formErrors.employeeId && (
-                <p className="text-xs text-red-600 mt-1">{formErrors.employeeId}</p>
+                <p className="text-xs text-red-600 mt-1">
+                  {formErrors.employeeId}
+                </p>
               )}
             </div>
 
@@ -341,7 +340,7 @@ const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
                   onChange={(e) =>
                     handleInputChange(
                       "authorizeRole",
-                      e.target.value as "MEMBER" | "ADMIN",
+                      e.target.value as "MEMBER" | "MANAGER",
                     )
                   }
                   disabled={isSubmitting}
@@ -352,7 +351,7 @@ const CreateEmployeeModal: React.FC<CreateEmployeeModalProps> = ({
                   }`}
                 >
                   <option value="MEMBER">MEMBER</option>
-                  <option value="ADMIN">ADMIN</option>
+                  <option value="MANAGER">MANAGER</option>
                 </select>
                 {formErrors.authorizeRole && (
                   <p className="text-xs text-red-600 mt-1">

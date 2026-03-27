@@ -35,7 +35,7 @@ export const createEmployeeSchema = z.object({
     .refine((val) => !val || val.length >= 6, {
       message: "Password must be at least 6 characters",
     }),
-  authorizeRole: z.enum(["MEMBER", "ADMIN"]).default("MEMBER"),
+  authorizeRole: z.enum(["MEMBER", "MANAGER"]).default("MEMBER"),
   status: z.boolean().default(true),
 });
 
@@ -76,7 +76,7 @@ export const updateEmployeeSchema = z.object({
     .max(500, "Description is too long")
     .optional()
     .transform((val) => val?.trim() || undefined),
-  authorizeRole: z.enum(["MEMBER", "ADMIN"]).optional(),
+  authorizeRole: z.enum(["MEMBER", "MANAGER"]).optional(),
   status: z.boolean().optional(),
 });
 
