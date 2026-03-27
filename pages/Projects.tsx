@@ -1264,7 +1264,7 @@ const Projects: React.FC = () => {
                                     : "bg-blue-100 text-blue-700"
                                 }`}
                               >
-                                {member.authorize_role}
+                                {member.roleId}
                               </span>
                             </div>
                           </div>
