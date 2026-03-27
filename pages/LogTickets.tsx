@@ -580,7 +580,7 @@ const LogTickets: React.FC = () => {
         ticketId: cleanTicketId,
         ticketLink: buildTicketLink(cleanTicketId),
         projectId: resolveProjectId(entry),
-        roleId: resolvedRoleIds,
+        roleIds: resolvedRoleIds,
         employeeId,
         ticketTypeId: resolvedTicketTypeId,
         ticketStatusId: resolvedTicketStatusId,
@@ -601,7 +601,8 @@ const LogTickets: React.FC = () => {
         if (!ticket.projectId) errors.push("projectId");
         if (!ticket.ticketTypeId) errors.push("ticketTypeId");
         if (!ticket.ticketStatusId) errors.push("ticketStatusId");
-        if (!ticket.roleId || ticket.roleId.length === 0) errors.push("roleId");
+        if (!ticket.roleIds || ticket.roleIds.length === 0)
+          errors.push("roleIds");
 
         return errors.length > 0 ? { ticketId: ticket.ticketId, errors } : null;
       })
@@ -840,7 +841,7 @@ const LogTickets: React.FC = () => {
             ticketId: existingTicket.ticketId,
             ticketLink: submittedTicket.ticketLink,
             projectId: submittedTicket.projectId,
-            roleId: submittedTicket.roleId,
+            roleIds: submittedTicket.roleIds,
             employeeId: submittedTicket.employeeId,
             ticketTypeId: submittedTicket.ticketTypeId,
             ticketStatusId: submittedTicket.ticketStatusId,
