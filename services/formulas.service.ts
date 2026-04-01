@@ -13,6 +13,7 @@ export interface FormulaCalculateUserParams {
 
 export interface FormulaCalculateParams {
   month: string;
+  project?: string;
 }
 
 export interface ClosedTicketRoleDetail {

@@ -304,6 +304,10 @@ const ODashboard: React.FC = () => {
     CONTRIBUTION_PAGE_SIZE,
   );
   const [contributionSearch, setContributionSearch] = useState("");
+  const [contributionProjectId, setContributionProjectId] = useState<
+    string | null
+  >(null);
+  const [totalCurrentMember, setTotalCurrentMember] = useState<number>(0);
   const latestRequestIdRef = useRef(0);
 
   // --- Closed Tickets KPI state ---
@@ -415,7 +419,10 @@ const ODashboard: React.FC = () => {
     fetchClosedTickets(ticketMonth, ticketProjectId);
   }, [ticketMonth, ticketProjectId]);
 
-  const fetchDashboardPayloadByMonths = async (months: string[]) => {
+  const fetchDashboardPayloadByMonths = async (
+    months: string[],
+    project?: string | null,
+  ) => {
     const monthParamCandidates = buildMonthRequestCandidates(months);
     let lastError: unknown = null;
 
@@ -424,6 +431,7 @@ const ODashboard: React.FC = () => {
         const root =
           (await formulasService.getFormulaODC({
             month: monthParam,
+            ...(project ? { project } : {}),
           })) ?? {};
         const rows = extractFormulaRowsFromResponse(root);
         const aggregateData = extractFormulaAggregateFromResponse(root);
@@ -462,7 +470,10 @@ const ODashboard: React.FC = () => {
     };
   };
 
-  const fetchDashboardByMonth = async (months: string[]) => {
+  const fetchDashboardByMonth = async (
+    months: string[],
+    project?: string | null,
+  ) => {
     const normalizedMonths = monthOptions
       .map((option) => option.value)
       .filter((monthValue) => months.includes(monthValue));
@@ -474,6 +485,7 @@ const ODashboard: React.FC = () => {
       setTeamData([]);
       setIsTeamLoading(false);
       setContributionRows([]);
+      setTotalCurrentMember(0);
       setVisibleContributionCount(CONTRIBUTION_PAGE_SIZE);
       setContributionReloadKey((prev) => prev + 1);
       setKpiTrendData([]);
@@ -489,7 +501,10 @@ const ODashboard: React.FC = () => {
     setIsContributionLoading(true);
 
     try {
-      const payload = await fetchDashboardPayloadByMonths(normalizedMonths);
+      const payload = await fetchDashboardPayloadByMonths(
+        normalizedMonths,
+        project,
+      );
       if (isStaleRequest()) {
         return;
       }
@@ -576,6 +591,10 @@ const ODashboard: React.FC = () => {
         setTeamData(next.team);
         setIsTeamLoading(false);
         setContributionRows(next.contribution);
+        setTotalCurrentMember(
+          payload.aggregateData.total_current_member ??
+            next.contribution.length,
+        );
         setVisibleContributionCount(CONTRIBUTION_PAGE_SIZE);
         setContributionReloadKey((prev) => prev + 1); // Trigger re-mount AFTER data is set
         return;
@@ -653,6 +672,7 @@ const ODashboard: React.FC = () => {
         setTeamData([]);
         setIsTeamLoading(false);
         setContributionRows([]);
+        setTotalCurrentMember(0);
         setVisibleContributionCount(CONTRIBUTION_PAGE_SIZE);
         setContributionReloadKey((prev) => prev + 1);
         return;
@@ -665,6 +685,7 @@ const ODashboard: React.FC = () => {
       setTeamData([]);
       setIsTeamLoading(false);
       setContributionRows([]);
+      setTotalCurrentMember(0);
       setVisibleContributionCount(CONTRIBUTION_PAGE_SIZE);
       setContributionReloadKey((prev) => prev + 1);
     } catch (error: unknown) {
@@ -679,6 +700,7 @@ const ODashboard: React.FC = () => {
       setTeamData([]);
       setIsTeamLoading(false);
       setContributionRows([]);
+      setTotalCurrentMember(0);
       setVisibleContributionCount(CONTRIBUTION_PAGE_SIZE);
       setContributionReloadKey((prev) => prev + 1);
       const errorMessage =
@@ -695,8 +717,8 @@ const ODashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchDashboardByMonth(selectedMonths);
-  }, [selectedMonths]);
+    fetchDashboardByMonth(selectedMonths, contributionProjectId);
+  }, []);
 
   return (
     <div className="w-full min-h-full bg-gradient-to-br from-slate-50 to-slate-100">
@@ -735,111 +757,11 @@ const ODashboard: React.FC = () => {
           kpi={odcKPI}
           isLoading={isLoading}
           isKPILoading={isKPILoading}
-          onRefresh={() => fetchDashboardByMonth(selectedMonths)}
+          onRefresh={() =>
+            fetchDashboardByMonth(selectedMonths, contributionProjectId)
+          }
           showTotal
-          totalMembers={contributionRows.length}
-        />
-
-        {/* Analytics Overview */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
-            <div>
-              <h2 className="text-base font-semibold text-slate-700">
-                Closed Tickets KPI
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Ticket analytics by role, trend, and status
-              </p>
-            </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              {/* Period filter */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
-                  Period
-                </span>
-                <div className="min-w-[130px]">
-                  <MultiSelectDropdown
-                    options={[
-                      { value: "1", label: "1 month" },
-                      { value: "3", label: "3 months" },
-                      { value: "6", label: "6 months" },
-                      { value: "9", label: "9 months" },
-                    ]}
-                    selectedValues={[String(ticketMonth)]}
-                    onChange={(vals) => {
-                      // Detect the newly selected item (not in previous selection)
-                      const prev = String(ticketMonth);
-                      const next = vals.find((v) => v !== prev);
-                      if (next !== undefined) setTicketMonth(Number(next));
-                    }}
-                    disabled={isClosedTicketsLoading}
-                    placeholder="Select period"
-                  />
-                </div>
-              </div>
-              {/* Project filter — uses allProjectOptions so list persists after filtered fetches */}
-              {allProjectOptions.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
-                    Project
-                  </span>
-                  <div className="min-w-[180px]">
-                    <MultiSelectDropdown
-                      options={[
-                        { value: "", label: "All Projects" },
-                        ...allProjectOptions,
-                      ]}
-                      selectedValues={[ticketProjectId ?? ""]}
-                      onChange={(vals) => {
-                        // Detect the newly selected item (not in previous selection)
-                        const prev = ticketProjectId ?? "";
-                        const next = vals.find((v) => v !== prev);
-                        if (next !== undefined) {
-                          setTicketProjectId(next || null);
-                        } else if (vals.length === 0) {
-                          setTicketProjectId(null);
-                        }
-                      }}
-                      disabled={isClosedTicketsLoading}
-                      placeholder="All Projects"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8 min-w-0">
-          <TicketConsumptionDashboard
-            closedByRole={closedTicketData?.closed_by_role_chart}
-            totalTrend={closedTicketData?.total_trend_chart?.data}
-            isLoading={isClosedTicketsLoading}
-          />
-          <StatusOverviewDonut
-            totals={
-              closedTicketData?.status_overview_chart
-                ? {
-                    total: closedTicketData.status_overview_chart.total_tickets,
-                    closed:
-                      closedTicketData.status_overview_chart
-                        .total_tickets_closed,
-                    inQA: closedTicketData.status_overview_chart
-                      .total_tickets_inqa,
-                    open: closedTicketData.status_overview_chart
-                      .total_tickets_open,
-                  }
-                : undefined
-            }
-            isLoading={isClosedTicketsLoading}
-            error={closedTicketError}
-          />
-        </div>
-
-        {/* Project Performance Table */}
-        <ProjectPerformanceTable
-          data={filteredProjectOverview}
-          isLoading={isClosedTicketsLoading}
+          totalMembers={totalCurrentMember}
         />
 
         {/* KPI Contribution Table */}
@@ -852,24 +774,52 @@ const ODashboard: React.FC = () => {
               </p>
             </div>
 
-            <div className="w-full sm:w-[300px]">
-              <label htmlFor="contribution-search" className="sr-only">
-                Search member by name
-              </label>
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
-                  search
-                </span>
-                <input
-                  id="contribution-search"
-                  type="text"
-                  value={contributionSearch}
-                  onChange={(event) =>
-                    setContributionSearch(event.target.value)
-                  }
-                  placeholder="Search by member name"
-                  className="w-full h-10 rounded-lg border border-slate-300 bg-white pl-10 pr-3 text-sm text-slate-700 placeholder:text-slate-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                />
+            <div className="flex items-center gap-3 flex-wrap w-full sm:w-auto">
+              {allProjectOptions.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
+                    Project
+                  </span>
+                  <div className="min-w-[180px]">
+                    <MultiSelectDropdown
+                      options={[
+                        { value: "", label: "All Projects" },
+                        ...allProjectOptions,
+                      ]}
+                      selectedValues={[contributionProjectId ?? ""]}
+                      onChange={(vals) => {
+                        const prev = contributionProjectId ?? "";
+                        const next = vals.find((v) => v !== prev);
+                        if (next !== undefined) {
+                          setContributionProjectId(next || null);
+                        } else if (vals.length === 0) {
+                          setContributionProjectId(null);
+                        }
+                      }}
+                      placeholder="All Projects"
+                    />
+                  </div>
+                </div>
+              )}
+              <div className="w-full sm:w-[300px]">
+                <label htmlFor="contribution-search" className="sr-only">
+                  Search member by name
+                </label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+                    search
+                  </span>
+                  <input
+                    id="contribution-search"
+                    type="text"
+                    value={contributionSearch}
+                    onChange={(event) =>
+                      setContributionSearch(event.target.value)
+                    }
+                    placeholder="Search by member name"
+                    className="w-full h-10 rounded-lg border border-slate-300 bg-white pl-10 pr-3 text-sm text-slate-700 placeholder:text-slate-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -1063,6 +1013,108 @@ const ODashboard: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Analytics Overview */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
+            <div>
+              <h2 className="text-base font-semibold text-slate-700">
+                Closed Tickets KPI
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Ticket analytics by role, trend, and status
+              </p>
+            </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* Period filter */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
+                  Period
+                </span>
+                <div className="min-w-[130px]">
+                  <MultiSelectDropdown
+                    options={[
+                      { value: "1", label: "1 month" },
+                      { value: "3", label: "3 months" },
+                      { value: "6", label: "6 months" },
+                      { value: "9", label: "9 months" },
+                    ]}
+                    selectedValues={[String(ticketMonth)]}
+                    onChange={(vals) => {
+                      // Detect the newly selected item (not in previous selection)
+                      const prev = String(ticketMonth);
+                      const next = vals.find((v) => v !== prev);
+                      if (next !== undefined) setTicketMonth(Number(next));
+                    }}
+                    disabled={isClosedTicketsLoading}
+                    placeholder="Select period"
+                  />
+                </div>
+              </div>
+              {/* Project filter — uses allProjectOptions so list persists after filtered fetches */}
+              {allProjectOptions.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
+                    Project
+                  </span>
+                  <div className="min-w-[180px]">
+                    <MultiSelectDropdown
+                      options={[
+                        { value: "", label: "All Projects" },
+                        ...allProjectOptions,
+                      ]}
+                      selectedValues={[ticketProjectId ?? ""]}
+                      onChange={(vals) => {
+                        // Detect the newly selected item (not in previous selection)
+                        const prev = ticketProjectId ?? "";
+                        const next = vals.find((v) => v !== prev);
+                        if (next !== undefined) {
+                          setTicketProjectId(next || null);
+                        } else if (vals.length === 0) {
+                          setTicketProjectId(null);
+                        }
+                      }}
+                      disabled={isClosedTicketsLoading}
+                      placeholder="All Projects"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8 min-w-0">
+          <TicketConsumptionDashboard
+            closedByRole={closedTicketData?.closed_by_role_chart}
+            totalTrend={closedTicketData?.total_trend_chart?.data}
+            isLoading={isClosedTicketsLoading}
+          />
+          <StatusOverviewDonut
+            totals={
+              closedTicketData?.status_overview_chart
+                ? {
+                    total: closedTicketData.status_overview_chart.total_tickets,
+                    closed:
+                      closedTicketData.status_overview_chart
+                        .total_tickets_closed,
+                    inQA: closedTicketData.status_overview_chart
+                      .total_tickets_inqa,
+                    open: closedTicketData.status_overview_chart
+                      .total_tickets_open,
+                  }
+                : undefined
+            }
+            isLoading={isClosedTicketsLoading}
+            error={closedTicketError}
+          />
+        </div>
+
+        {/* Project Performance Table */}
+        <ProjectPerformanceTable
+          data={filteredProjectOverview}
+          isLoading={isClosedTicketsLoading}
+        />
       </div>
     </div>
   );
