@@ -36,6 +36,7 @@ export interface FormulaResultRow {
 
 export interface FormulaAggregateData {
   total_billable_point?: number;
+  total_current_member?: number;
   total_ticket_point?: number;
   total_logwork_point?: number;
   average_billable_point?: number;
@@ -148,6 +149,7 @@ export const extractFormulaAggregateFromResponse = (
 
   return {
     total_billable_point: toOptionalNumber(data?.total_billable_point),
+    total_current_member: toOptionalNumber(data?.total_current_member),
     total_ticket_point: toOptionalNumber(data?.total_ticket_point),
     total_logwork_point: toOptionalNumber(data?.total_logwork_point),
     average_billable_point: toOptionalNumber(data?.average_billable_point),

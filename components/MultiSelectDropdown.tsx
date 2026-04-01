@@ -1,4 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 
 export interface MultiSelectOption {
   value: string;
@@ -29,6 +36,16 @@ interface MultiSelectDropdownProps {
   renderLabel?: (context: MultiSelectLabelContext) => string;
 }
 
+interface MenuPosition {
+  top: number;
+  left: number;
+  width: number;
+  openUpward: boolean;
+}
+
+const MENU_MAX_HEIGHT = 288; 
+const MENU_GAP = 4; 
+
 const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
   options,
   selectedValues,
@@ -46,7 +63,15 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
   renderLabel,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState<MenuPosition>({
+    top: 0,
+    left: 0,
+    width: 0,
+    openUpward: false,
+  });
+
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const normalizedSelectedValues = useMemo(() => {
     const selectedSet = new Set(selectedValues);
@@ -66,20 +91,56 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
   const isAllSelected =
     options.length > 0 && normalizedSelectedValues.length === options.length;
 
+  const computePosition = useCallback(() => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const openUpward =
+      spaceBelow < MENU_MAX_HEIGHT + MENU_GAP && spaceAbove > spaceBelow;
+
+    setMenuPosition({
+      top: openUpward
+        ? rect.top + window.scrollY - MENU_GAP - MENU_MAX_HEIGHT
+        : rect.bottom + window.scrollY + MENU_GAP,
+      left: rect.left + window.scrollX,
+      width: rect.width,
+      openUpward,
+    });
+  }, []);
+
   useEffect(() => {
+    if (!isOpen) return;
+
+    computePosition();
+
+    const handleScroll = () => computePosition();
+    const handleResize = () => computePosition();
+
+    window.addEventListener("scroll", handleScroll, true);
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [isOpen, computePosition]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
       if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
+        triggerRef.current?.contains(target) ||
+        menuRef.current?.contains(target)
       ) {
-        setIsOpen(false);
+        return;
       }
+      setIsOpen(false);
     };
 
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
@@ -137,27 +198,18 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
       isAllSelected,
     }) ?? defaultLabel;
 
-  return (
-    <div ref={containerRef} className={`relative ${className}`}>
-      {label && (
-        <label className="text-sm font-medium text-slate-600">{label}</label>
-      )}
-
-      <button
-        type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
-        disabled={disabled}
-        className={`h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-left text-sm text-slate-700 outline-none focus:ring-2 focus:ring-primary/30 transition-colors disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed flex items-center justify-between gap-3 ${buttonClassName}`}
-      >
-        <span className="truncate">{triggerLabel}</span>
-        <span className="material-symbols-outlined text-[18px] text-slate-500">
-          {isOpen ? "expand_less" : "expand_more"}
-        </span>
-      </button>
-
-      {isOpen && (
+  const menu = isOpen
+    ? createPortal(
         <div
-          className={`absolute top-full mt-2 left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-xl z-20 max-h-72 overflow-y-auto custom-scrollbar ${menuClassName}`}
+          ref={menuRef}
+          style={{
+            position: "absolute",
+            top: menuPosition.top,
+            left: menuPosition.left,
+            width: menuPosition.width,
+            zIndex: 9999,
+          }}
+          className={`bg-white border border-slate-200 rounded-lg shadow-xl max-h-72 overflow-y-auto custom-scrollbar ${menuClassName}`}
         >
           {showSelectAll && (
             <button
@@ -194,8 +246,31 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
               </button>
             );
           })}
-        </div>
+        </div>,
+        document.body,
+      )
+    : null;
+
+  return (
+    <div className={`relative ${className}`}>
+      {label && (
+        <label className="text-sm font-medium text-slate-600">{label}</label>
       )}
+
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        disabled={disabled}
+        className={`h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-left text-sm text-slate-700 outline-none focus:ring-2 focus:ring-primary/30 transition-colors disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed flex items-center justify-between gap-3 ${buttonClassName}`}
+      >
+        <span className="truncate">{triggerLabel}</span>
+        <span className="material-symbols-outlined text-[18px] text-slate-500">
+          {isOpen ? "expand_less" : "expand_more"}
+        </span>
+      </button>
+
+      {menu}
     </div>
   );
 };
