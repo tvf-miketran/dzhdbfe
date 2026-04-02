@@ -31,9 +31,14 @@ const RoleSelect: React.FC<RoleSelectProps> = ({
   const computeMenuStyle = () => {
     if (!buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
+    const menuHeight = 192; // max-h-48 = 12rem = 192px
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openUpward = spaceBelow < menuHeight + 8 && rect.top > spaceBelow;
     setMenuStyle({
       position: "fixed",
-      top: rect.bottom + 4,
+      ...(openUpward
+        ? { bottom: window.innerHeight - rect.top + 4 }
+        : { top: rect.bottom + 4 }),
       left: rect.left,
       width: Math.max(rect.width, 160),
       zIndex: 9999,

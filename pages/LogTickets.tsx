@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { TicketEntry } from "../types/index";
 import toast from "react-hot-toast";
 import Swal from "sweetalert2";
@@ -28,6 +29,7 @@ import {
 import FilterDialog from "../components/FilterDialog";
 import DraftSelect from "../components/DraftSelect";
 import RoleSelect from "../components/RoleSelect";
+import Pagination from "../components/pagination/Pagination";
 
 const FALLBACK_TICKET_TYPES = [
   "Feature",
@@ -71,6 +73,9 @@ const LogTickets: React.FC = () => {
   const [selectedProjectName, setSelectedProjectName] = useState<string>("");
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
   const roleDropdownRef = useRef<HTMLDivElement>(null);
+  const roleButtonRef = useRef<HTMLButtonElement>(null);
+  const roleMenuRef = useRef<HTMLDivElement>(null);
+  const [roleMenuStyle, setRoleMenuStyle] = useState<React.CSSProperties>({});
   const lastSubmittedIdsRef = useRef<Set<string>>(new Set());
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const weekLoadingIdsRef = useRef<Set<string>>(new Set());
@@ -135,6 +140,10 @@ const LogTickets: React.FC = () => {
   // For Final tab: Fetch my own tickets with specific project IDs
   const [isLoadingFinalTab, setIsLoadingFinalTab] = useState(false);
   const [finalTabMyTickets, setFinalTabMyTickets] = useState<TicketEntry[]>([]);
+  const [finalTabPage, setFinalTabPage] = useState(1);
+  const [finalTabPerPage] = useState(10);
+  const [finalTabTotal, setFinalTabTotal] = useState(0);
+  const [finalTabTotalPages, setFinalTabTotalPages] = useState(0);
 
   const draftTypeOptions =
     ticketTypes.length > 0
@@ -253,8 +262,8 @@ const LogTickets: React.FC = () => {
         response = await ticketsService.searchTickets(filters.search.trim());
       } else {
         response = await ticketsService.getTicketsForMe({
-          page: 1,
-          perPage: 50,
+          page: finalTabPage,
+          perPage: finalTabPerPage,
           projectId: "",
           search: filters.search || "",
           ticketTypeId: filters.ticketTypeId || "",
@@ -272,6 +281,8 @@ const LogTickets: React.FC = () => {
       if (response.success) {
         const rawData = response.data as any;
         const items = Array.isArray(rawData) ? rawData : rawData?.items || [];
+        setFinalTabTotal(rawData?.total ?? (Array.isArray(rawData) ? rawData.length : 0));
+        setFinalTabTotalPages(rawData?.pages ?? 1);
         const transformedEntries: TicketEntry[] = Array.isArray(items)
           ? items.map((ticket: any) => ({
               id: ticket.id || Math.random().toString(36).substr(2, 9),
@@ -341,6 +352,7 @@ const LogTickets: React.FC = () => {
     fetchMyTickets();
   }, [
     activeTab,
+    finalTabPage,
     filters.ticketTypeId,
     filters.ticketStatusId,
     filters.sortBy,
@@ -353,6 +365,7 @@ const LogTickets: React.FC = () => {
     if (activeTab !== "final") return;
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(() => {
+      setFinalTabPage(1);
       fetchMyTickets();
     }, 800);
     return () => {
@@ -394,11 +407,31 @@ const LogTickets: React.FC = () => {
     if (fieldErrors.roles) setFieldErrors({ ...fieldErrors, roles: false });
   };
 
+  const computeRoleMenuStyle = useCallback(() => {
+    if (!roleButtonRef.current) return;
+    const rect = roleButtonRef.current.getBoundingClientRect();
+    const menuHeight = 200; // max-h-[200px]
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openUpward = spaceBelow < menuHeight + 8 && rect.top > spaceBelow;
+    setRoleMenuStyle({
+      position: "fixed",
+      ...(openUpward
+        ? { bottom: window.innerHeight - rect.top + 4 }
+        : { top: rect.bottom + 4 }),
+      left: rect.left,
+      width: rect.width,
+      zIndex: 9999,
+    });
+  }, []);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
       if (
         roleDropdownRef.current &&
-        !roleDropdownRef.current.contains(event.target as Node)
+        !roleDropdownRef.current.contains(target) &&
+        roleMenuRef.current &&
+        !roleMenuRef.current.contains(target)
       ) {
         setIsRoleDropdownOpen(false);
       }
@@ -411,6 +444,17 @@ const LogTickets: React.FC = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isRoleDropdownOpen]);
+
+  useEffect(() => {
+    if (!isRoleDropdownOpen) return;
+    const update = () => computeRoleMenuStyle();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [isRoleDropdownOpen, computeRoleMenuStyle]);
 
   const handleAddTicket = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1780,7 +1824,7 @@ const LogTickets: React.FC = () => {
                 : "text-slate-500 hover:text-slate-700"
             }`}
           >
-            Final ({finalTabMyTickets.length})
+            Final ({finalTabTotal})
           </button>
         </div>
 
@@ -1875,7 +1919,11 @@ const LogTickets: React.FC = () => {
                   <div className="relative">
                     <button
                       type="button"
-                      onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
+                      ref={roleButtonRef}
+                      onClick={() => {
+                        if (!isRoleDropdownOpen) computeRoleMenuStyle();
+                        setIsRoleDropdownOpen(!isRoleDropdownOpen);
+                      }}
                       disabled={isLoadingRoles || rolesData.length === 0}
                       className={`h-10 w-full px-3 rounded-lg border bg-white text-sm text-slate-900 outline-none focus:ring-2 focus:ring-primary focus:border-primary cursor-pointer transition-all disabled:bg-slate-100 disabled:text-slate-500 text-left flex items-center justify-between ${
                         fieldErrors.roles
@@ -1898,8 +1946,12 @@ const LogTickets: React.FC = () => {
                       </span>
                     </button>
 
-                    {isRoleDropdownOpen && (
-                      <div className="absolute top-12 left-0 right-0 bg-white border border-slate-300 rounded-lg shadow-2xl z-[9999] max-h-[200px] overflow-y-auto">
+                    {isRoleDropdownOpen && createPortal(
+                      <div
+                        ref={roleMenuRef}
+                        style={roleMenuStyle}
+                        className="bg-white border border-slate-300 rounded-lg shadow-2xl max-h-[200px] overflow-y-auto"
+                      >
                         {isLoadingRoles ? (
                           <div className="p-3 text-sm text-slate-500">
                             Loading roles...
@@ -1932,7 +1984,8 @@ const LogTickets: React.FC = () => {
                             ))}
                           </div>
                         )}
-                      </div>
+                      </div>,
+                      document.body,
                     )}
                   </div>
                 </div>
@@ -2299,7 +2352,10 @@ const LogTickets: React.FC = () => {
           <FilterDialog
             isOpen={isFilterOpen}
             filters={filters}
-            onFilterChange={setFilters}
+            onFilterChange={(newFilters) => {
+              setFilters(newFilters);
+              setFinalTabPage(1);
+            }}
             showSortBy={false}
             showSortOrder={false}
             showWeeks={false}
@@ -2313,6 +2369,7 @@ const LogTickets: React.FC = () => {
                 weeks: [],
                 month: 0,
               });
+              setFinalTabPage(1);
             }}
           />
           <div className="overflow-x-auto custom-scrollbar">
@@ -2566,6 +2623,15 @@ const LogTickets: React.FC = () => {
               </tbody>
             </table>
           </div>
+          {finalTabTotalPages > 1 && (
+            <Pagination
+              currentPage={finalTabPage}
+              totalPages={finalTabTotalPages}
+              total={finalTabTotal}
+              perPage={finalTabPerPage}
+              onPageChange={setFinalTabPage}
+            />
+          )}
         </div>
       )}
     </div>
