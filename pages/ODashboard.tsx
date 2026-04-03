@@ -140,9 +140,9 @@ const buildFromMemberRows = (
 
       roleBuckets[roleIndex] = [
         roleBuckets[roleIndex][0] +
-          toNumber(item?.task_count ?? item?.taskCount ?? item?.task, 0),
+        toNumber(item?.task_count ?? item?.taskCount ?? item?.task, 0),
         roleBuckets[roleIndex][1] +
-          toNumber(item?.bug_count ?? item?.bugCount ?? item?.bug, 0),
+        toNumber(item?.bug_count ?? item?.bugCount ?? item?.bug, 0),
       ];
     });
 
@@ -160,14 +160,14 @@ const buildFromMemberRows = (
       billable: toNumber(row.billable_point, 0),
       ee:
         eeValue !== undefined &&
-        eeValue !== null &&
-        String(eeValue).trim() !== ""
+          eeValue !== null &&
+          String(eeValue).trim() !== ""
           ? String(eeValue)
           : "-",
       status:
         statusValue !== undefined &&
-        statusValue !== null &&
-        String(statusValue).trim() !== ""
+          statusValue !== null &&
+          String(statusValue).trim() !== ""
           ? String(statusValue)
           : "-",
     };
@@ -311,7 +311,6 @@ const ODashboard: React.FC = () => {
   const latestRequestIdRef = useRef(0);
 
   // --- Closed Tickets KPI state ---
-  const [ticketMonth, setTicketMonth] = useState<number>(1);
   const [ticketProjectId, setTicketProjectId] = useState<string | null>(null);
   const [allProjectOptions, setAllProjectOptions] = useState<
     { value: string; label: string }[]
@@ -375,13 +374,13 @@ const ODashboard: React.FC = () => {
   const filteredProjectOverview = closedTicketData?.project_overview_table;
 
   const fetchClosedTickets = async (
-    month: number,
+    months: string,
     projectId?: string | null,
   ) => {
     setIsClosedTicketsLoading(true);
     setClosedTicketError(null);
     try {
-      const params: { month: number; project?: string } = { month };
+      const params: { month: string; project?: string } = { month: months };
       if (projectId) params.project = projectId;
       const raw = await formulasService.getKpiClosedTickets(params);
       const rawAny = raw as Record<string, unknown>;
@@ -416,8 +415,8 @@ const ODashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchClosedTickets(ticketMonth, ticketProjectId);
-  }, [ticketMonth, ticketProjectId]);
+    fetchClosedTickets(selectedMonths.join(","), ticketProjectId);
+  }, [selectedMonths, ticketProjectId]);
 
   const fetchDashboardPayloadByMonths = async (
     months: string[],
@@ -593,7 +592,7 @@ const ODashboard: React.FC = () => {
         setContributionRows(next.contribution);
         setTotalCurrentMember(
           payload.aggregateData.total_current_member ??
-            next.contribution.length,
+          next.contribution.length,
         );
         setVisibleContributionCount(CONTRIBUTION_PAGE_SIZE);
         setContributionReloadKey((prev) => prev + 1); // Trigger re-mount AFTER data is set
@@ -623,14 +622,14 @@ const ODashboard: React.FC = () => {
           ),
           billableStandard: toNumber(
             candidate.billableStandard ??
-              candidate.billable_standard ??
-              payload.aggregateData.billable_standard,
+            candidate.billable_standard ??
+            payload.aggregateData.billable_standard,
             DEFAULT_KPI.billableStandard,
           ),
           logworkStandard: toNumber(
             candidate.logworkStandard ??
-              candidate.logwork_standard ??
-              payload.aggregateData.logwork_standard,
+            candidate.logwork_standard ??
+            payload.aggregateData.logwork_standard,
             DEFAULT_KPI.logworkStandard,
           ),
           totalBillable: toNumber(
@@ -1029,25 +1028,19 @@ const ODashboard: React.FC = () => {
               {/* Period filter */}
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
-                  Period
+                  Month
                 </span>
-                <div className="min-w-[130px]">
+                <div className="min-w-[180px]">
                   <MultiSelectDropdown
-                    options={[
-                      { value: "1", label: "1 month" },
-                      { value: "3", label: "3 months" },
-                      { value: "6", label: "6 months" },
-                      { value: "9", label: "9 months" },
-                    ]}
-                    selectedValues={[String(ticketMonth)]}
-                    onChange={(vals) => {
-                      // Detect the newly selected item (not in previous selection)
-                      const prev = String(ticketMonth);
-                      const next = vals.find((v) => v !== prev);
-                      if (next !== undefined) setTicketMonth(Number(next));
-                    }}
-                    disabled={isClosedTicketsLoading}
-                    placeholder="Select period"
+                    options={monthOptions}
+                    selectedValues={selectedMonths}
+                    onChange={setSelectedMonths}
+                    placeholder="Select month"
+                    disabled={isLoading}
+                    showSelectAll
+                    selectAllLabel="All"
+                    allSelectedLabel="All"
+                    multiSelectedSuffix="months selected"
                   />
                 </div>
               </div>
@@ -1094,15 +1087,15 @@ const ODashboard: React.FC = () => {
             totals={
               closedTicketData?.status_overview_chart
                 ? {
-                    total: closedTicketData.status_overview_chart.total_tickets,
-                    closed:
-                      closedTicketData.status_overview_chart
-                        .total_tickets_closed,
-                    inQA: closedTicketData.status_overview_chart
-                      .total_tickets_inqa,
-                    open: closedTicketData.status_overview_chart
-                      .total_tickets_open,
-                  }
+                  total: closedTicketData.status_overview_chart.total_tickets,
+                  closed:
+                    closedTicketData.status_overview_chart
+                      .total_tickets_closed,
+                  inQA: closedTicketData.status_overview_chart
+                    .total_tickets_inqa,
+                  open: closedTicketData.status_overview_chart
+                    .total_tickets_open,
+                }
                 : undefined
             }
             isLoading={isClosedTicketsLoading}

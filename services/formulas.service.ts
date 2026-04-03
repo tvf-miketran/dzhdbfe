@@ -73,7 +73,7 @@ export interface KpiClosedTicketsData {
 }
 
 export interface KpiClosedTicketsParams {
-  month: number;
+  month: string;
   project?: string;
 }
 
