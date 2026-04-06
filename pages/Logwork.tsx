@@ -48,7 +48,6 @@ const Logwork: React.FC = () => {
       roleFromStorage,
   ).toUpperCase();
   const isMember = currentRole !== "ADMIN";
-  const currentMonth = new Date().getMonth() + 1;
 
   // ─── Filter States ──────────────────────────────────────────────────────────
   const [selectedYear, setSelectedYear] = useState<number>(
@@ -93,7 +92,7 @@ const Logwork: React.FC = () => {
     month:
       selectedMonths.length > 0
         ? String(selectedMonths[0])
-        : String(currentMonth),
+        : null,
     year: selectedYear,
     userName: searchName,
     quarter: selectedQuarter,
@@ -104,7 +103,7 @@ const Logwork: React.FC = () => {
     month:
       selectedMonths.length > 0
         ? String(selectedMonths[0])
-        : String(currentMonth),
+        : null,
     year: selectedYear,
     quarter: selectedQuarter,
     sortBy: "desc" as const,
