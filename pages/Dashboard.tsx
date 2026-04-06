@@ -303,10 +303,10 @@ const Dashboard: React.FC = () => {
           user?.vn_full_name ??
           "You",
         weeks: roleBuckets.length > 0 ? roleBuckets : EMPTY_WEEKS,
-        ticket: avgTicketPoint,
-        logwork: avgLogworkPoint,
+        ticket: latestRow?.ticket_point,
+        logwork: latestRow?.logwork_point,
         member: avgMemberPoint,
-        billable: avgBillablePoint,
+        billable: latestRow?.billable_point,
         ee: latestRow?.member_performance?.total_ee
           ? String(latestRow.member_performance.total_ee)
           : "-",
