@@ -150,6 +150,13 @@ export const ENDPOINTS = {
     UPSERT: "/logworks",
   },
 
+  // Exports endpoints
+  EXPORTS: {
+    TABLES: "/exports/tables",
+    EXCEL: "/exports/excel/export",
+    IMPORT_EXCEL: "/exports/excel/import",
+  },
+
   // Settings endpoints
   SETTINGS: {
     GET: "/settings",

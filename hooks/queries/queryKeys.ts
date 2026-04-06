@@ -115,6 +115,12 @@ export const queryKeys = {
     detail: (id: string) => [...queryKeys.formula.details(), id] as const,
   },
 
+  // Exports keys
+  exports: {
+    all: ["exports"] as const,
+    tables: () => [...queryKeys.exports.all, "tables"] as const,
+  },
+
   // Settings keys
   settings: {
     all: ["settings"] as const,

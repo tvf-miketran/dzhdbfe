@@ -215,6 +215,21 @@ const Sidebar: React.FC<SidebarProps> = ({
               </p>
               <button
                 onClick={() => {
+                  onNavigate(Page.EXPORTEXCEL);
+                  window.location.hash = Page.EXPORTEXCEL;
+                  onClose?.();
+                }}
+                className={`w-full mb-1 group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all ${
+                  activePage === Page.EXPORTEXCEL
+                    ? "bg-primary/10 text-primary border border-primary/20"
+                    : "text-slate-600 hover:bg-surface-dark hover:text-slate-900"
+                }`}
+              >
+                <span className="material-symbols-outlined">download</span>
+                <p className="text-sm font-medium">Excel</p>
+              </button>
+              <button
+                onClick={() => {
                   onNavigate(Page.FORMULACONFIG);
                   window.location.hash = Page.FORMULACONFIG;
                   onClose?.();
