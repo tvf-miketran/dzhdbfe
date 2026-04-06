@@ -373,7 +373,7 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     fetchDashboardByMonth(selectedMonths);
-  }, [selectedMonths, userId]);
+  }, [userId]);
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
