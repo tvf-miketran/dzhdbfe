@@ -7,6 +7,7 @@ export enum Page {
   OTICKET = "oticket",
   TIMESHEETS = "timesheets",
   FORMULACONFIG = "formulaconfig",
+  EXPORTEXCEL = "exportexcel",
   PROFILE = "profile",
 }
 
@@ -301,3 +302,47 @@ export interface UpdateProjectResponse
       endDate?: string;
     }
   > {}
+
+export interface ExportTableOption {
+  key: string;
+  label?: string;
+  description?: string;
+  columns: string[];
+}
+
+export interface ExportTablesData {
+  excluded_tables?: string[];
+  table_names?: string[];
+  tables?: Array<{
+    table: string;
+    columns: string[];
+  }>;
+  total?: number;
+}
+
+export interface ExportTablesResponse
+  extends BaseApiResponse<
+    | ExportTablesData
+    | Array<
+        | string
+        | {
+            key?: string;
+            name?: string;
+            table?: string;
+            table_name?: string;
+            label?: string;
+            display_name?: string;
+            description?: string;
+            columns?: string[];
+          }
+      >
+  > {}
+
+export interface ExportExcelPayload {
+  mode: "all" | "selected";
+  include_tables?: string[];
+  exclude_tables?: string[];
+  row_limit_per_sheet?: number;
+  columns?: Record<string, string[]>;
+  filters?: Record<string, Record<string, unknown>>;
+}

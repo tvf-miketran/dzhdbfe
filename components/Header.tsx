@@ -19,6 +19,8 @@ const Header: React.FC<HeaderProps> = ({ activePage, onMenuClick }) => {
         return "Log Tickets";
       case Page.FORMULACONFIG:
         return "Configuration";
+      case Page.EXPORTEXCEL:
+        return "Export Excel";
       case Page.TIMESHEETS:
         return "Logwork Management";
       case Page.PROFILE:

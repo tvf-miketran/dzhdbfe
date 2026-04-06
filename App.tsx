@@ -12,6 +12,7 @@ import Logwork from "./pages/Logwork";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import FormulaConfig from "./pages/FormulaConfig";
+import ExportExcel from "./pages/ExportExcel";
 import { useAuth } from "./context/AuthContext";
 import { Toaster } from "react-hot-toast";
 import { User } from "./types";
@@ -29,7 +30,7 @@ const isPageHiddenForRole = (page: Page, role: AppRole): boolean => {
     return page === Page.DASHBOARD || page === Page.LOGTICKETS;
   }
 
-  return page === Page.ODASHBOARD;
+  return page === Page.ODASHBOARD || page === Page.EXPORTEXCEL;
 };
 
 const getStoredRole = (): AppRole => {
@@ -120,6 +121,13 @@ const App: React.FC = () => {
         return;
       }
 
+      if (hash === Page.EXPORTEXCEL && currentRole !== "ADMIN") {
+        setActivePage(Page.DASHBOARD);
+        setCurrentView("default");
+        window.location.hash = Page.DASHBOARD;
+        return;
+      }
+
       if (hash.startsWith("timesheets-logwork")) {
         setActivePage(Page.TIMESHEETS);
         setCurrentView("logwork");
@@ -168,6 +176,8 @@ const App: React.FC = () => {
         return <Logwork />;
       case Page.FORMULACONFIG:
         return <FormulaConfig />;
+      case Page.EXPORTEXCEL:
+        return <ExportExcel />;
       case Page.PROFILE:
         return <Profile />;
       default:

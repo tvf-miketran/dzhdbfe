@@ -17,6 +17,7 @@
     "react-hot-toast": "^2.6.0",
     "recharts": "^3.7.0",
     "sweetalert2": "^11.26.24",
+    "xlsx": "^0.18.5",
     "zod": "^4.3.6"
   },
   "devDependencies": {
