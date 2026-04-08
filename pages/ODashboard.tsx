@@ -15,6 +15,7 @@ import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import { formulasService } from "../services";
 import type { KpiClosedTicketsData } from "../services/formulas.service";
+import { useTicketTypes } from "../hooks/queries/useTicketsQueries";
 import MultiSelectDropdown from "../components/MultiSelectDropdown";
 import MainKPISection from "../components/MainKPISection";
 import TicketConsumptionDashboard from "../components/TicketConsumptionDashboard";
@@ -312,9 +313,11 @@ const ODashboard: React.FC = () => {
 
   // --- Closed Tickets KPI state ---
   const [ticketProjectId, setTicketProjectId] = useState<string | null>(null);
+  const [ticketTypeIds, setTicketTypeIds] = useState<string[]>([]);
   const [allProjectOptions, setAllProjectOptions] = useState<
     { value: string; label: string }[]
   >([]);
+  const { data: ticketTypes = [] } = useTicketTypes();
   const [closedTicketData, setClosedTicketData] =
     useState<KpiClosedTicketsData | null>(null);
   const [isClosedTicketsLoading, setIsClosedTicketsLoading] = useState(true);
@@ -376,12 +379,18 @@ const ODashboard: React.FC = () => {
   const fetchClosedTickets = async (
     months: string,
     projectId?: string | null,
+    selectedTicketTypeIds?: string[],
   ) => {
     setIsClosedTicketsLoading(true);
     setClosedTicketError(null);
     try {
-      const params: { month: string; project?: string } = { month: months };
+      const params: { month: string; project?: string; ticket_type_id?: string } = {
+        month: months,
+      };
       if (projectId) params.project = projectId;
+      if (selectedTicketTypeIds && selectedTicketTypeIds.length > 0) {
+        params.ticket_type_id = selectedTicketTypeIds.join(",");
+      }
       const raw = await formulasService.getKpiClosedTickets(params);
       const rawAny = raw as Record<string, unknown>;
       const inner: KpiClosedTicketsData | null =
@@ -415,8 +424,8 @@ const ODashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchClosedTickets(selectedMonths.join(","), ticketProjectId);
-  }, [selectedMonths, ticketProjectId]);
+    fetchClosedTickets(selectedMonths.join(","), ticketProjectId, ticketTypeIds);
+  }, [selectedMonths, ticketProjectId, ticketTypeIds]);
 
   const fetchDashboardPayloadByMonths = async (
     months: string[],
@@ -1015,22 +1024,23 @@ const ODashboard: React.FC = () => {
 
         {/* Analytics Overview */}
         <div className="mb-6">
-          <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
-            <div>
+          <div className="mb-4 overflow-x-auto custom-scrollbar">
+            <div className="flex min-w-[980px] items-center justify-between gap-4 pb-1">
+            <div className="flex items-center gap-2 whitespace-nowrap">
               <h2 className="text-base font-semibold text-slate-700">
                 Closed Tickets KPI
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-500">
                 Ticket analytics by role, trend, and status
               </p>
             </div>
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-3">
               {/* Period filter */}
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
                   Month
                 </span>
-                <div className="min-w-[180px]">
+                <div className="w-[180px]">
                   <MultiSelectDropdown
                     options={monthOptions}
                     selectedValues={selectedMonths}
@@ -1050,7 +1060,7 @@ const ODashboard: React.FC = () => {
                   <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
                     Project
                   </span>
-                  <div className="min-w-[180px]">
+                  <div className="w-[180px]">
                     <MultiSelectDropdown
                       options={[
                         { value: "", label: "All Projects" },
@@ -1073,6 +1083,30 @@ const ODashboard: React.FC = () => {
                   </div>
                 </div>
               )}
+              {ticketTypes.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
+                    Ticket Type
+                  </span>
+                  <div className="w-[220px]">
+                    <MultiSelectDropdown
+                      options={ticketTypes.map((type) => ({
+                        value: type.id,
+                        label: type.name || type.code || "Unknown",
+                      }))}
+                      selectedValues={ticketTypeIds}
+                      onChange={setTicketTypeIds}
+                      disabled={isClosedTicketsLoading}
+                      placeholder="All Types"
+                      showSelectAll
+                      selectAllLabel="All Types"
+                      allSelectedLabel="All Types"
+                      multiSelectedSuffix="types selected"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
             </div>
           </div>
         </div>

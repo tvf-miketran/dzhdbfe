@@ -423,7 +423,7 @@ const Dashboard: React.FC = () => {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest">
-                    Tickets This Month
+                    Closed Tickets
                   </p>
                   <p className="text-3xl font-bold text-slate-900 mt-2">
                     {hasDashboardData ? monthTicketCount : "-"}
@@ -446,7 +446,7 @@ const Dashboard: React.FC = () => {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest">
-                    Logwork Hours
+                    Logwork points
                   </p>
                   <p className="text-3xl font-bold text-slate-900 mt-2">
                     {hasDashboardData ? monthLogworkPoint.toFixed(2) : "-"}
@@ -467,7 +467,7 @@ const Dashboard: React.FC = () => {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest">
-                    Code Reviews
+                    Roles
                   </p>
                   <p className="text-3xl font-bold text-slate-900 mt-2">
                     {hasDashboardData ? monthRolesCount : "-"}
