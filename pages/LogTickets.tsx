@@ -107,6 +107,8 @@ const LogTickets: React.FC = () => {
   const [selectedFinalIds, setSelectedFinalIds] = useState<Set<string>>(
     new Set(),
   );
+  const lastFinalSearchRef = useRef("");
+  const suppressNextFinalPageFetchRef = useRef(false);
   const [finalSort, setFinalSort] = useState<{
     key: FinalSortKey | null;
     direction: SortDirection;
@@ -375,6 +377,12 @@ const LogTickets: React.FC = () => {
   useEffect(() => {
     if (activeTab !== "final") return;
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+
+    if (suppressNextFinalPageFetchRef.current) {
+      suppressNextFinalPageFetchRef.current = false;
+      return;
+    }
+
     fetchMyTickets();
   }, [
     activeTab,
@@ -389,14 +397,23 @@ const LogTickets: React.FC = () => {
 
   useEffect(() => {
     if (activeTab !== "final") return;
+
+    const searchChanged = lastFinalSearchRef.current !== filters.search;
+    if (!searchChanged) return;
+
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+
+    if (finalTabPage !== 1) {
+      suppressNextFinalPageFetchRef.current = true;
+      setFinalTabPage(1);
+      return;
+    }
+
     searchTimeoutRef.current = setTimeout(() => {
-      if (finalTabPage !== 1) {
-        setFinalTabPage(1);
-        return;
-      }
+      lastFinalSearchRef.current = filters.search;
       fetchMyTickets(1);
     }, 800);
+
     return () => {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     };
