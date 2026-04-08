@@ -467,20 +467,20 @@ const Dashboard: React.FC = () => {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-semibold text-slate-500 uppercase tracking-widest">
-                    Roles
+                    Billable
                   </p>
                   <p className="text-3xl font-bold text-slate-900 mt-2">
-                    {hasDashboardData ? monthRolesCount : "-"}
+                    {hasDashboardData
+                      ? Number(personalContribution?.billable ?? 0).toFixed(2)
+                      : "-"}
                   </p>
                   <p className="text-xs text-slate-600 mt-1">
-                    {hasDashboardData
-                      ? "Roles in breakdown"
-                      : "No data available"}
+                    {hasDashboardData ? "Billable point" : "No data available"}
                   </p>
                 </div>
                 <div className="p-3 bg-emerald-50 rounded-lg">
                   <span className="material-symbols-outlined text-emerald-600 text-[32px]">
-                    done_all
+                    payments
                   </span>
                 </div>
               </div>
