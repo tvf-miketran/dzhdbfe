@@ -316,7 +316,7 @@ const Dashboard: React.FC = () => {
       });
 
       setMonthTicketCount(monthTicketCountValue);
-      setMonthLogworkPoint(normalizedTotalLogworkPoint);
+      setMonthLogworkPoint(toNumber(latestRow?.logwork_point, 0));
       setMonthRolesCount(uniqueRoleSet.size);
 
       if (trendRows.length > 0) {

@@ -313,7 +313,7 @@ const ODashboard: React.FC = () => {
 
   // --- Closed Tickets KPI state ---
   const [ticketProjectId, setTicketProjectId] = useState<string | null>(null);
-  const [ticketTypeIds, setTicketTypeIds] = useState<string[]>([]);
+  const [ticketTypeId, setTicketTypeId] = useState<string | null>(null);
   const [allProjectOptions, setAllProjectOptions] = useState<
     { value: string; label: string }[]
   >([]);
@@ -379,7 +379,7 @@ const ODashboard: React.FC = () => {
   const fetchClosedTickets = async (
     months: string,
     projectId?: string | null,
-    selectedTicketTypeIds?: string[],
+    selectedTicketTypeId?: string | null,
   ) => {
     setIsClosedTicketsLoading(true);
     setClosedTicketError(null);
@@ -388,8 +388,8 @@ const ODashboard: React.FC = () => {
         month: months,
       };
       if (projectId) params.project = projectId;
-      if (selectedTicketTypeIds && selectedTicketTypeIds.length > 0) {
-        params.ticket_type_id = selectedTicketTypeIds.join(",");
+      if (selectedTicketTypeId) {
+        params.ticket_type_id = selectedTicketTypeId;
       }
       const raw = await formulasService.getKpiClosedTickets(params);
       const rawAny = raw as Record<string, unknown>;
@@ -424,8 +424,8 @@ const ODashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchClosedTickets(selectedMonths.join(","), ticketProjectId, ticketTypeIds);
-  }, [selectedMonths, ticketProjectId, ticketTypeIds]);
+    fetchClosedTickets(selectedMonths.join(","), ticketProjectId, ticketTypeId);
+  }, [selectedMonths, ticketProjectId, ticketTypeId]);
 
   const fetchDashboardPayloadByMonths = async (
     months: string[],
@@ -1090,18 +1090,25 @@ const ODashboard: React.FC = () => {
                   </span>
                   <div className="w-[220px]">
                     <MultiSelectDropdown
-                      options={ticketTypes.map((type) => ({
-                        value: type.id,
-                        label: type.name || type.code || "Unknown",
-                      }))}
-                      selectedValues={ticketTypeIds}
-                      onChange={setTicketTypeIds}
+                      options={[
+                        { value: "", label: "All Types" },
+                        ...ticketTypes.map((type) => ({
+                          value: type.id,
+                          label: type.name || type.code || "Unknown",
+                        })),
+                      ]}
+                      selectedValues={[ticketTypeId ?? ""]}
+                      onChange={(vals) => {
+                        const prev = ticketTypeId ?? "";
+                        const next = vals.find((v) => v !== prev);
+                        if (next !== undefined) {
+                          setTicketTypeId(next || null);
+                        } else if (vals.length === 0) {
+                          setTicketTypeId(null);
+                        }
+                      }}
                       disabled={isClosedTicketsLoading}
                       placeholder="All Types"
-                      showSelectAll
-                      selectAllLabel="All Types"
-                      allSelectedLabel="All Types"
-                      multiSelectedSuffix="types selected"
                     />
                   </div>
                 </div>
