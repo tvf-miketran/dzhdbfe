@@ -253,36 +253,62 @@ const LogTickets: React.FC = () => {
     return "";
   };
 
-  const fetchMyTickets = async () => {
+  const fetchMyTickets = async (page = finalTabPage) => {
     setIsLoadingFinalTab(true);
     try {
-      let response;
-
-      if (filters.search && filters.search.trim()) {
-        response = await ticketsService.searchTickets(filters.search.trim());
-      } else {
-        response = await ticketsService.getTicketsForMe({
-          page: finalTabPage,
-          perPage: finalTabPerPage,
-          projectId: "",
-          search: filters.search || "",
-          ticketTypeId: filters.ticketTypeId || "",
-          ticketStatusId: filters.ticketStatusId || "",
-          week:
-            filters.weeks && filters.weeks.length > 0
-              ? filters.weeks
-              : undefined,
-          month: filters.month === 0 ? null : filters.month,
-          sortBy: filters.sortBy || "",
-          sortOrder: filters.sortOrder || "",
-        });
-      }
+      const response = await ticketsService.getTicketsForMe({
+        page,
+        perPage: finalTabPerPage,
+        projectId: "",
+        search: filters.search || "",
+        ticketTypeId: filters.ticketTypeId || "",
+        ticketStatusId: filters.ticketStatusId || "",
+        week:
+          filters.weeks && filters.weeks.length > 0
+            ? filters.weeks
+            : undefined,
+        month: filters.month === 0 ? null : filters.month,
+        sortBy: filters.sortBy || "",
+        sortOrder: filters.sortOrder || "",
+      });
 
       if (response.success) {
         const rawData = response.data as any;
         const items = Array.isArray(rawData) ? rawData : rawData?.items || [];
-        setFinalTabTotal(rawData?.total ?? (Array.isArray(rawData) ? rawData.length : 0));
-        setFinalTabTotalPages(rawData?.pages ?? 1);
+        const total = Number(
+          rawData?.total ?? rawData?.pagination?.total ?? items.length ?? 0,
+        );
+        const payloadPerPage = Number(
+          rawData?.per_page ??
+            rawData?.perPage ??
+            rawData?.pagination?.per_page ??
+            finalTabPerPage,
+        );
+        const payloadPage = Number(
+          rawData?.page ?? rawData?.current_page ?? rawData?.pagination?.page ?? page,
+        );
+        const rawPages = Number(
+          rawData?.pages ??
+            rawData?.total_pages ??
+            rawData?.last_page ??
+            rawData?.pagination?.pages ??
+            rawData?.pagination?.total_pages,
+        );
+
+        let totalPages =
+          Number.isFinite(rawPages) && rawPages > 0
+            ? rawPages
+            : Math.max(1, Math.ceil(total / Math.max(1, payloadPerPage)));
+
+        if (
+          totalPages <= 1 &&
+          (rawData?.has_next === true || rawData?.pagination?.has_next === true)
+        ) {
+          totalPages = Math.max(totalPages, payloadPage + 1);
+        }
+
+        setFinalTabTotal(total);
+        setFinalTabTotalPages(totalPages);
         const transformedEntries: TicketEntry[] = Array.isArray(items)
           ? items.map((ticket: any) => ({
               id: ticket.id || Math.random().toString(36).substr(2, 9),
@@ -365,13 +391,22 @@ const LogTickets: React.FC = () => {
     if (activeTab !== "final") return;
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(() => {
-      setFinalTabPage(1);
-      fetchMyTickets();
+      if (finalTabPage !== 1) {
+        setFinalTabPage(1);
+        return;
+      }
+      fetchMyTickets(1);
     }, 800);
     return () => {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     };
-  }, [filters.search]);
+  }, [filters.search, activeTab, finalTabPage]);
+
+  useEffect(() => {
+    if (finalTabTotalPages > 0 && finalTabPage > finalTabTotalPages) {
+      setFinalTabPage(finalTabTotalPages);
+    }
+  }, [finalTabPage, finalTabTotalPages]);
 
   useEffect(() => {
     setSelectedFinalIds((prev) => {
