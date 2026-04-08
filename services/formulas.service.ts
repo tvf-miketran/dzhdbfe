@@ -75,6 +75,7 @@ export interface KpiClosedTicketsData {
 export interface KpiClosedTicketsParams {
   month: string;
   project?: string;
+  ticket_type_id?: string;
 }
 
 export const formulasService = {
