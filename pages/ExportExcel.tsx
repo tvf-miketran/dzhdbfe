@@ -49,12 +49,18 @@ const ExportExcel: React.FC = () => {
     try {
       const exportResult = await exportExcel();
 
+      const now = new Date();
+      const pad2 = (value: number) => String(value).padStart(2, "0");
+      const fileName = `data_${pad2(now.getHours())}${pad2(
+        now.getMinutes(),
+      )}${pad2(now.getSeconds())}_${pad2(now.getDate())}${pad2(
+        now.getMonth() + 1,
+      )}${now.getFullYear()}.xlsx`;
+
       const downloadUrl = window.URL.createObjectURL(exportResult.blob);
       const anchor = document.createElement("a");
       anchor.href = downloadUrl;
-      if (exportResult.fileName) {
-        anchor.download = exportResult.fileName;
-      }
+      anchor.download = fileName;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
