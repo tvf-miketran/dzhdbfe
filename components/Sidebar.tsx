@@ -3,7 +3,7 @@ import { Page } from "../types/index";
 import axiosInstance from "../helpers/axios";
 import { useAuth } from "../context/AuthContext";
 import { ENDPOINTS } from "../config/api";
-import logoVer3 from "../img/techvify_logo_ver3.jpg";
+import logoIcon from "../img/techvify_icon.ico";
 
 interface SidebarProps {
   activePage: Page;
@@ -159,16 +159,16 @@ const Sidebar: React.FC<SidebarProps> = ({
         } lg:shrink-0`}
       >
         <div className="flex flex-col gap-8">
-          <div className="flex items-center gap-3 px-2 py-2">
-              <div className="flex aspect-square h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-slate-200 overflow-hidden">
-                <img
-                  src={logoVer3}
-                  alt="DZH INTERNAL logo"
-                  className="h-full w-full object-contain p-1"
-                />
+          <div className="flex items-center gap-2.5 px-2 py-2">
+            <div className="flex aspect-square h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
+              <img
+                src={logoIcon}
+                alt="DZH INTERNAL logo"
+                className="h-full w-full object-contain p-1"
+              />
             </div>
-            <div className="flex flex-col flex-1">
-              <h1 className="text-base font-semibold text-slate-900 tracking-tight">
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate text-base font-semibold tracking-tight text-slate-900">
                 DZH INTERNAL
               </h1>
             </div>
