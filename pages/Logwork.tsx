@@ -28,6 +28,11 @@ interface EmployeeBasic {
   enFullName: string;
 }
 
+interface LogworkCellData {
+  hours: number;
+  status: 0 | 1 | null;
+}
+
 const Logwork: React.FC = () => {
   const { user } = useAuth();
   const roleFromStorage = (() => {
@@ -126,17 +131,28 @@ const Logwork: React.FC = () => {
   const isLoading = isMember ? memberLoading : adminLoading;
   const error = isMember ? memberError : adminError;
 
+  const logworkItems = logworksResponse?.data?.items ?? [];
+
+  const standardLogworkByMonth = useMemo(
+    () => logworksResponse?.data?.standardLogworkByMonth ?? {},
+    [logworksResponse],
+  );
+
   // ─── Build table data ────────────────────────────────────────────────────────
   const tableData = useMemo(() => {
-    // Map from employee UUID → { id, name, hours[12] }
+    const createEmptyCells = (): LogworkCellData[] =>
+      Array.from({ length: 12 }, () => ({ hours: 0, status: null }));
+
+    // Map from employee UUID → { id, name, cells[12] }
     const employeeMap = new Map<
       string,
       {
         id: string;
         name: string;
         initials: string;
-        hours: number[];
+        cells: LogworkCellData[];
         color: string;
+        totalEEPercent: number | null;
       }
     >();
 
@@ -147,15 +163,16 @@ const Logwork: React.FC = () => {
           id: emp.id,
           name: emp.enFullName,
           initials: getInitials(emp.enFullName),
-          hours: new Array(12).fill(0),
+          cells: createEmptyCells(),
           color: getRandomColor(emp.id),
+          totalEEPercent: null,
         });
       });
     }
 
     // Add / merge logworks data
-    if (logworksResponse?.data) {
-      logworksResponse.data.forEach((logwork) => {
+    if (logworkItems.length > 0) {
+      logworkItems.forEach((logwork) => {
         const monthIndex = parseInt(logwork.month, 10) - 1;
         const key = logwork.employeeId; // This is the UUID returned from logworks API
 
@@ -165,27 +182,31 @@ const Logwork: React.FC = () => {
             id: key,
             name: logwork.engName,
             initials: getInitials(logwork.engName),
-            hours: new Array(12).fill(0),
+            cells: createEmptyCells(),
             color: getRandomColor(key),
+            totalEEPercent: logwork.totalEEPercent,
           });
         }
 
         const employee = employeeMap.get(key)!;
+        employee.totalEEPercent = logwork.totalEEPercent;
+
         if (monthIndex >= 0 && monthIndex < 12) {
-          employee.hours[monthIndex] += logwork.logHours;
+          employee.cells[monthIndex].hours += logwork.logHours;
+          employee.cells[monthIndex].status = logwork.status;
         }
       });
     }
 
     return Array.from(employeeMap.values());
-  }, [logworksResponse, allEmployees, isMember]);
+  }, [allEmployees, isMember, logworkItems, searchName]);
 
   // ─── Monthly totals ──────────────────────────────────────────────────────────
   const monthlyTotals = useMemo(() => {
     const totals = new Array(12).fill(0);
     tableData.forEach((emp) => {
-      emp.hours.forEach((h, i) => {
-        totals[i] += h;
+      emp.cells.forEach((cell, i) => {
+        totals[i] += cell.hours;
       });
     });
     return totals;
@@ -323,6 +344,16 @@ const Logwork: React.FC = () => {
       hash = id.charCodeAt(i) + ((hash << 5) - hash);
     }
     return colors[Math.abs(hash) % colors.length];
+  }
+
+  function formatHours(value: number): string {
+    return value.toLocaleString(undefined, {
+      maximumFractionDigits: 2,
+    });
+  }
+
+  function getMonthKey(monthIndex: number): string {
+    return String(monthIndex + 1).padStart(2, "0");
   }
 
   const yearOptions = useMemo(() => {
@@ -532,7 +563,17 @@ const Logwork: React.FC = () => {
                       key={m.name}
                       className={`px-1 md:px-2 py-3 md:py-5 text-center text-[9px] md:text-[11px] font-semibold uppercase tracking-widest text-slate-600 border-r border-border-light ${isSingleMonthView ? "w-full min-w-[200px] md:min-w-[300px]" : "min-w-[70px] md:min-w-[100px]"}`}
                     >
-                      {m.name}
+                      <div className="flex flex-col items-center leading-tight">
+                        <span>{m.name}</span>
+                        <span className="mt-1 text-[10px] md:text-xs font-medium normal-case tracking-normal text-slate-500">
+                          {standardLogworkByMonth[getMonthKey(m.index)] !==
+                          undefined
+                            ? formatHours(
+                                standardLogworkByMonth[getMonthKey(m.index)],
+                              )
+                            : "-"}
+                        </span>
+                      </div>
                     </th>
                   ))}
                 </tr>
@@ -586,33 +627,45 @@ const Logwork: React.FC = () => {
                         <td
                           className={`sticky left-0 z-10 bg-surface-light group-hover:bg-slate-100 transition-colors px-3 md:px-6 py-3 md:py-4 border-r border-border-light text-left ${isSingleMonthView ? "w-[200px] md:w-[260px]" : ""}`}
                         >
-                          <div className="flex items-center gap-2 md:gap-4">
-                            <div
-                              className={`h-8 md:h-10 w-8 md:w-10 rounded-full ${emp.color}/10 flex items-center justify-center font-semibold text-[10px] md:text-xs ${emp.color.replace("bg-", "text-")}`}
-                            >
-                              {emp.initials}
+                          <div className="flex items-center justify-between gap-2 md:gap-4">
+                            <div className="min-w-0 flex items-center gap-2 md:gap-4">
+                              <div
+                                className={`h-8 md:h-10 w-8 md:w-10 rounded-full ${emp.color}/10 flex items-center justify-center font-semibold text-[10px] md:text-xs ${emp.color.replace("bg-", "text-")}`}
+                              >
+                                {emp.initials}
+                              </div>
+                              <span className="text-xs md:text-sm font-semibold text-slate-900 truncate">
+                                {emp.name}
+                              </span>
                             </div>
-                            <span className="text-xs md:text-sm font-semibold text-slate-900 truncate">
-                              {emp.name}
+                            <span className="shrink-0 text-[10px] md:text-xs font-semibold text-slate-500 text-right">
+                              {emp.totalEEPercent !== null
+                                ? `${formatHours(emp.totalEEPercent)}%`
+                                : "-"}
                             </span>
                           </div>
                         </td>
                         {displayedMonths.map((m) => {
                           const cellKey = `${emp.id}|${m.index + 1}`;
                           const changedValue = changedCells.get(cellKey);
+                          const currentCell = emp.cells[m.index];
                           const displayValue =
                             changedValue !== undefined
-                              ? changedValue === 0
+                              ? String(changedValue)
+                              : currentCell.status === null
                                 ? ""
-                                : String(changedValue)
-                              : emp.hours[m.index] === 0
-                                ? ""
-                                : String(emp.hours[m.index]);
+                                : String(currentCell.hours);
+                          const statusClasses =
+                            currentCell.status === 1
+                              ? "bg-emerald-50 text-emerald-700"
+                              : currentCell.status === 0
+                                ? "bg-rose-50 text-rose-700"
+                                : "";
 
                           return (
                             <td
                               key={m.name}
-                              className={`p-0.5 md:p-1 border-r border-border-light group-hover:bg-slate-100/50 transition-colors ${changedCells.has(cellKey) ? "bg-amber-50" : ""} ${isSingleMonthView ? "text-center" : ""}`}
+                              className={`p-0.5 md:p-1 border-r border-border-light transition-colors ${statusClasses} ${isSingleMonthView ? "text-center" : ""}`}
                             >
                               <input
                                 type="number"
@@ -631,10 +684,16 @@ const Logwork: React.FC = () => {
                                     e.target.value,
                                   )
                                 }
-                                className={`w-full h-8 md:h-10 bg-transparent border-0 text-center text-[10px] md:text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-primary rounded transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                className={`w-full h-8 md:h-10 bg-transparent border-0 text-center text-[10px] md:text-sm font-semibold focus:ring-2 focus:ring-primary rounded transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                                   isMember
                                     ? "cursor-not-allowed opacity-60"
                                     : "hover:ring-2 hover:ring-primary/30"
+                                } ${
+                                  currentCell.status === 1
+                                    ? "text-emerald-700"
+                                    : currentCell.status === 0
+                                      ? "text-rose-700"
+                                      : "text-slate-900"
                                 } ${changedCells.has(cellKey) ? "ring-2 ring-amber-400" : ""}`}
                               />
                             </td>
@@ -654,7 +713,7 @@ const Logwork: React.FC = () => {
                           className={`px-3 md:px-6 py-3 md:py-4 text-center text-xs md:text-sm text-slate-900 border-r border-border-light ${isSingleMonthView ? "text-center" : ""}`}
                         >
                           {monthlyTotals[m.index] > 0
-                            ? monthlyTotals[m.index].toLocaleString()
+                            ? formatHours(monthlyTotals[m.index])
                             : "-"}
                         </td>
                       ))}
