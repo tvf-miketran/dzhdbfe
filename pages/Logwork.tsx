@@ -88,11 +88,13 @@ const Logwork: React.FC = () => {
   }, [employeesResponse]);
 
   // ─── Fetch logworks ──────────────────────────────────────────────────────────
+  const selectedMonthsParam =
+    selectedMonths.length > 0
+      ? selectedMonths.slice().sort((a, b) => a - b).join(",")
+      : undefined;
+
   const adminFilters = {
-    month:
-      selectedMonths.length > 0
-        ? String(selectedMonths[0])
-        : null,
+    month: selectedMonthsParam,
     year: selectedYear,
     userName: searchName,
     quarter: selectedQuarter,
@@ -100,10 +102,7 @@ const Logwork: React.FC = () => {
   };
 
   const memberFilters = {
-    month:
-      selectedMonths.length > 0
-        ? String(selectedMonths[0])
-        : null,
+    month: selectedMonthsParam,
     year: selectedYear,
     quarter: selectedQuarter,
     sortBy: "desc" as const,
