@@ -280,6 +280,10 @@ const Dashboard: React.FC = () => {
         logworkStandard: normalizedLogworkStandard,
         totalBillable: normalizedTotalBillablePoint,
         averageEE: normalizedAverageEE,
+        memberTotalEE:
+          latestRow?.member_performance?.total_ee != null
+            ? Number(latestRow.member_performance.total_ee)
+            : undefined,
         params: normalizedParams,
         lastCalculated: lastCalculatedLabel,
         breakdown: {

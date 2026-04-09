@@ -19,6 +19,7 @@ export interface KPIData {
   logworkStandard: number;
   totalBillable?: number;
   averageEE?: number;
+  memberTotalEE?: number;
   params?: KPIStandardParams;
   lastCalculated?: string;
   breakdown?: KPIBreakdown;
