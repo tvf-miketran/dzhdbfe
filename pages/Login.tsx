@@ -125,7 +125,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   onChange={(e) => setEmail(e.target.value)}
                   className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50/60 pl-11 pr-4 text-slate-900 placeholder-slate-400 outline-none ring-1 ring-transparent transition-all focus:border-[#0060ff] focus:bg-white focus:ring-2 focus:ring-[#0060ff]/20"
                   placeholder="your.name@techvify.com.vn"
-                  pattern="^[A-Za-z0-9._%+-]+@techvify\.com\.vn$"
+                  pattern="^[A-Za-z0-9._%+\-]+@techvify\.com\.vn$"
                   required
                 />
               </div>
