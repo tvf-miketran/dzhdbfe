@@ -78,13 +78,25 @@ export interface KpiClosedTicketsParams {
   ticket_type_id?: string;
 }
 
+export interface EmployeeEEItem {
+  enFullName: string;
+  totalEE: number;
+}
+
 export const formulasService = {
   getKpiClosedTickets: async (
     params: KpiClosedTicketsParams,
-  ): Promise<{ data: KpiClosedTicketsData; message: string; success: boolean }> => {
-    const response = await axiosInstance.get(ENDPOINTS.FORMULA.KPI_CLOSED_TICKETS, {
-      params,
-    });
+  ): Promise<{
+    data: KpiClosedTicketsData;
+    message: string;
+    success: boolean;
+  }> => {
+    const response = await axiosInstance.get(
+      ENDPOINTS.FORMULA.KPI_CLOSED_TICKETS,
+      {
+        params,
+      },
+    );
     return response.data;
   },
 
@@ -105,6 +117,17 @@ export const formulasService = {
     const response = await axiosInstance.get(ENDPOINTS.FORMULA.CALCULATE, {
       params,
     });
+    return response.data;
+  },
+
+  getListEmployeesEE: async (): Promise<{
+    data: EmployeeEEItem[];
+    message: string;
+    success: boolean;
+  }> => {
+    const response = await axiosInstance.get(
+      ENDPOINTS.FORMULA.LIST_EMPLOYEES_EE,
+    );
     return response.data;
   },
 };

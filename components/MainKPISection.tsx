@@ -13,6 +13,7 @@ interface MainKPISectionProps {
   hideParams?: boolean;
   reachKPICount?: number;
   notReachKPICount?: number;
+  onAverageEEClick?: () => void;
 }
 
 const MainKPISection: React.FC<MainKPISectionProps> = ({
@@ -25,6 +26,7 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
   hideParams = false,
   reachKPICount,
   notReachKPICount,
+  onAverageEEClick,
 }) => {
   const billableStandard = kpi.billableStandard ?? 0;
   const logworkStandard = kpi.logworkStandard ?? 0;
@@ -67,12 +69,9 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
       ? "-"
       : String(value);
 
-  const totalKPIContributors =
-    (reachKPICount ?? 0) + (notReachKPICount ?? 0);
+  const totalKPIContributors = (reachKPICount ?? 0) + (notReachKPICount ?? 0);
   const reachRate =
-    totalKPIContributors > 0
-      ? (reachKPICount ?? 0) / totalKPIContributors
-      : 0;
+    totalKPIContributors > 0 ? (reachKPICount ?? 0) / totalKPIContributors : 0;
   const notReachRate =
     totalKPIContributors > 0
       ? (notReachKPICount ?? 0) / totalKPIContributors
@@ -177,7 +176,14 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
               </div>
 
               {/* Average EE */}
-              <div className="rounded-2xl border border-emerald-100 bg-emerald-50/30 p-4">
+              <div
+                className={`rounded-2xl border border-emerald-100 bg-emerald-50/30 p-4${
+                  onAverageEEClick
+                    ? " cursor-pointer hover:bg-emerald-50/60 transition-colors"
+                    : ""
+                }`}
+                onClick={onAverageEEClick}
+              >
                 <p className="text-[10px] font-black uppercase text-emerald-600 mb-1">
                   Average EE
                 </p>
@@ -224,7 +230,7 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
                         </p>
                         <div className="mt-1 flex items-end justify-between">
                           <span className="text-2xl font-black text-rose-700">
-                          {notReachKPICount}
+                            {notReachKPICount}
                           </span>
                           <span className="text-xs font-semibold text-rose-600">
                             {(notReachRate * 100).toFixed(0)}%
@@ -232,8 +238,6 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
                         </div>
                       </div>
                     </div>
-
-
                   </div>
                 )}
 
