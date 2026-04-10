@@ -857,7 +857,7 @@ const ODashboard: React.FC = () => {
                       <ResponsiveContainer width="100%" height={280}>
                         <BarChart
                           data={logworkTrendData}
-                          barGap={-8}
+                          barGap={-34}
                           barCategoryGap="20%"
                           margin={{ top: 20, right: 20, bottom: 5, left: 0 }}
                         >
@@ -914,14 +914,14 @@ const ODashboard: React.FC = () => {
                           <Bar
                             dataKey="standard"
                             name="Standard"
-                            fill="#2caffe"
+                            fill="#2563eb"
                             maxBarSize={32}
                             radius={[4, 4, 0, 0]}
                           />
                           <Bar
                             dataKey="actual"
                             name="Actual"
-                            fill="#544fc5"
+                            fill="#60a5fa"
                             maxBarSize={32}
                             radius={[4, 4, 0, 0]}
                           />
@@ -932,7 +932,7 @@ const ODashboard: React.FC = () => {
                       <span className="flex items-center gap-1.5">
                         <span
                           className="w-3 h-3 rounded-sm inline-block"
-                          style={{ backgroundColor: "#2caffe" }}
+                          style={{ backgroundColor: "#2563eb" }}
                         />
                         <span className="text-slate-600 font-medium">
                           Standard
@@ -941,7 +941,7 @@ const ODashboard: React.FC = () => {
                       <span className="flex items-center gap-1.5">
                         <span
                           className="w-3 h-3 rounded-sm inline-block"
-                          style={{ backgroundColor: "#544fc5" }}
+                          style={{ backgroundColor: "#60a5fa" }}
                         />
                         <span className="text-slate-600 font-medium">
                           Actual
@@ -967,7 +967,7 @@ const ODashboard: React.FC = () => {
                       <ResponsiveContainer width="100%" height={280}>
                         <BarChart
                           data={ticketTrendData}
-                          barGap={-18}
+                          barGap={-42}
                           barCategoryGap="20%"
                           margin={{ top: 20, right: 20, bottom: 5, left: 0 }}
                         >
@@ -1024,14 +1024,14 @@ const ODashboard: React.FC = () => {
                           <Bar
                             dataKey="required"
                             name="Required"
-                            fill="#2caffe"
+                            fill="#2563eb"
                             maxBarSize={32}
                             radius={[4, 4, 0, 0]}
                           />
                           <Bar
                             dataKey="completed"
                             name="Completed"
-                            fill="#544fc5"
+                            fill="#60a5fa"
                             maxBarSize={32}
                             radius={[4, 4, 0, 0]}
                           />
@@ -1042,7 +1042,7 @@ const ODashboard: React.FC = () => {
                       <span className="flex items-center gap-1.5">
                         <span
                           className="w-3 h-3 rounded-sm inline-block"
-                          style={{ backgroundColor: "#2caffe" }}
+                          style={{ backgroundColor: "#2563eb" }}
                         />
                         <span className="text-slate-600 font-medium">
                           Required
@@ -1051,7 +1051,7 @@ const ODashboard: React.FC = () => {
                       <span className="flex items-center gap-1.5">
                         <span
                           className="w-3 h-3 rounded-sm inline-block"
-                          style={{ backgroundColor: "#544fc5" }}
+                          style={{ backgroundColor: "#60a5fa" }}
                         />
                         <span className="text-slate-600 font-medium">
                           Completed
@@ -1194,45 +1194,63 @@ const ODashboard: React.FC = () => {
         />
 
         {/* Standard Params */}
-        <div className="mb-8 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="px-8 py-5 border-b border-slate-200">
-            <p className="text-sm font-bold uppercase tracking-[0.1em] text-slate-400 flex items-center gap-2">
-              <span className="material-symbols-outlined text-base">tune</span>
-              Standard Parameters
-            </p>
+        <div className="mb-8 overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white to-slate-50/70 shadow-sm">
+          <div className="px-8 py-5 border-b border-slate-200/80">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <p className="text-sm font-bold uppercase tracking-[0.1em] text-slate-500 flex items-center gap-2">
+                <span className="material-symbols-outlined text-base">tune</span>
+                Standard Parameters
+              </p>
+              <span className="text-[11px] font-semibold text-slate-400">
+                Configuration Baseline
+              </span>
+            </div>
           </div>
           <div className="p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 {
                   key: "BILLABLE_PARAM",
                   label: "Billable Param",
                   value: odcKPI.params?.BILLABLE_PARAM,
+                  icon: "payments",
+                  tone: "border-blue-100 bg-blue-50/60 text-blue-700",
                 },
                 {
                   key: "STANDARD_BA",
                   label: "Standard Ticket BA",
                   value: odcKPI.params?.STANDARD_BA,
+                  icon: "description",
+                  tone: "border-emerald-100 bg-emerald-50/60 text-emerald-700",
                 },
                 {
                   key: "STANDARD_DEV",
                   label: "Standard Ticket DEV",
                   value: odcKPI.params?.STANDARD_DEV,
+                  icon: "terminal",
+                  tone: "border-indigo-100 bg-indigo-50/60 text-indigo-700",
                 },
                 {
                   key: "STANDARD_QA",
                   label: "Standard Ticket QA",
                   value: odcKPI.params?.STANDARD_QA,
+                  icon: "fact_check",
+                  tone: "border-purple-100 bg-purple-50/60 text-purple-700",
                 },
               ].map((item) => (
                 <div
                   key={item.key}
-                  className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"
+                  className={`rounded-2xl border p-4 shadow-sm ${item.tone}`}
                 >
-                  <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">
-                    {item.label}
-                  </p>
-                  <p className="text-xl font-bold text-slate-700">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                      {item.label}
+                    </p>
+                    <span className="material-symbols-outlined text-[18px] opacity-80">
+                      {item.icon}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-2xl font-black leading-none text-slate-800">
                     {item.value !== undefined &&
                     item.value !== null &&
                     String(item.value).trim() !== ""

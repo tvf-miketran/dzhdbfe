@@ -67,6 +67,17 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
       ? "-"
       : String(value);
 
+  const totalKPIContributors =
+    (reachKPICount ?? 0) + (notReachKPICount ?? 0);
+  const reachRate =
+    totalKPIContributors > 0
+      ? (reachKPICount ?? 0) / totalKPIContributors
+      : 0;
+  const notReachRate =
+    totalKPIContributors > 0
+      ? (notReachKPICount ?? 0) / totalKPIContributors
+      : 0;
+
   return (
     <div className="mb-8 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
@@ -182,51 +193,47 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
               {/* Reach KPI */}
               {reachKPICount !== undefined &&
                 notReachKPICount !== undefined && (
-                  <div className="sm:col-span-2 lg:col-span-3 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                    <p className="text-[10px] font-black uppercase text-slate-400 mb-3">
-                      KPI Achievement
-                    </p>
-                    <div className="flex items-center gap-6">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                        <span className="text-sm font-bold text-emerald-700">
-                          {reachKPICount}
-                        </span>
-                        <span className="text-xs text-slate-500">Reach</span>
+                  <div className="sm:col-span-2 lg:col-span-3 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-5 shadow-sm">
+                    <div className="mb-4 flex items-center justify-between">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                        KPI Achievement
+                      </p>
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600">
+                        {totalKPIContributors} Members
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                          Reach
+                        </p>
+                        <div className="mt-1 flex items-end justify-between">
+                          <span className="text-2xl font-black text-emerald-700">
+                            {reachKPICount}
+                          </span>
+                          <span className="text-xs font-semibold text-emerald-600">
+                            {(reachRate * 100).toFixed(0)}%
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-red-500" />
-                        <span className="text-sm font-bold text-red-700">
-                          {notReachKPICount}
-                        </span>
-                        <span className="text-xs text-slate-500">
+
+                      <div className="rounded-xl border border-rose-100 bg-rose-50/60 p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-rose-700">
                           Not Reach
-                        </span>
+                        </p>
+                        <div className="mt-1 flex items-end justify-between">
+                          <span className="text-2xl font-black text-rose-700">
+                          {notReachKPICount}
+                          </span>
+                          <span className="text-xs font-semibold text-rose-600">
+                            {(notReachRate * 100).toFixed(0)}%
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <div className="mt-3 h-3 rounded-full bg-slate-100 overflow-hidden flex">
-                      {reachKPICount + notReachKPICount > 0 && (
-                        <>
-                          <div
-                            className="h-full bg-emerald-500 transition-all duration-500"
-                            style={{
-                              width: `${(reachKPICount / (reachKPICount + notReachKPICount)) * 100}%`,
-                            }}
-                          />
-                          <div
-                            className="h-full bg-red-500 transition-all duration-500"
-                            style={{
-                              width: `${(notReachKPICount / (reachKPICount + notReachKPICount)) * 100}%`,
-                            }}
-                          />
-                        </>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-slate-400 mt-2">
-                      {reachKPICount + notReachKPICount > 0
-                        ? `${((reachKPICount / (reachKPICount + notReachKPICount)) * 100).toFixed(0)}% members reached KPI`
-                        : "No data"}
-                    </p>
+
+
                   </div>
                 )}
 
