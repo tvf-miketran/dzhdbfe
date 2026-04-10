@@ -28,6 +28,9 @@ export const queryKeys = {
       [...queryKeys.employees.lists(), { params }] as const,
     details: () => [...queryKeys.employees.all, "detail"] as const,
     detail: (id: string) => [...queryKeys.employees.details(), id] as const,
+    meProjects: () => [...queryKeys.employees.all, "meProjects"] as const,
+    membersProjects: () =>
+      [...queryKeys.employees.all, "membersProjects"] as const,
   },
 
   // Dashboard keys

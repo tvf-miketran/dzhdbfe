@@ -3,7 +3,8 @@ import { useAuth } from "../context/AuthContext";
 import {
   useAdminLogworks,
   useUserLogworks,
-  useEmployees,
+  useMembersProjects,
+  useMeProjects,
   useSaveLogworks,
 } from "../hooks";
 import { ConfirmActionModal } from "../components/modal/confirm";
@@ -31,6 +32,22 @@ interface EmployeeBasic {
 interface LogworkCellData {
   hours: number;
   status: 0 | 1 | null;
+}
+
+interface ProjectRowData {
+  projectId: string;
+  projectName: string;
+  allocationPercent: number;
+  cells: LogworkCellData[];
+}
+
+interface EmployeeRowData {
+  id: string;
+  name: string;
+  initials: string;
+  color: string;
+  totalCells: LogworkCellData[];
+  projects: ProjectRowData[];
 }
 
 const Logwork: React.FC = () => {
@@ -61,9 +78,12 @@ const Logwork: React.FC = () => {
   const [selectedQuarter, setSelectedQuarter] = useState<string>("");
   const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
   const [searchName, setSearchName] = useState<string>("");
+  const [expandedEmployees, setExpandedEmployees] = useState<Set<string>>(
+    new Set(),
+  );
 
   // ─── Changed-cells tracking ──────────────────────────────────────────────────
-  // Key: "<employeeUUID>|<monthNumber>" (month is 1-based), value: hours as number
+  // Key: "<employeeUUID>|<projectId>|<monthNumber>", value: hours as number
   const [changedCells, setChangedCells] = useState<Map<string, number>>(
     new Map(),
   );
@@ -72,25 +92,65 @@ const Logwork: React.FC = () => {
   // ─── Save mutation ───────────────────────────────────────────────────────────
   const { mutate: saveLogworks, isPending: isSaving } = useSaveLogworks();
 
-  // ─── Fetch all employees (admin needs to show all) ───────────────────────────
-  const { data: employeesResponse } = useEmployees(
-    { per_page: 1000 },
-    { enabled: !isMember }, // Only admins need the full employee list
-  );
+  const {
+    data: membersProjectsResponse,
+    isLoading: membersProjectsLoading,
+    error: membersProjectsError,
+  } = useMembersProjects({
+    enabled: !isMember,
+  });
 
-  const allEmployees = useMemo<EmployeeBasic[]>(() => {
-    const data = employeesResponse?.data;
-    if (!data) return [];
+  const {
+    data: meProjectsResponse,
+    isLoading: meProjectsLoading,
+    error: meProjectsError,
+  } = useMeProjects({
+    enabled: isMember,
+  });
 
-    // Fallback logic in case the API returns an array directly vs paginated object
-    const items = Array.isArray(data) ? data : (data as any).items;
-    if (!items || !Array.isArray(items)) return [];
+  const memberProjects = useMemo(() => {
+    if (isMember) {
+      return meProjectsResponse?.data ? [meProjectsResponse.data] : [];
+    }
+    return membersProjectsResponse?.data ?? [];
+  }, [isMember, meProjectsResponse, membersProjectsResponse]);
 
-    return items.map((e: any) => ({
-      id: e.id,
-      enFullName: e.enFullName,
-    }));
-  }, [employeesResponse]);
+  const memberProjectLookup = useMemo(() => {
+    const byEmployee = new Map<string, Map<string, number>>();
+
+    memberProjects.forEach((member) => {
+      const projectMap = new Map<string, number>();
+      member.projects.forEach((project) => {
+        projectMap.set(project.projectId, project.allocationPercent);
+      });
+      byEmployee.set(member.id, projectMap);
+    });
+
+    return byEmployee;
+  }, [memberProjects]);
+
+  const membersByEmployeeId = useMemo(() => {
+    const byId = new Map<string, EmployeeBasic>();
+    memberProjects.forEach((member) => {
+      byId.set(member.id, {
+        id: member.id,
+        enFullName: member.enFullName,
+      });
+    });
+    return byId;
+  }, [memberProjects]);
+
+  const toggleExpand = useCallback((employeeId: string) => {
+    setExpandedEmployees((prev) => {
+      const next = new Set(prev);
+      if (next.has(employeeId)) {
+        next.delete(employeeId);
+      } else {
+        next.add(employeeId);
+      }
+      return next;
+    });
+  }, []);
 
   // ─── Fetch logworks ──────────────────────────────────────────────────────────
   const selectedMonthsParam =
@@ -101,7 +161,6 @@ const Logwork: React.FC = () => {
   const adminFilters = {
     month: selectedMonthsParam,
     year: selectedYear,
-    userName: searchName,
     quarter: selectedQuarter,
     sortBy: "desc" as const,
   };
@@ -128,84 +187,189 @@ const Logwork: React.FC = () => {
   const logworksResponse = isMember
     ? memberLogworksResponse
     : adminLogworksResponse;
-  const isLoading = isMember ? memberLoading : adminLoading;
-  const error = isMember ? memberError : adminError;
 
-  const logworkItems = logworksResponse?.data?.items ?? [];
+  const logworkGroups = useMemo(() => {
+    const payload = logworksResponse?.data;
+    if (!payload) return [];
+    return Array.isArray(payload) ? payload : [payload];
+  }, [logworksResponse]);
 
-  const standardLogworkByMonth = useMemo(
-    () => logworksResponse?.data?.standardLogworkByMonth ?? {},
-    [logworksResponse],
-  );
+  const isLoading = isMember
+    ? memberLoading || meProjectsLoading
+    : adminLoading || membersProjectsLoading;
+
+  const error = isMember
+    ? memberError || meProjectsError
+    : adminError || membersProjectsError;
+
+  const standardLogworkByMonth = useMemo(() => {
+    const standardByMonth: Record<string, number> = {};
+
+    logworkGroups.forEach((group) => {
+      group.total.forEach((item) => {
+        const key = String(item.month).padStart(2, "0");
+        if (standardByMonth[key] === undefined) {
+          standardByMonth[key] = item.standardLogworkInMonth;
+        }
+      });
+
+      group.data.forEach((item) => {
+        const key = String(item.month).padStart(2, "0");
+        if (standardByMonth[key] === undefined) {
+          standardByMonth[key] = item.standardLogworkInMonth;
+        }
+      });
+    });
+
+    return standardByMonth;
+  }, [logworkGroups]);
 
   // ─── Build table data ────────────────────────────────────────────────────────
   const tableData = useMemo(() => {
     const createEmptyCells = (): LogworkCellData[] =>
       Array.from({ length: 12 }, () => ({ hours: 0, status: null }));
 
-    // Map from employee UUID → { id, name, cells[12] }
-    const employeeMap = new Map<
-      string,
-      {
-        id: string;
-        name: string;
-        initials: string;
-        cells: LogworkCellData[];
-        color: string;
-        totalEEPercent: number | null;
-      }
-    >();
+    const employeeMap = new Map<string, EmployeeRowData>();
 
-    // For admins: pre-populate with all employees (so they always appear even with no data)
-    if (!isMember && allEmployees.length > 0 && !searchName) {
-      allEmployees.forEach((emp) => {
-        employeeMap.set(emp.id, {
-          id: emp.id,
-          name: emp.enFullName,
-          initials: getInitials(emp.enFullName),
-          cells: createEmptyCells(),
-          color: getRandomColor(emp.id),
-          totalEEPercent: null,
+    const ensureEmployee = (
+      employeeId: string,
+      employeeName: string,
+    ): EmployeeRowData => {
+      const existing = employeeMap.get(employeeId);
+      if (existing) return existing;
+
+      const next: EmployeeRowData = {
+        id: employeeId,
+        name: employeeName,
+        initials: getInitials(employeeName),
+        totalCells: createEmptyCells(),
+        projects: [],
+        color: getRandomColor(employeeId),
+      };
+
+      employeeMap.set(employeeId, next);
+      return next;
+    };
+
+    const ensureProject = (
+      employee: EmployeeRowData,
+      projectId: string,
+      projectName: string,
+      allocationPercent: number,
+    ): ProjectRowData => {
+      const existing = employee.projects.find((p) => p.projectId === projectId);
+      if (existing) return existing;
+
+      const next: ProjectRowData = {
+        projectId,
+        projectName,
+        allocationPercent,
+        cells: createEmptyCells(),
+      };
+
+      employee.projects.push(next);
+      return next;
+    };
+
+    memberProjects.forEach((member) => {
+      const employee = ensureEmployee(member.id, member.enFullName);
+      member.projects.forEach((project) => {
+        ensureProject(
+          employee,
+          project.projectId,
+          project.projectName,
+          project.allocationPercent,
+        );
+      });
+    });
+
+    logworkGroups.forEach((group) => {
+      const memberProfile = membersByEmployeeId.get(group.employeeId);
+      const employee = ensureEmployee(
+        group.employeeId,
+        memberProfile?.enFullName ?? group.engName,
+      );
+
+      group.total.forEach((total) => {
+        const monthIndex = parseInt(total.month, 10) - 1;
+        if (monthIndex >= 0 && monthIndex < 12) {
+          employee.totalCells[monthIndex].hours = total.totalLoghour;
+          employee.totalCells[monthIndex].status = total.status;
+        }
+      });
+
+      group.data.forEach((logwork) => {
+        const monthIndex = parseInt(logwork.month, 10) - 1;
+        if (monthIndex < 0 || monthIndex > 11) return;
+
+        if (!Array.isArray(logwork.projects) || logwork.projects.length === 0) {
+          return;
+        }
+
+        const totalEE =
+          logwork.totalEEPercent > 0
+            ? logwork.totalEEPercent
+            : logwork.projects.reduce(
+                (sum, project) => sum + (project.EEPercent ?? 0),
+                0,
+              );
+        const isPerProjectRow = logwork.projects.length === 1;
+
+        logwork.projects.forEach((project) => {
+          const allocationPercent =
+            project.EEPercent ??
+            memberProjectLookup.get(group.employeeId)?.get(project.projectId) ??
+            0;
+
+          const projectRow = ensureProject(
+            employee,
+            project.projectId,
+            project.projectName,
+            allocationPercent,
+          );
+
+          const distributedHours = isPerProjectRow
+            ? logwork.logHours
+            : totalEE > 0
+              ? (logwork.logHours * allocationPercent) / totalEE
+              : logwork.logHours;
+
+          projectRow.cells[monthIndex].hours += distributedHours;
+          projectRow.cells[monthIndex].status = logwork.status;
         });
       });
-    }
 
-    // Add / merge logworks data
-    if (logworkItems.length > 0) {
-      logworkItems.forEach((logwork) => {
-        const monthIndex = parseInt(logwork.month, 10) - 1;
-        const key = logwork.employeeId; // This is the UUID returned from logworks API
-
-        if (!employeeMap.has(key)) {
-          // For members (or if UUID not in employee list)
-          employeeMap.set(key, {
-            id: key,
-            name: logwork.engName,
-            initials: getInitials(logwork.engName),
-            cells: createEmptyCells(),
-            color: getRandomColor(key),
-            totalEEPercent: logwork.totalEEPercent,
+      if (group.total.length === 0) {
+        employee.projects.forEach((project) => {
+          project.cells.forEach((cell, monthIndex) => {
+            employee.totalCells[monthIndex].hours += cell.hours;
+            if (cell.status !== null) {
+              employee.totalCells[monthIndex].status = cell.status;
+            }
           });
-        }
+        });
+      }
+    });
 
-        const employee = employeeMap.get(key)!;
-        employee.totalEEPercent = logwork.totalEEPercent;
-
-        if (monthIndex >= 0 && monthIndex < 12) {
-          employee.cells[monthIndex].hours += logwork.logHours;
-          employee.cells[monthIndex].status = logwork.status;
-        }
-      });
-    }
-
-    return Array.from(employeeMap.values());
-  }, [allEmployees, isMember, logworkItems, searchName]);
+    return Array.from(employeeMap.values())
+      .filter((employee) => {
+        if (!searchName.trim()) return true;
+        return employee.name.toLowerCase().includes(searchName.toLowerCase());
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [
+    logworkGroups,
+    memberProjectLookup,
+    memberProjects,
+    membersByEmployeeId,
+    searchName,
+  ]);
 
   // ─── Monthly totals ──────────────────────────────────────────────────────────
   const monthlyTotals = useMemo(() => {
     const totals = new Array(12).fill(0);
     tableData.forEach((emp) => {
-      emp.cells.forEach((cell, i) => {
+      emp.totalCells.forEach((cell, i) => {
         totals[i] += cell.hours;
       });
     });
@@ -254,11 +418,10 @@ const Logwork: React.FC = () => {
 
   // ─── Month filter helpers ─────────────────────────────────────────────────────
   const toggleMonth = (month: number) => {
-    setSelectedQuarter(""); // Clear quarter selection when manually selecting months
+    setSelectedQuarter("");
     setSelectedMonths((prev) =>
       prev.includes(month) ? prev.filter((m) => m !== month) : [...prev, month],
     );
-    // Clear changed cells when filter changes to avoid stale references
     setChangedCells(new Map());
   };
 
@@ -269,17 +432,28 @@ const Logwork: React.FC = () => {
 
   // ─── Cell edit tracking ──────────────────────────────────────────────────────
   const handleCellChange = useCallback(
-    (employeeId: string, monthNumber: number, value: string) => {
+    (
+      employeeId: string,
+      projectId: string,
+      monthNumber: number,
+      value: string,
+    ) => {
       const hours = parseFloat(value);
-      const key = `${employeeId}|${monthNumber}`;
+      const key = `${employeeId}|${projectId}|${monthNumber}`;
+
       setChangedCells((prev) => {
         const next = new Map(prev);
-        if (value === "" || isNaN(hours)) {
-          // Treat empty / invalid as 0
+        if (value === "") {
           next.set(key, 0);
-        } else {
-          next.set(key, hours);
+          return next;
         }
+
+        if (Number.isNaN(hours) || hours < 0) {
+          next.delete(key);
+          return next;
+        }
+
+        next.set(key, hours);
         return next;
       });
     },
@@ -290,17 +464,26 @@ const Logwork: React.FC = () => {
   const handleSave = () => {
     if (changedCells.size === 0) return;
 
-    const logworks = Array.from(changedCells.entries()).map(
-      ([key, logHours]) => {
-        const [employeeId, monthStr] = key.split("|");
+    const logworks = Array.from(
+      changedCells.entries() as Iterable<[string, number]>,
+    )
+      .map(([cellKey, logHour]: [string, number]) => {
+        const [employeeId, projectId, monthStr] = cellKey.split("|");
+        const monthNumber = parseInt(monthStr, 10);
+        if (!employeeId || !projectId || monthNumber < 1 || monthNumber > 12) {
+          return null;
+        }
         return {
           userId: employeeId,
+          projectId,
           year: selectedYear,
           month: monthStr,
-          logHour: logHours.toString(),
+          logHour: logHour.toString(),
         };
-      },
-    );
+      })
+      .filter((item): item is NonNullable<typeof item> => !!item);
+
+    if (logworks.length === 0) return;
 
     saveLogworks(
       { logworks },
@@ -362,6 +545,33 @@ const Logwork: React.FC = () => {
   }, []);
 
   const hasChanges = changedCells.size > 0;
+
+  const getStatusClasses = (status: 0 | 1 | null): string => {
+    if (status === 1) return "bg-emerald-50 text-emerald-700";
+    if (status === 0) return "bg-rose-50 text-rose-700";
+    return "";
+  };
+
+  const getProjectCellDisplayValue = (
+    employeeId: string,
+    projectId: string,
+    monthNumber: number,
+    fallback: number,
+  ): string => {
+    const key = `${employeeId}|${projectId}|${monthNumber}`;
+    const changedValue = changedCells.get(key);
+    if (changedValue !== undefined) {
+      return String(changedValue);
+    }
+    return fallback > 0 ? String(fallback) : "";
+  };
+
+  const getEmployeeTotalEE = (employee: EmployeeRowData): number => {
+    return employee.projects.reduce(
+      (sum, project) => sum + project.allocationPercent,
+      0,
+    );
+  };
 
   // ─── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -454,7 +664,6 @@ const Logwork: React.FC = () => {
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
                   const val = Number(e.target.value);
                   if (val) toggleMonth(val);
-                  // Reset select back to placeholder
                   e.target.value = "";
                 }}
                 className="w-full h-11 pl-4 pr-10 bg-background-light border border-border-light rounded-xl text-sm font-semibold text-slate-900 appearance-none focus:ring-2 focus:ring-primary/20 outline-none"
@@ -550,11 +759,11 @@ const Logwork: React.FC = () => {
       <div className="flex-1 overflow-auto p-3 md:p-4 lg:p-6 custom-scrollbar">
         <div className="rounded-lg md:rounded-xl border border-border-light bg-surface-light shadow-lg overflow-hidden">
           <div className="overflow-x-auto custom-scrollbar">
-            <table className="w-full border-collapse min-w-[700px] lg:min-w-0">
+            <table className="w-full table-fixed border-collapse min-w-[700px] lg:min-w-0">
               <thead className="bg-slate-50 sticky top-0 z-20">
                 <tr className="border-b border-border-light">
                   <th
-                    className={`sticky left-0 z-30 bg-slate-50 px-3 md:px-6 py-3 md:py-5 text-center text-[10px] md:text-[11px] font-semibold uppercase tracking-widest text-slate-600 border-r border-border-light ${isSingleMonthView ? "w-[200px] md:w-[260px] min-w-[200px] md:min-w-[260px]" : "min-w-[200px] md:min-w-[260px]"}`}
+                    className="sticky left-0 z-30 bg-slate-50 px-3 md:px-6 py-3 md:py-5 text-center text-[10px] md:text-[11px] font-semibold uppercase tracking-widest text-slate-600 border-r border-border-light w-[30%] min-w-[30%] max-w-[30%]"
                   >
                     User Name
                   </th>
@@ -620,86 +829,126 @@ const Logwork: React.FC = () => {
                 ) : (
                   <>
                     {tableData.map((emp) => (
-                      <tr
-                        key={emp.id}
-                        className="group hover:bg-slate-50 transition-colors"
-                      >
-                        <td
-                          className={`sticky left-0 z-10 bg-surface-light group-hover:bg-slate-100 transition-colors px-3 md:px-6 py-3 md:py-4 border-r border-border-light text-left ${isSingleMonthView ? "w-[200px] md:w-[260px]" : ""}`}
-                        >
-                          <div className="flex items-center justify-between gap-2 md:gap-4">
-                            <div className="min-w-0 flex items-center gap-2 md:gap-4">
-                              <div
-                                className={`h-8 md:h-10 w-8 md:w-10 rounded-full ${emp.color}/10 flex items-center justify-center font-semibold text-[10px] md:text-xs ${emp.color.replace("bg-", "text-")}`}
-                              >
-                                {emp.initials}
+                      <React.Fragment key={emp.id}>
+                        <tr className="group hover:bg-slate-50 transition-colors">
+                          <td
+                            className="sticky left-0 z-10 bg-surface-light group-hover:bg-slate-100 transition-colors px-3 md:px-6 py-3 md:py-4 border-r border-border-light text-left w-[30%] min-w-[30%] max-w-[30%]"
+                          >
+                            <div className="flex items-center justify-between gap-2 md:gap-4">
+                              <div className="min-w-0 flex items-center gap-2 md:gap-4">
+                                <div
+                                  className={`h-8 md:h-10 w-8 md:w-10 rounded-full ${emp.color}/10 flex items-center justify-center font-semibold text-[10px] md:text-xs ${emp.color.replace("bg-", "text-")}`}
+                                >
+                                  {emp.initials}
+                                </div>
+                                <span className="text-xs md:text-sm font-semibold text-slate-900 truncate">
+                                  {emp.name}
+                                </span>
                               </div>
-                              <span className="text-xs md:text-sm font-semibold text-slate-900 truncate">
-                                {emp.name}
-                              </span>
+                              <div className="shrink-0 flex items-center gap-1.5">
+                                <span className="text-[10px] md:text-xs font-semibold text-slate-500 text-left">
+                                  EE {formatHours(getEmployeeTotalEE(emp))}%
+                                </span>
+                                <button
+                                  type="button"
+                                  className="h-7 w-7 rounded-full hover:bg-slate-200 text-slate-600 transition-colors"
+                                  onClick={() => toggleExpand(emp.id)}
+                                  aria-label={
+                                    expandedEmployees.has(emp.id)
+                                      ? `Collapse ${emp.name}`
+                                      : `Expand ${emp.name}`
+                                  }
+                                >
+                                  <span className="material-symbols-outlined text-[18px] leading-none">
+                                    {expandedEmployees.has(emp.id)
+                                      ? "keyboard_arrow_up"
+                                      : "keyboard_arrow_down"}
+                                  </span>
+                                </button>
+                              </div>
                             </div>
-                            <span className="shrink-0 text-[10px] md:text-xs font-semibold text-slate-500 text-right">
-                              {emp.totalEEPercent !== null
-                                ? `${formatHours(emp.totalEEPercent)}%`
-                                : "-"}
-                            </span>
-                          </div>
-                        </td>
-                        {displayedMonths.map((m) => {
-                          const cellKey = `${emp.id}|${m.index + 1}`;
-                          const changedValue = changedCells.get(cellKey);
-                          const currentCell = emp.cells[m.index];
-                          const displayValue =
-                            changedValue !== undefined
-                              ? String(changedValue)
-                              : currentCell.status === null
-                                ? ""
-                                : String(currentCell.hours);
-                          const statusClasses =
-                            currentCell.status === 1
-                              ? "bg-emerald-50 text-emerald-700"
-                              : currentCell.status === 0
-                                ? "bg-rose-50 text-rose-700"
-                                : "";
+                          </td>
+                          {displayedMonths.map((m) => {
+                            const currentCell = emp.totalCells[m.index];
+                            const statusClasses = getStatusClasses(
+                              currentCell.status,
+                            );
 
-                          return (
-                            <td
-                              key={m.name}
-                              className={`p-0.5 md:p-1 border-r border-border-light transition-colors ${statusClasses} ${isSingleMonthView ? "text-center" : ""}`}
+                            return (
+                              <td
+                                key={m.name}
+                                className={`px-3 md:px-6 py-3 md:py-4 text-center text-[10px] md:text-sm font-semibold border-r border-border-light transition-colors ${statusClasses} ${isSingleMonthView ? "text-center" : ""}`}
+                              >
+                                {currentCell.hours > 0
+                                  ? formatHours(currentCell.hours)
+                                  : "-"}
+                              </td>
+                            );
+                          })}
+                        </tr>
+
+                        {expandedEmployees.has(emp.id) &&
+                          emp.projects.map((project) => (
+                            <tr
+                              key={`${emp.id}-${project.projectId}`}
+                              className="bg-slate-50/60"
                             >
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.5"
-                                defaultValue={displayValue}
-                                key={`${emp.id}-${m.index}-${selectedYear}`}
-                                placeholder="-"
-                                disabled={isMember}
-                                onChange={(
-                                  e: React.ChangeEvent<HTMLInputElement>,
-                                ) =>
-                                  handleCellChange(
-                                    emp.id,
-                                    m.index + 1,
-                                    e.target.value,
-                                  )
-                                }
-                                className={`w-full h-8 md:h-10 bg-transparent border-0 text-center text-[10px] md:text-sm font-semibold focus:ring-2 focus:ring-primary rounded transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                                  isMember
-                                    ? "cursor-not-allowed opacity-60"
-                                    : "hover:ring-2 hover:ring-primary/30"
-                                } ${
-                                  currentCell.status === 1
-                                    ? "text-emerald-700"
-                                    : currentCell.status === 0
-                                      ? "text-rose-700"
-                                      : "text-slate-900"
-                                } ${changedCells.has(cellKey) ? "ring-2 ring-amber-400" : ""}`}
-                              />
-                            </td>
-                          );
-                        })}
-                      </tr>
+                              <td
+                                className="sticky left-0 z-10 bg-slate-50 px-3 md:px-6 py-2.5 md:py-3 border-r border-border-light text-left w-[30%] min-w-[30%] max-w-[30%]"
+                              >
+                                <div className="pl-10 md:pl-14 flex items-center justify-between gap-2">
+                                  <span className="text-[11px] md:text-xs font-semibold text-slate-700 truncate">
+                                    {project.projectName}
+                                  </span>
+                                  <span className="text-[10px] md:text-xs font-semibold text-slate-500 shrink-0">
+                                    EE {formatHours(project.allocationPercent)}%
+                                  </span>
+                                </div>
+                              </td>
+                              {displayedMonths.map((m) => {
+                                const monthNumber = m.index + 1;
+                                const cellKey = `${emp.id}|${project.projectId}|${monthNumber}`;
+                                const currentCell = project.cells[m.index];
+
+                                return (
+                                  <td
+                                    key={`${project.projectId}-${m.name}`}
+                                    className={`p-0.5 md:p-1 border-r border-border-light transition-colors ${isSingleMonthView ? "text-center" : ""}`}
+                                  >
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="0.5"
+                                      value={getProjectCellDisplayValue(
+                                        emp.id,
+                                        project.projectId,
+                                        monthNumber,
+                                        currentCell.hours,
+                                      )}
+                                      placeholder="-"
+                                      disabled={isMember}
+                                      onChange={(
+                                        e: React.ChangeEvent<HTMLInputElement>,
+                                      ) =>
+                                        handleCellChange(
+                                          emp.id,
+                                          project.projectId,
+                                          monthNumber,
+                                          e.target.value,
+                                        )
+                                      }
+                                      className={`w-full h-8 md:h-10 bg-transparent border-0 text-center text-[10px] md:text-sm font-semibold focus:ring-2 focus:ring-primary rounded transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                        isMember
+                                          ? "cursor-not-allowed opacity-60"
+                                          : "hover:ring-2 hover:ring-primary/30"
+                                      } text-slate-900 ${changedCells.has(cellKey) ? "ring-2 ring-amber-400" : ""}`}
+                                    />
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                      </React.Fragment>
                     ))}
 
                     {/* Summary Row */}
