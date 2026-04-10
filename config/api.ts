@@ -6,9 +6,9 @@
 // Base URL - can be overridden by environment variables
 export const API_BASE_URL =
   // import.meta.env.VITE_API_BASE_URL || "https://dzhdb-production.up.railway.app";
- 
-    import.meta.env.VITE_API_BASE_URL || "https://dzhdb-production.up.railway.app";
 
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://dzhdb-production.up.railway.app";
 
 // API versions
 export const API_VERSION = {
@@ -141,6 +141,7 @@ export const ENDPOINTS = {
     CALCULATE: "/formulas/calculate",
     CALCULATE_USER: (userId: string) => `/formulas/calculate/${userId}`,
     KPI_CLOSED_TICKETS: "/formulas/kpi/closed-tickets",
+    LIST_EMPLOYEES_EE: "/formulas/list-employees-ee",
   },
 
   // Logworks endpoints

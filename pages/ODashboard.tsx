@@ -20,6 +20,7 @@ import MainKPISection from "../components/MainKPISection";
 import TicketConsumptionDashboard from "../components/TicketConsumptionDashboard";
 import StatusOverviewDonut from "../components/StatusOverviewDonut";
 import ProjectPerformanceTable from "../components/ProjectPerformanceTable";
+import { EmployeesEEModal } from "../components/modal";
 import {
   extractFormulaAggregateFromResponse,
   extractFormulaCandidateFromResponse,
@@ -323,6 +324,7 @@ const ODashboard: React.FC = () => {
   const [closedTicketError, setClosedTicketError] = useState<string | null>(
     null,
   );
+  const [isEEModalOpen, setIsEEModalOpen] = useState(false);
 
   const normalizedContributionSearch = contributionSearch.trim().toLowerCase();
 
@@ -820,6 +822,7 @@ const ODashboard: React.FC = () => {
                 hideParams
                 reachKPICount={reachCount}
                 notReachKPICount={notReachCount}
+                onAverageEEClick={() => setIsEEModalOpen(true)}
               />
 
               {/* Variance Analysis */}
@@ -921,7 +924,7 @@ const ODashboard: React.FC = () => {
                           <Bar
                             dataKey="actual"
                             name="Actual"
-                            fill="#60a5fa"
+                            fill="#b6c1ff"
                             maxBarSize={32}
                             radius={[4, 4, 0, 0]}
                           />
@@ -941,7 +944,7 @@ const ODashboard: React.FC = () => {
                       <span className="flex items-center gap-1.5">
                         <span
                           className="w-3 h-3 rounded-sm inline-block"
-                          style={{ backgroundColor: "#60a5fa" }}
+                          style={{ backgroundColor: "#b6c1ff" }}
                         />
                         <span className="text-slate-600 font-medium">
                           Actual
@@ -1031,7 +1034,7 @@ const ODashboard: React.FC = () => {
                           <Bar
                             dataKey="completed"
                             name="Completed"
-                            fill="#60a5fa"
+                            fill="#b6c1ff"
                             maxBarSize={32}
                             radius={[4, 4, 0, 0]}
                           />
@@ -1051,7 +1054,7 @@ const ODashboard: React.FC = () => {
                       <span className="flex items-center gap-1.5">
                         <span
                           className="w-3 h-3 rounded-sm inline-block"
-                          style={{ backgroundColor: "#60a5fa" }}
+                          style={{ backgroundColor: "#b6c1ff" }}
                         />
                         <span className="text-slate-600 font-medium">
                           Completed
@@ -1513,6 +1516,11 @@ const ODashboard: React.FC = () => {
           )}
         </div>
       </div>
+
+      <EmployeesEEModal
+        isOpen={isEEModalOpen}
+        onClose={() => setIsEEModalOpen(false)}
+      />
     </div>
   );
 };
