@@ -78,8 +78,15 @@ export interface KpiClosedTicketsParams {
   ticket_type_id?: string;
 }
 
+export interface EmployeeEEProject {
+  allocationPercent: number;
+  projectId: string;
+  projectName: string;
+}
+
 export interface EmployeeEEItem {
   enFullName: string;
+  projects: EmployeeEEProject[];
   totalEE: number;
 }
 
