@@ -11,14 +11,23 @@ export interface Logwork {
   id: string;
   employeeId: string;
   engName: string;
+  estimateScore: number;
   logHours: number;
   month: string;
+  standardLogworkInMonth: number;
+  status: 0 | 1;
+  totalEEPercent: number;
   year: string;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface LogworksResponse extends BaseApiResponse<Logwork[]> {}
+export interface LogworksData {
+  items: Logwork[];
+  standardLogworkByMonth: Record<string, number>;
+}
+
+export interface LogworksResponse extends BaseApiResponse<LogworksData> {}
 
 export interface LogworksFilters {
   /** Single month number as string, e.g. "3" */

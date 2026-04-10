@@ -10,6 +10,9 @@ interface MainKPISectionProps {
   onRefresh: () => void;
   showTotal?: boolean;
   totalMembers?: number;
+  hideParams?: boolean;
+  reachKPICount?: number;
+  notReachKPICount?: number;
 }
 
 const MainKPISection: React.FC<MainKPISectionProps> = ({
@@ -19,10 +22,14 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
   onRefresh,
   showTotal = false,
   totalMembers,
+  hideParams = false,
+  reachKPICount,
+  notReachKPICount,
 }) => {
   const billableStandard = kpi.billableStandard ?? 0;
   const logworkStandard = kpi.logworkStandard ?? 0;
   const averageEE = kpi.averageEE;
+  const memberTotalEE = kpi.memberTotalEE;
 
   const standardParamItems = [
     {
@@ -59,11 +66,6 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
     value === undefined || value === null || String(value).trim() === ""
       ? "-"
       : String(value);
-
-  const getBreakdownProgressWidth = (value: number, standard: number) => {
-    if (standard <= 0) return "0%";
-    return `${Math.min((value / standard) * 100, 100)}%`;
-  };
 
   return (
     <div className="mb-8 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -169,91 +171,81 @@ const MainKPISection: React.FC<MainKPISectionProps> = ({
                   Average EE
                 </p>
                 <p className="text-2xl font-bold text-slate-800">
-                  {averageEE !== undefined ? `${averageEE.toFixed(2)}%` : "-"}
+                  {memberTotalEE !== undefined
+                    ? `${memberTotalEE}%`
+                    : averageEE !== undefined
+                      ? `${averageEE}%`
+                      : "-"}
                 </p>
               </div>
 
-              {standardParamItems.map((item) => (
-                <div
-                  key={item.key}
-                  className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"
-                >
-                  <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">
-                    {item.label}
-                  </p>
-                  <p className="text-xl font-bold text-slate-700">
-                    {displayOptionalValue(item.value)}
-                  </p>
-                </div>
-              ))}
+              {/* Reach KPI */}
+              {reachKPICount !== undefined &&
+                notReachKPICount !== undefined && (
+                  <div className="sm:col-span-2 lg:col-span-3 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                    <p className="text-[10px] font-black uppercase text-slate-400 mb-3">
+                      KPI Achievement
+                    </p>
+                    <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                        <span className="text-sm font-bold text-emerald-700">
+                          {reachKPICount}
+                        </span>
+                        <span className="text-xs text-slate-500">Reach</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-red-500" />
+                        <span className="text-sm font-bold text-red-700">
+                          {notReachKPICount}
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          Not Reach
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-3 h-3 rounded-full bg-slate-100 overflow-hidden flex">
+                      {reachKPICount + notReachKPICount > 0 && (
+                        <>
+                          <div
+                            className="h-full bg-emerald-500 transition-all duration-500"
+                            style={{
+                              width: `${(reachKPICount / (reachKPICount + notReachKPICount)) * 100}%`,
+                            }}
+                          />
+                          <div
+                            className="h-full bg-red-500 transition-all duration-500"
+                            style={{
+                              width: `${(notReachKPICount / (reachKPICount + notReachKPICount)) * 100}%`,
+                            }}
+                          />
+                        </>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-2">
+                      {reachKPICount + notReachKPICount > 0
+                        ? `${((reachKPICount / (reachKPICount + notReachKPICount)) * 100).toFixed(0)}% members reached KPI`
+                        : "No data"}
+                    </p>
+                  </div>
+                )}
+
+              {!hideParams &&
+                standardParamItems.map((item) => (
+                  <div
+                    key={item.key}
+                    className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"
+                  >
+                    <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">
+                      {item.label}
+                    </p>
+                    <p className="text-xl font-bold text-slate-700">
+                      {displayOptionalValue(item.value)}
+                    </p>
+                  </div>
+                ))}
             </div>
           </section>
-
-          {/* Performance Breakdown */}
-          {kpi.breakdown && (
-            <section className="pt-8 border-t border-slate-100">
-              <h4 className="mb-8 text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                Performance Breakdown
-              </h4>
-              <div className="space-y-8">
-                {/* Ticket Completion */}
-                <div>
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="flex items-center gap-2.5 text-sm font-bold text-slate-700">
-                      <div className="p-1.5 bg-blue-100 rounded-lg">
-                        <span className="material-symbols-outlined text-blue-600 text-sm block">
-                          task_alt
-                        </span>
-                      </div>
-                      Ticket Completion
-                    </span>
-                    <span className="text-sm font-black text-blue-600">
-                      {displayNumber(kpi.breakdown.tickets)}
-                    </span>
-                  </div>
-                  <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-700"
-                      style={{
-                        width: getBreakdownProgressWidth(
-                          kpi.breakdown.tickets,
-                          kpi.standardKPI,
-                        ),
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Logwork Compliance */}
-                <div>
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="flex items-center gap-2.5 text-sm font-bold text-slate-700">
-                      <div className="p-1.5 bg-purple-100 rounded-lg">
-                        <span className="material-symbols-outlined text-purple-600 text-sm block">
-                          timer
-                        </span>
-                      </div>
-                      Logwork Compliance
-                    </span>
-                    <span className="text-sm font-black text-purple-600">
-                      {displayNumber(kpi.breakdown.logwork)}
-                    </span>
-                  </div>
-                  <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-purple-400 to-purple-600 transition-all duration-700"
-                      style={{
-                        width: getBreakdownProgressWidth(
-                          kpi.breakdown.logwork,
-                          kpi.standardKPI,
-                        ),
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </section>
-          )}
         </div>
       </div>
     </div>

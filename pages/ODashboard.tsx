@@ -9,7 +9,6 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
-  Legend,
 } from "recharts";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
@@ -141,9 +140,9 @@ const buildFromMemberRows = (
 
       roleBuckets[roleIndex] = [
         roleBuckets[roleIndex][0] +
-        toNumber(item?.task_count ?? item?.taskCount ?? item?.task, 0),
+          toNumber(item?.task_count ?? item?.taskCount ?? item?.task, 0),
         roleBuckets[roleIndex][1] +
-        toNumber(item?.bug_count ?? item?.bugCount ?? item?.bug, 0),
+          toNumber(item?.bug_count ?? item?.bugCount ?? item?.bug, 0),
       ];
     });
 
@@ -161,14 +160,14 @@ const buildFromMemberRows = (
       billable: toNumber(row.billable_point, 0),
       ee:
         eeValue !== undefined &&
-          eeValue !== null &&
-          String(eeValue).trim() !== ""
+        eeValue !== null &&
+        String(eeValue).trim() !== ""
           ? String(eeValue)
           : "-",
       status:
         statusValue !== undefined &&
-          statusValue !== null &&
-          String(statusValue).trim() !== ""
+        statusValue !== null &&
+        String(statusValue).trim() !== ""
           ? String(statusValue)
           : "-",
     };
@@ -384,7 +383,11 @@ const ODashboard: React.FC = () => {
     setIsClosedTicketsLoading(true);
     setClosedTicketError(null);
     try {
-      const params: { month: string; project?: string; ticket_type_id?: string } = {
+      const params: {
+        month: string;
+        project?: string;
+        ticket_type_id?: string;
+      } = {
         month: months,
       };
       if (projectId) params.project = projectId;
@@ -601,7 +604,7 @@ const ODashboard: React.FC = () => {
         setContributionRows(next.contribution);
         setTotalCurrentMember(
           payload.aggregateData.total_current_member ??
-          next.contribution.length,
+            next.contribution.length,
         );
         setVisibleContributionCount(CONTRIBUTION_PAGE_SIZE);
         setContributionReloadKey((prev) => prev + 1); // Trigger re-mount AFTER data is set
@@ -631,14 +634,14 @@ const ODashboard: React.FC = () => {
           ),
           billableStandard: toNumber(
             candidate.billableStandard ??
-            candidate.billable_standard ??
-            payload.aggregateData.billable_standard,
+              candidate.billable_standard ??
+              payload.aggregateData.billable_standard,
             DEFAULT_KPI.billableStandard,
           ),
           logworkStandard: toNumber(
             candidate.logworkStandard ??
-            candidate.logwork_standard ??
-            payload.aggregateData.logwork_standard,
+              candidate.logwork_standard ??
+              payload.aggregateData.logwork_standard,
             DEFAULT_KPI.logworkStandard,
           ),
           totalBillable: toNumber(
@@ -760,17 +763,487 @@ const ODashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Main KPI Section */}
-        <MainKPISection
-          kpi={odcKPI}
-          isLoading={isLoading}
-          isKPILoading={isKPILoading}
-          onRefresh={() =>
-            fetchDashboardByMonth(selectedMonths, contributionProjectId)
-          }
-          showTotal
-          totalMembers={totalCurrentMember}
+        {/* KPI Reach Summary & Comparison Charts */}
+        {(() => {
+          const reachCount = contributionRows.filter(
+            (r: ContributionRow) =>
+              r.status && r.status !== "Bad" && r.status !== "-",
+          ).length;
+          const notReachCount = contributionRows.filter(
+            (r: ContributionRow) => r.status === "Bad",
+          ).length;
+
+          // Mock monthly data for logwork comparison (line chart)
+          const logworkTrendData = [
+            { month: "01", standard: 161, actual: 145 },
+            { month: "02", standard: 161, actual: 152 },
+            {
+              month: "03",
+              standard: 161,
+              actual:
+                contributionRows.reduce(
+                  (sum: number, r: ContributionRow) =>
+                    sum + toNumber(r.logwork, 0),
+                  0,
+                ) || 138,
+            },
+          ];
+
+          // Mock monthly data for ticket comparison (line chart)
+          const ticketTrendData = [
+            { month: "01", required: 70, completed: 58 },
+            { month: "02", required: 70, completed: 63 },
+            {
+              month: "03",
+              required:
+                contributionRows.length > 0 ? contributionRows.length * 7 : 70,
+              completed:
+                contributionRows.reduce(
+                  (sum: number, r: ContributionRow) =>
+                    sum + toNumber(r.ticket, 0),
+                  0,
+                ) || 45,
+            },
+          ];
+
+          return (
+            <>
+              <MainKPISection
+                kpi={odcKPI}
+                isLoading={isLoading}
+                isKPILoading={isKPILoading}
+                onRefresh={() =>
+                  fetchDashboardByMonth(selectedMonths, contributionProjectId)
+                }
+                showTotal
+                totalMembers={totalCurrentMember}
+                hideParams
+                reachKPICount={reachCount}
+                notReachKPICount={notReachCount}
+              />
+
+              {/* Variance Analysis */}
+              <div className="mb-8">
+                <div className="mb-5 flex items-center gap-3">
+                  <div className="p-2 bg-slate-100 rounded-xl">
+                    <span className="material-symbols-outlined text-lg text-slate-600 block">
+                      trending_up
+                    </span>
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-800">
+                      Variance Analysis
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      Standard vs Actual comparison over months
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                  {/* Logwork Trend */}
+                  <div
+                    className="rounded-xl bg-white shadow-sm overflow-hidden"
+                    style={{ border: "1px solid #e5e7eb" }}
+                  >
+                    <div className="px-5 pt-4 pb-1">
+                      <h3 className="text-[15px] font-bold text-slate-800">
+                        Logwork Comparison
+                      </h3>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Standard vs Actual logwork points per month
+                      </p>
+                    </div>
+                    <div className="px-2 pb-4">
+                      <ResponsiveContainer width="100%" height={280}>
+                        <BarChart
+                          data={logworkTrendData}
+                          barGap={-8}
+                          barCategoryGap="20%"
+                          margin={{ top: 20, right: 20, bottom: 5, left: 0 }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="0"
+                            vertical={false}
+                            stroke="#f0f0f0"
+                          />
+                          <XAxis
+                            dataKey="month"
+                            tick={{ fontSize: 12, fill: "#666" }}
+                            axisLine={{ stroke: "#ccd6eb" }}
+                            tickLine={{ stroke: "#ccd6eb" }}
+                          />
+                          <YAxis
+                            tick={{ fontSize: 12, fill: "#666" }}
+                            axisLine={{ stroke: "#ccd6eb" }}
+                            tickLine={{ stroke: "#ccd6eb" }}
+                            label={{
+                              value: "Points",
+                              angle: -90,
+                              position: "insideLeft",
+                              offset: 10,
+                              style: { fontSize: 12, fill: "#666" },
+                            }}
+                          />
+                          <Tooltip
+                            cursor={{ fill: "rgba(0,0,0,0.04)" }}
+                            contentStyle={{
+                              backgroundColor: "#fff",
+                              borderRadius: "8px",
+                              border: "1px solid #e2e8f0",
+                              boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+                              padding: "8px 12px",
+                              fontSize: "13px",
+                            }}
+                            formatter={(value: number, name: string) => [
+                              <span
+                                key={name}
+                                style={{ color: "#333", fontWeight: 600 }}
+                              >
+                                {value.toFixed(2)}
+                              </span>,
+                              name === "actual" ? "Actual" : "Standard",
+                            ]}
+                            labelFormatter={(label: string) => (
+                              <span
+                                style={{ fontWeight: 700, fontSize: "13px" }}
+                              >
+                                Month {label}
+                              </span>
+                            )}
+                          />
+                          <Bar
+                            dataKey="standard"
+                            name="Standard"
+                            fill="#2caffe"
+                            maxBarSize={32}
+                            radius={[4, 4, 0, 0]}
+                          />
+                          <Bar
+                            dataKey="actual"
+                            name="Actual"
+                            fill="#544fc5"
+                            maxBarSize={32}
+                            radius={[4, 4, 0, 0]}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="px-5 pb-3 flex items-center justify-center gap-6 text-xs">
+                      <span className="flex items-center gap-1.5">
+                        <span
+                          className="w-3 h-3 rounded-sm inline-block"
+                          style={{ backgroundColor: "#2caffe" }}
+                        />
+                        <span className="text-slate-600 font-medium">
+                          Standard
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span
+                          className="w-3 h-3 rounded-sm inline-block"
+                          style={{ backgroundColor: "#544fc5" }}
+                        />
+                        <span className="text-slate-600 font-medium">
+                          Actual
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Ticket Trend */}
+                  <div
+                    className="rounded-xl bg-white shadow-sm overflow-hidden"
+                    style={{ border: "1px solid #e5e7eb" }}
+                  >
+                    <div className="px-5 pt-4 pb-1">
+                      <h3 className="text-[15px] font-bold text-slate-800">
+                        Ticket Completion
+                      </h3>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Required vs Completed tickets per month
+                      </p>
+                    </div>
+                    <div className="px-2 pb-4">
+                      <ResponsiveContainer width="100%" height={280}>
+                        <BarChart
+                          data={ticketTrendData}
+                          barGap={-18}
+                          barCategoryGap="20%"
+                          margin={{ top: 20, right: 20, bottom: 5, left: 0 }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="0"
+                            vertical={false}
+                            stroke="#f0f0f0"
+                          />
+                          <XAxis
+                            dataKey="month"
+                            tick={{ fontSize: 12, fill: "#666" }}
+                            axisLine={{ stroke: "#ccd6eb" }}
+                            tickLine={{ stroke: "#ccd6eb" }}
+                          />
+                          <YAxis
+                            tick={{ fontSize: 12, fill: "#666" }}
+                            axisLine={{ stroke: "#ccd6eb" }}
+                            tickLine={{ stroke: "#ccd6eb" }}
+                            label={{
+                              value: "Tickets",
+                              angle: -90,
+                              position: "insideLeft",
+                              offset: 10,
+                              style: { fontSize: 12, fill: "#666" },
+                            }}
+                          />
+                          <Tooltip
+                            cursor={{ fill: "rgba(0,0,0,0.04)" }}
+                            contentStyle={{
+                              backgroundColor: "#fff",
+                              borderRadius: "8px",
+                              border: "1px solid #e2e8f0",
+                              boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+                              padding: "8px 12px",
+                              fontSize: "13px",
+                            }}
+                            formatter={(value: number, name: string) => [
+                              <span
+                                key={name}
+                                style={{ color: "#333", fontWeight: 600 }}
+                              >
+                                {value.toFixed(2)}
+                              </span>,
+                              name === "completed" ? "Completed" : "Required",
+                            ]}
+                            labelFormatter={(label: string) => (
+                              <span
+                                style={{ fontWeight: 700, fontSize: "13px" }}
+                              >
+                                Month {label}
+                              </span>
+                            )}
+                          />
+                          <Bar
+                            dataKey="required"
+                            name="Required"
+                            fill="#2caffe"
+                            maxBarSize={32}
+                            radius={[4, 4, 0, 0]}
+                          />
+                          <Bar
+                            dataKey="completed"
+                            name="Completed"
+                            fill="#544fc5"
+                            maxBarSize={32}
+                            radius={[4, 4, 0, 0]}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="px-5 pb-3 flex items-center justify-center gap-6 text-xs">
+                      <span className="flex items-center gap-1.5">
+                        <span
+                          className="w-3 h-3 rounded-sm inline-block"
+                          style={{ backgroundColor: "#2caffe" }}
+                        />
+                        <span className="text-slate-600 font-medium">
+                          Required
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span
+                          className="w-3 h-3 rounded-sm inline-block"
+                          style={{ backgroundColor: "#544fc5" }}
+                        />
+                        <span className="text-slate-600 font-medium">
+                          Completed
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          );
+        })()}
+
+        {/* Analytics Overview */}
+        <div className="mb-6">
+          <div className="mb-4 overflow-x-auto custom-scrollbar">
+            <div className="flex min-w-[980px] items-center justify-between gap-4 pb-1">
+              <div className="flex items-center gap-2 whitespace-nowrap">
+                <h2 className="text-base font-semibold text-slate-700">
+                  Closed Tickets KPI
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Ticket analytics by role, trend, and status
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {/* Period filter */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
+                    Month
+                  </span>
+                  <div className="w-[180px]">
+                    <MultiSelectDropdown
+                      options={monthOptions}
+                      selectedValues={selectedMonths}
+                      onChange={setSelectedMonths}
+                      placeholder="Select month"
+                      disabled={isLoading}
+                      showSelectAll
+                      selectAllLabel="All"
+                      allSelectedLabel="All"
+                      multiSelectedSuffix="months selected"
+                    />
+                  </div>
+                </div>
+                {/* Project filter — uses allProjectOptions so list persists after filtered fetches */}
+                {allProjectOptions.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
+                      Project
+                    </span>
+                    <div className="w-[180px]">
+                      <MultiSelectDropdown
+                        options={[
+                          { value: "", label: "All Projects" },
+                          ...allProjectOptions,
+                        ]}
+                        selectedValues={[ticketProjectId ?? ""]}
+                        onChange={(vals) => {
+                          // Detect the newly selected item (not in previous selection)
+                          const prev = ticketProjectId ?? "";
+                          const next = vals.find((v) => v !== prev);
+                          if (next !== undefined) {
+                            setTicketProjectId(next || null);
+                          } else if (vals.length === 0) {
+                            setTicketProjectId(null);
+                          }
+                        }}
+                        disabled={isClosedTicketsLoading}
+                        placeholder="All Projects"
+                      />
+                    </div>
+                  </div>
+                )}
+                {ticketTypes.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
+                      Ticket Type
+                    </span>
+                    <div className="w-[220px]">
+                      <MultiSelectDropdown
+                        options={[
+                          { value: "", label: "All Types" },
+                          ...ticketTypes.map((type) => ({
+                            value: type.id,
+                            label: type.name || type.code || "Unknown",
+                          })),
+                        ]}
+                        selectedValues={[ticketTypeId ?? ""]}
+                        onChange={(vals) => {
+                          const prev = ticketTypeId ?? "";
+                          const next = vals.find((v) => v !== prev);
+                          if (next !== undefined) {
+                            setTicketTypeId(next || null);
+                          } else if (vals.length === 0) {
+                            setTicketTypeId(null);
+                          }
+                        }}
+                        disabled={isClosedTicketsLoading}
+                        placeholder="All Types"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8 min-w-0">
+          <TicketConsumptionDashboard
+            closedByRole={closedTicketData?.closed_by_role_chart}
+            totalTrend={closedTicketData?.total_trend_chart?.data}
+            isLoading={isClosedTicketsLoading}
+          />
+          <StatusOverviewDonut
+            totals={
+              closedTicketData?.status_overview_chart
+                ? {
+                    total: closedTicketData.status_overview_chart.total_tickets,
+                    closed:
+                      closedTicketData.status_overview_chart
+                        .total_tickets_closed,
+                    inQA: closedTicketData.status_overview_chart
+                      .total_tickets_inqa,
+                    open: closedTicketData.status_overview_chart
+                      .total_tickets_open,
+                  }
+                : undefined
+            }
+            isLoading={isClosedTicketsLoading}
+            error={closedTicketError}
+          />
+        </div>
+
+        {/* Project Performance Table */}
+        <ProjectPerformanceTable
+          data={filteredProjectOverview}
+          isLoading={isClosedTicketsLoading}
         />
+
+        {/* Standard Params */}
+        <div className="mb-8 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <div className="px-8 py-5 border-b border-slate-200">
+            <p className="text-sm font-bold uppercase tracking-[0.1em] text-slate-400 flex items-center gap-2">
+              <span className="material-symbols-outlined text-base">tune</span>
+              Standard Parameters
+            </p>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {[
+                {
+                  key: "BILLABLE_PARAM",
+                  label: "Billable Param",
+                  value: odcKPI.params?.BILLABLE_PARAM,
+                },
+                {
+                  key: "STANDARD_BA",
+                  label: "Standard Ticket BA",
+                  value: odcKPI.params?.STANDARD_BA,
+                },
+                {
+                  key: "STANDARD_DEV",
+                  label: "Standard Ticket DEV",
+                  value: odcKPI.params?.STANDARD_DEV,
+                },
+                {
+                  key: "STANDARD_QA",
+                  label: "Standard Ticket QA",
+                  value: odcKPI.params?.STANDARD_QA,
+                },
+              ].map((item) => (
+                <div
+                  key={item.key}
+                  className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"
+                >
+                  <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">
+                    {item.label}
+                  </p>
+                  <p className="text-xl font-bold text-slate-700">
+                    {item.value !== undefined &&
+                    item.value !== null &&
+                    String(item.value).trim() !== ""
+                      ? String(item.value)
+                      : "-"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
         {/* KPI Contribution Table */}
         <div className={`mb-8 ${theme.card}`}>
@@ -1021,134 +1494,6 @@ const ODashboard: React.FC = () => {
             </div>
           )}
         </div>
-
-        {/* Analytics Overview */}
-        <div className="mb-6">
-          <div className="mb-4 overflow-x-auto custom-scrollbar">
-            <div className="flex min-w-[980px] items-center justify-between gap-4 pb-1">
-            <div className="flex items-center gap-2 whitespace-nowrap">
-              <h2 className="text-base font-semibold text-slate-700">
-                Closed Tickets KPI
-              </h2>
-              <p className="text-xs text-slate-500">
-                Ticket analytics by role, trend, and status
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {/* Period filter */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
-                  Month
-                </span>
-                <div className="w-[180px]">
-                  <MultiSelectDropdown
-                    options={monthOptions}
-                    selectedValues={selectedMonths}
-                    onChange={setSelectedMonths}
-                    placeholder="Select month"
-                    disabled={isLoading}
-                    showSelectAll
-                    selectAllLabel="All"
-                    allSelectedLabel="All"
-                    multiSelectedSuffix="months selected"
-                  />
-                </div>
-              </div>
-              {/* Project filter — uses allProjectOptions so list persists after filtered fetches */}
-              {allProjectOptions.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
-                    Project
-                  </span>
-                  <div className="w-[180px]">
-                    <MultiSelectDropdown
-                      options={[
-                        { value: "", label: "All Projects" },
-                        ...allProjectOptions,
-                      ]}
-                      selectedValues={[ticketProjectId ?? ""]}
-                      onChange={(vals) => {
-                        // Detect the newly selected item (not in previous selection)
-                        const prev = ticketProjectId ?? "";
-                        const next = vals.find((v) => v !== prev);
-                        if (next !== undefined) {
-                          setTicketProjectId(next || null);
-                        } else if (vals.length === 0) {
-                          setTicketProjectId(null);
-                        }
-                      }}
-                      disabled={isClosedTicketsLoading}
-                      placeholder="All Projects"
-                    />
-                  </div>
-                </div>
-              )}
-              {ticketTypes.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
-                    Ticket Type
-                  </span>
-                  <div className="w-[220px]">
-                    <MultiSelectDropdown
-                      options={[
-                        { value: "", label: "All Types" },
-                        ...ticketTypes.map((type) => ({
-                          value: type.id,
-                          label: type.name || type.code || "Unknown",
-                        })),
-                      ]}
-                      selectedValues={[ticketTypeId ?? ""]}
-                      onChange={(vals) => {
-                        const prev = ticketTypeId ?? "";
-                        const next = vals.find((v) => v !== prev);
-                        if (next !== undefined) {
-                          setTicketTypeId(next || null);
-                        } else if (vals.length === 0) {
-                          setTicketTypeId(null);
-                        }
-                      }}
-                      disabled={isClosedTicketsLoading}
-                      placeholder="All Types"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8 min-w-0">
-          <TicketConsumptionDashboard
-            closedByRole={closedTicketData?.closed_by_role_chart}
-            totalTrend={closedTicketData?.total_trend_chart?.data}
-            isLoading={isClosedTicketsLoading}
-          />
-          <StatusOverviewDonut
-            totals={
-              closedTicketData?.status_overview_chart
-                ? {
-                  total: closedTicketData.status_overview_chart.total_tickets,
-                  closed:
-                    closedTicketData.status_overview_chart
-                      .total_tickets_closed,
-                  inQA: closedTicketData.status_overview_chart
-                    .total_tickets_inqa,
-                  open: closedTicketData.status_overview_chart
-                    .total_tickets_open,
-                }
-                : undefined
-            }
-            isLoading={isClosedTicketsLoading}
-            error={closedTicketError}
-          />
-        </div>
-
-        {/* Project Performance Table */}
-        <ProjectPerformanceTable
-          data={filteredProjectOverview}
-          isLoading={isClosedTicketsLoading}
-        />
       </div>
     </div>
   );
