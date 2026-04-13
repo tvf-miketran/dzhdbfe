@@ -55,6 +55,32 @@ export interface UserPreferences {
   };
 }
 
+export interface EmployeeProjectAssignment {
+  allocationPercent: number;
+  joinedAt: string;
+  projectId: string;
+  projectKey: string | null;
+  projectName: string;
+  roleId: string;
+  roleName: string;
+}
+
+export interface EmployeeProjectsProfile {
+  email: string;
+  employeeId: string;
+  enFullName: string;
+  id: string;
+  projects: EmployeeProjectAssignment[];
+  status: boolean;
+  vnFullName: string;
+}
+
+export interface EmployeeProjectsListResponse
+  extends BaseApiResponse<EmployeeProjectsProfile[]> {}
+
+export interface EmployeeProjectsMeResponse
+  extends BaseApiResponse<EmployeeProjectsProfile> {}
+
 /**
  * User Service - Raw async API calls
  */
@@ -128,6 +154,26 @@ export const userService = {
     const response = await axiosInstance.get<EmployeesResponse>(
       ENDPOINTS.EMPLOYEES.LIST,
       { params },
+    );
+    return response.data;
+  },
+
+  /**
+   * Get all members and their project assignments (admin)
+   */
+  getMembersProjects: async (): Promise<EmployeeProjectsListResponse> => {
+    const response = await axiosInstance.get<EmployeeProjectsListResponse>(
+      ENDPOINTS.EMPLOYEES.MEMBERS_PROJECTS,
+    );
+    return response.data;
+  },
+
+  /**
+   * Get current member project assignments
+   */
+  getMeProjects: async (): Promise<EmployeeProjectsMeResponse> => {
+    const response = await axiosInstance.get<EmployeeProjectsMeResponse>(
+      ENDPOINTS.EMPLOYEES.ME_PROJECTS,
     );
     return response.data;
   },

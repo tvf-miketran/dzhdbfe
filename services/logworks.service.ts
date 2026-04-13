@@ -14,6 +14,7 @@ export interface Logwork {
   estimateScore: number;
   logHours: number;
   month: string;
+  projects: LogworkProject[];
   standardLogworkInMonth: number;
   status: 0 | 1;
   totalEEPercent: number;
@@ -22,10 +23,31 @@ export interface Logwork {
   updatedAt: string;
 }
 
-export interface LogworksData {
-  items: Logwork[];
-  standardLogworkByMonth: Record<string, number>;
+export interface LogworkProject {
+  EEPercent: number;
+  projectId: string;
+  projectKey: string | null;
+  projectName: string;
 }
+
+export interface LogworkMonthlyTotal {
+  estimateScore: number;
+  month: string;
+  standardLogworkInMonth: number;
+  status: 0 | 1;
+  totalLoghour: number;
+  year: string;
+}
+
+export interface EmployeeLogworkGroup {
+  createdAt: string;
+  data: Logwork[];
+  employeeId: string;
+  engName: string;
+  total: LogworkMonthlyTotal[];
+}
+
+export type LogworksData = EmployeeLogworkGroup[] | EmployeeLogworkGroup;
 
 export interface LogworksResponse extends BaseApiResponse<LogworksData> {}
 
@@ -41,6 +63,8 @@ export interface LogworksFilters {
 export interface LogworkUpsertItem {
   /** Employee UUID (from employees API) */
   userId: string;
+  /** Project UUID */
+  projectId: string;
   year?: number;
   month: string;
   logHour: string;
