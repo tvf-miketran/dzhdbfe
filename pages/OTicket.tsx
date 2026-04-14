@@ -264,6 +264,8 @@ const OTicket: React.FC = () => {
           isOpen={isFilterOpen}
           filters={filters}
           onFilterChange={setFilters}
+          showSortBy={false}
+          showSortOrder={false}
           onReset={() =>
             setFilters({
               search: "",
