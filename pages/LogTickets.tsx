@@ -203,6 +203,50 @@ const LogTickets: React.FC = () => {
     return `${DEFAULT_JIRA_BASE_URL}/${ticketId}`;
   };
 
+  const normalizeMonthFromApi = (value: unknown): number | undefined => {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value >= 1 && value <= 12 ? value : undefined;
+    }
+
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) return undefined;
+
+      const directNumber = Number(trimmed);
+      if (Number.isFinite(directNumber) && directNumber >= 1 && directNumber <= 12) {
+        return directNumber;
+      }
+
+      const yearMonthMatch = trimmed.match(/^(\d{4})[-/](\d{1,2})$/);
+      if (yearMonthMatch) {
+        const parsedMonth = Number(yearMonthMatch[2]);
+        return parsedMonth >= 1 && parsedMonth <= 12 ? parsedMonth : undefined;
+      }
+
+      const shortMonthNames = [
+        "jan",
+        "feb",
+        "mar",
+        "apr",
+        "may",
+        "jun",
+        "jul",
+        "aug",
+        "sep",
+        "oct",
+        "nov",
+        "dec",
+      ];
+      const monthText = trimmed.toLowerCase().slice(0, 3);
+      const monthIndex = shortMonthNames.indexOf(monthText);
+      if (monthIndex >= 0) {
+        return monthIndex + 1;
+      }
+    }
+
+    return undefined;
+  };
+
   const resolveProjectId = (entry: TicketEntry) => {
     if (entry.projectId) return entry.projectId;
 
@@ -330,7 +374,14 @@ const LogTickets: React.FC = () => {
                 ticket.created_at ||
                 new Date().toISOString().split("T")[0],
               week: ticket.week || 1,
-              month: ticket.month || new Date().getMonth() + 1,
+              month:
+                normalizeMonthFromApi(
+                  ticket.month ??
+                    ticket.month_no ??
+                    ticket.monthNo ??
+                    ticket.formula_month,
+                ) ??
+                NO_MONTH,
               length: 0,
               availableWeeks: null,
               weekLoading: false,
@@ -1620,7 +1671,7 @@ const LogTickets: React.FC = () => {
 
       return {
         key,
-        direction: "asc",
+        direction: key === "month" ? "desc" : "asc",
       };
     });
   };
@@ -1652,7 +1703,7 @@ const LogTickets: React.FC = () => {
         case "week":
           return entry.week || 0;
         case "month":
-          return entry.month || 0;
+          return normalizeMonthFromApi(entry.month) ?? 0;
         default:
           return "";
       }
