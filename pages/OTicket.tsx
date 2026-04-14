@@ -122,6 +122,43 @@ const OTicket: React.FC = () => {
   const sortedTickets = useMemo(() => {
     if (!sort.key) return tickets;
     return [...tickets].sort((a, b) => {
+      const monthToNumber = (value: any): number => {
+        if (value === null || value === undefined || value === "") return 0;
+
+        const numericValue = Number(value);
+        if (!Number.isNaN(numericValue)) return numericValue;
+
+        const normalized = String(value).trim().toLowerCase();
+        const monthMap: Record<string, number> = {
+          january: 1,
+          jan: 1,
+          february: 2,
+          feb: 2,
+          march: 3,
+          mar: 3,
+          april: 4,
+          apr: 4,
+          may: 5,
+          june: 6,
+          jun: 6,
+          july: 7,
+          jul: 7,
+          august: 8,
+          aug: 8,
+          september: 9,
+          sep: 9,
+          sept: 9,
+          october: 10,
+          oct: 10,
+          november: 11,
+          nov: 11,
+          december: 12,
+          dec: 12,
+        };
+
+        return monthMap[normalized] ?? 0;
+      };
+
       const getVal = (t: any, k: OTicketSortKey): string | number => {
         switch (k) {
           case "ticketId":
@@ -139,7 +176,7 @@ const OTicket: React.FC = () => {
           case "week":
             return t.week ?? 0;
           case "month":
-            return t.month ?? 0;
+            return monthToNumber(t.month);
           case "createdAt":
             return t.createdAt ?? "";
         }
@@ -266,6 +303,7 @@ const OTicket: React.FC = () => {
           onFilterChange={setFilters}
           showSortBy={false}
           showSortOrder={false}
+          showWeeks={false}
           onReset={() =>
             setFilters({
               search: "",
