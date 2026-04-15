@@ -837,6 +837,8 @@ const ODashboard: React.FC = () => {
             >,
           );
 
+          const logworkComparisonByIndex = logworkComparisonData;
+
           const fallbackActualFromContribution =
             contributionRows.reduce(
               (sum: number, r: ContributionRow) => sum + toNumber(r.logwork, 0),
@@ -844,7 +846,8 @@ const ODashboard: React.FC = () => {
             ) || 138;
 
           const logworkTrendData = selectedMonthValues.map((month, index) => {
-            const fromApi = logworkComparisonMap.get(month);
+            const fromApi =
+              logworkComparisonMap.get(month) ?? logworkComparisonByIndex[index];
 
             return {
               month,
@@ -928,7 +931,7 @@ const ODashboard: React.FC = () => {
                       <ResponsiveContainer width="100%" height={280}>
                         <BarChart
                           data={logworkTrendData}
-                          barGap={isSingleMonthSelected ? -300 : -100}
+                          barGap={isSingleMonthSelected ? -300 : -20}
                           barCategoryGap={isSingleMonthSelected ? "20%" : "20%"}
                           margin={{ top: 20, right: 20, bottom: 5, left: 0 }}
                         >

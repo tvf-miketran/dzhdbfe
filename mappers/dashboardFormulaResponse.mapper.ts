@@ -198,13 +198,18 @@ export const extractFormulaLogworkComparisonFromResponse = (
   const response = root as FormulaApiResponse;
   const dataAny = response?.data as any;
   const nestedDataAny = dataAny?.data as any;
+  const dataLogworkComparison = dataAny?.logwork_comparison;
+  const nestedDataLogworkComparison = nestedDataAny?.logwork_comparison;
 
   const sources = [
     dataAny?.logwork_comparison,
+    dataLogworkComparison?.items,
     dataAny?.logworkComparison,
     nestedDataAny?.logwork_comparison,
+    nestedDataLogworkComparison?.items,
     nestedDataAny?.logworkComparison,
     root?.logwork_comparison,
+    root?.logwork_comparison?.items,
     root?.logworkComparison,
   ];
 
@@ -224,12 +229,14 @@ export const extractFormulaLogworkComparisonFromResponse = (
           index,
         );
         const standard = toOptionalNumber(
+          item.expected_logwork ??
           item.standard ??
             item.standard_point ??
             item.logwork_standard ??
             item.required,
         );
         const actual = toOptionalNumber(
+          item.actual_logwork ??
           item.actual ??
             item.actual_point ??
             item.logwork_point ??
