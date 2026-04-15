@@ -4,6 +4,7 @@ import {
   Line,
   BarChart,
   Bar,
+  ReferenceLine,
   ResponsiveContainer,
   XAxis,
   YAxis,
@@ -25,6 +26,7 @@ import {
   extractFormulaAggregateFromResponse,
   extractFormulaCandidateFromResponse,
   extractFormulaLogworkComparisonFromResponse,
+  extractFormulaTicketComparisonFromResponse,
   extractFormulaRowsFromResponse,
   type FormulaAggregateData,
   type FormulaResultRow,
@@ -81,6 +83,12 @@ type LogworkComparisonChartPoint = {
   month: string;
   standard: number;
   actual: number;
+};
+
+type TicketComparisonChartPoint = {
+  month: string;
+  expected: number;
+  completed: number;
 };
 
 const toOptionalNumber = (value: unknown): number | undefined => {
@@ -307,6 +315,17 @@ const ODashboard: React.FC = () => {
   const [logworkComparisonData, setLogworkComparisonData] = useState<
     LogworkComparisonChartPoint[]
   >([]);
+  const [ticketComparisonData, setTicketComparisonData] = useState<
+    TicketComparisonChartPoint[]
+  >([]);
+  const [activeTicketGuides, setActiveTicketGuides] = useState<{
+    required?: number;
+    completed?: number;
+  } | null>(null);
+  const [activeLogworkGuides, setActiveLogworkGuides] = useState<{
+    expected?: number;
+    actual?: number;
+  } | null>(null);
   const [teamData, setTeamData] = useState<TeamData[]>([]);
   const [isTeamLoading, setIsTeamLoading] = useState(true);
   const [contributionRows, setContributionRows] = useState<ContributionRow[]>(
@@ -473,6 +492,8 @@ const ODashboard: React.FC = () => {
         const aggregateData = extractFormulaAggregateFromResponse(root);
         const logworkComparisonData =
           extractFormulaLogworkComparisonFromResponse(root);
+        const ticketComparisonData =
+          extractFormulaTicketComparisonFromResponse(root);
 
         if (rows.length > 0) {
           return {
@@ -480,6 +501,7 @@ const ODashboard: React.FC = () => {
             candidate: null,
             aggregateData,
             logworkComparisonData,
+            ticketComparisonData,
           };
         }
 
@@ -490,15 +512,17 @@ const ODashboard: React.FC = () => {
             candidate,
             aggregateData,
             logworkComparisonData,
+            ticketComparisonData,
           };
         }
 
-        if (logworkComparisonData.length > 0) {
+        if (logworkComparisonData.length > 0 || ticketComparisonData.length > 0) {
           return {
             rows: [],
             candidate: null,
             aggregateData,
             logworkComparisonData,
+            ticketComparisonData,
           };
         }
       } catch (error) {
@@ -517,6 +541,7 @@ const ODashboard: React.FC = () => {
       candidate: null,
       aggregateData: {},
       logworkComparisonData: [],
+      ticketComparisonData: [],
     };
   };
 
@@ -540,6 +565,7 @@ const ODashboard: React.FC = () => {
       setContributionReloadKey((prev) => prev + 1);
       setKpiTrendData([]);
       setLogworkComparisonData([]);
+      setTicketComparisonData([]);
       setIsContributionLoading(false);
       return;
     }
@@ -643,6 +669,7 @@ const ODashboard: React.FC = () => {
         setIsTeamLoading(false);
         setContributionRows(next.contribution);
         setLogworkComparisonData(payload.logworkComparisonData);
+        setTicketComparisonData(payload.ticketComparisonData);
         setTotalCurrentMember(
           payload.aggregateData.total_current_member ??
             next.contribution.length,
@@ -725,6 +752,7 @@ const ODashboard: React.FC = () => {
         setIsTeamLoading(false);
         setContributionRows([]);
         setLogworkComparisonData(payload.logworkComparisonData);
+        setTicketComparisonData(payload.ticketComparisonData);
         setTotalCurrentMember(0);
         setVisibleContributionCount(CONTRIBUTION_PAGE_SIZE);
         setContributionReloadKey((prev) => prev + 1);
@@ -739,6 +767,7 @@ const ODashboard: React.FC = () => {
       setIsTeamLoading(false);
       setContributionRows([]);
       setLogworkComparisonData(payload.logworkComparisonData);
+      setTicketComparisonData(payload.ticketComparisonData);
       setTotalCurrentMember(0);
       setVisibleContributionCount(CONTRIBUTION_PAGE_SIZE);
       setContributionReloadKey((prev) => prev + 1);
@@ -755,6 +784,7 @@ const ODashboard: React.FC = () => {
       setIsTeamLoading(false);
       setContributionRows([]);
       setLogworkComparisonData([]);
+      setTicketComparisonData([]);
       setTotalCurrentMember(0);
       setVisibleContributionCount(CONTRIBUTION_PAGE_SIZE);
       setContributionReloadKey((prev) => prev + 1);
@@ -828,6 +858,13 @@ const ODashboard: React.FC = () => {
               0,
             ) || 138;
 
+          const ticketComparisonByMonth = new Map(
+            ticketComparisonData.map((item) => [
+              normalizeMonthValue(item.month) ?? item.month,
+              item,
+            ]),
+          );
+
           const logworkTrendData = selectedMonthValues.map((month, index) => {
             const fromApi =
               selectedMonthValues.length === 1
@@ -849,21 +886,63 @@ const ODashboard: React.FC = () => {
             };
           });
 
-          // Mock monthly data for ticket comparison (line chart)
-          const ticketTrendData = [
-            { month: "01", required: 70, completed: 58 },
-            { month: "02", required: 70, completed: 63 },
-            {
-              month: "03",
-              required:
-                contributionRows.length > 0 ? contributionRows.length * 7 : 70,
-              completed:
-                contributionRows.reduce(
-                  (sum: number, r: ContributionRow) =>
-                    sum + toNumber(r.ticket, 0),
-                  0,
-                ) || 45,
-            },
+          const logworkMaxPoint = logworkTrendData.reduce(
+            (maxValue, item) =>
+              Math.max(
+                maxValue,
+                toNumber(item.standard, 0),
+                toNumber(item.actual, 0),
+              ),
+            0,
+          );
+          const logworkAxisDomain: [number, number] = [
+            0,
+            Math.max(Math.ceil(logworkMaxPoint * 1.1), 10),
+          ];
+
+          const ticketTrendData =
+            selectedMonthValues.map((month, index) => {
+              const fromApi =
+                ticketComparisonByMonth.get(month) ??
+                (selectedMonthValues.length === 1
+                  ? ticketComparisonData[0]
+                  : ticketComparisonData[index] ?? ticketComparisonData[0]);
+
+              return {
+                month,
+                expected: toNumber(
+                  fromApi?.expected,
+                  index === selectedMonthValues.length - 1
+                    ? contributionRows.length > 0
+                      ? contributionRows.length * 7
+                      : 70
+                    : 0,
+                ),
+                completed: toNumber(
+                  fromApi?.actual,
+                  index === selectedMonthValues.length - 1
+                    ? contributionRows.reduce(
+                        (sum: number, r: ContributionRow) =>
+                          sum + toNumber(r.ticket, 0),
+                        0,
+                      ) || 45
+                    : 0,
+                ),
+              };
+            });
+
+          const ticketMaxPoint = ticketTrendData.reduce(
+            (maxValue, item) =>
+              Math.max(
+                maxValue,
+                toNumber(item.expected, 0),
+                toNumber(item.completed, 0),
+              ),
+            0,
+          );
+          const ticketAxisDomain: [number, number] = [
+            0,
+            Math.max(Math.ceil(ticketMaxPoint * 1.1), 10),
           ];
 
           return (
@@ -919,6 +998,47 @@ const ODashboard: React.FC = () => {
                           barGap={isSingleMonthSelected ? -300 : -34}
                           barCategoryGap={isSingleMonthSelected ? "20%" : "20%"}
                           margin={{ top: 20, right: 20, bottom: 5, left: 0 }}
+                          onMouseMove={(state: any) => {
+                            const payload = state?.activePayload;
+                            if (Array.isArray(payload) && payload.length > 0) {
+                              const expectedValue = toOptionalNumber(
+                                payload.find((item: any) => item?.dataKey === "standard")
+                                  ?.value,
+                              );
+                              const actualValue = toOptionalNumber(
+                                payload.find((item: any) => item?.dataKey === "actual")
+                                  ?.value,
+                              );
+                              setActiveLogworkGuides({
+                                expected: expectedValue,
+                                actual: actualValue,
+                              });
+                              return;
+                            }
+
+                            const activeIndex = Number(state?.activeTooltipIndex);
+                            if (
+                              Number.isInteger(activeIndex) &&
+                              activeIndex >= 0 &&
+                              activeIndex < logworkTrendData.length
+                            ) {
+                              const activePoint = logworkTrendData[activeIndex];
+                              const expectedValue = toOptionalNumber(
+                                activePoint?.standard,
+                              );
+                              const actualValue = toOptionalNumber(
+                                activePoint?.actual,
+                              );
+                              setActiveLogworkGuides({
+                                expected: expectedValue,
+                                actual: actualValue,
+                              });
+                              return;
+                            }
+
+                            setActiveLogworkGuides(null);
+                          }}
+                          onMouseLeave={() => setActiveLogworkGuides(null)}
                         >
                           <CartesianGrid
                             strokeDasharray="0"
@@ -932,6 +1052,9 @@ const ODashboard: React.FC = () => {
                             tickLine={{ stroke: "#ccd6eb" }}
                           />
                           <YAxis
+                            yAxisId="left"
+                            orientation="left"
+                            domain={logworkAxisDomain}
                             tick={{ fontSize: 12, fill: "#666" }}
                             axisLine={{ stroke: "#ccd6eb" }}
                             tickLine={{ stroke: "#ccd6eb" }}
@@ -943,8 +1066,23 @@ const ODashboard: React.FC = () => {
                               style: { fontSize: 12, fill: "#666" },
                             }}
                           />
+                          <YAxis
+                            yAxisId="right"
+                            orientation="right"
+                            domain={logworkAxisDomain}
+                            tick={{ fontSize: 12, fill: "#666" }}
+                            axisLine={{ stroke: "#ccd6eb" }}
+                            tickLine={{ stroke: "#ccd6eb" }}
+                            label={{
+                              value: "Points",
+                              angle: 90,
+                              position: "insideRight",
+                              offset: 10,
+                              style: { fontSize: 12, fill: "#666" },
+                            }}
+                          />
                           <Tooltip
-                            cursor={{ fill: "rgba(0,0,0,0.04)" }}
+                            cursor={false}
                             contentStyle={{
                               backgroundColor: "#fff",
                               borderRadius: "8px",
@@ -979,7 +1117,50 @@ const ODashboard: React.FC = () => {
                               </span>
                             )}
                           />
+                          {activeLogworkGuides?.expected !== undefined && (
+                            <ReferenceLine
+                              yAxisId="left"
+                              y={activeLogworkGuides.expected}
+                              stroke="#2563eb"
+                              strokeDasharray="6 3"
+                              strokeOpacity={1}
+                              strokeWidth={1.5}
+                              label={{
+                                value: activeLogworkGuides.expected.toFixed(2),
+                                position: "left",
+                                fill: "#2563eb",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                background: { fill: "#fff", radius: 4 },
+                                padding: [4, 8],
+                                offset: 10,
+                              }}
+                              isFront
+                            />
+                          )}
+                          {activeLogworkGuides?.actual !== undefined && (
+                            <ReferenceLine
+                              yAxisId="right"
+                              y={activeLogworkGuides.actual}
+                              stroke="#c7d2fe"
+                              strokeDasharray="6 3"
+                              strokeOpacity={1}
+                              strokeWidth={1.5}
+                              label={{
+                                value: activeLogworkGuides.actual.toFixed(2),
+                                position: "right",
+                                fill: "#6366f1",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                background: { fill: "#fff", radius: 4 },
+                                padding: [4, 8],
+                                offset: 10,
+                              }}
+                              isFront
+                            />
+                          )}
                           <Bar
+                            yAxisId="left"
                             dataKey="standard"
                             name="Expected"
                             fill="#2563eb"
@@ -987,16 +1168,17 @@ const ODashboard: React.FC = () => {
                             radius={[4, 4, 0, 0]}
                           />
                           <Bar
+                            yAxisId="right"
                             dataKey="actual"
                             name="Actual"
-                            fill="#93c5fd"
+                            fill="#c7d2fe"
                             maxBarSize={32}
                             radius={[4, 4, 0, 0]}
                           />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
-                    <div className="px-5 pb-3 flex items-center justify-center gap-6 text-xs">
+                    <div className="px-5 pb-3 flex items-center justify-center gap-6 text-xs w-full">
                       <span className="flex items-center gap-1.5">
                         <span
                           className="w-3 h-3 rounded-sm inline-block"
@@ -1009,7 +1191,7 @@ const ODashboard: React.FC = () => {
                       <span className="flex items-center gap-1.5">
                         <span
                           className="w-3 h-3 rounded-sm inline-block"
-                          style={{ backgroundColor: "#93c5fd" }}
+                          style={{ backgroundColor: "#c7d2fe" }}
                         />
                         <span className="text-slate-600 font-medium">
                           Actual
@@ -1035,9 +1217,50 @@ const ODashboard: React.FC = () => {
                       <ResponsiveContainer width="100%" height={280}>
                         <BarChart
                           data={ticketTrendData}
-                          barGap={isSingleMonthSelected ? 100 : -42}
-                          barCategoryGap={isSingleMonthSelected ? "0%" : "20%"}
+                          barGap={isSingleMonthSelected ? -300 : -34}
+                          barCategoryGap={isSingleMonthSelected ? "20%" : "20%"}
                           margin={{ top: 20, right: 20, bottom: 5, left: 0 }}
+                          onMouseMove={(state: any) => {
+                            const payload = state?.activePayload;
+                            if (Array.isArray(payload) && payload.length > 0) {
+                              const expectedValue = toOptionalNumber(
+                                payload.find((item: any) => item?.dataKey === "expected")
+                                  ?.value,
+                              );
+                              const completedValue = toOptionalNumber(
+                                payload.find((item: any) => item?.dataKey === "completed")
+                                  ?.value,
+                              );
+                              setActiveTicketGuides({
+                                required: expectedValue,
+                                completed: completedValue,
+                              });
+                              return;
+                            }
+
+                            const activeIndex = Number(state?.activeTooltipIndex);
+                            if (
+                              Number.isInteger(activeIndex) &&
+                              activeIndex >= 0 &&
+                              activeIndex < ticketTrendData.length
+                            ) {
+                              const activePoint = ticketTrendData[activeIndex];
+                              const expectedValue = toOptionalNumber(
+                                activePoint?.expected,
+                              );
+                              const completedValue = toOptionalNumber(
+                                activePoint?.completed,
+                              );
+                              setActiveTicketGuides({
+                                required: expectedValue,
+                                completed: completedValue,
+                              });
+                              return;
+                            }
+
+                            setActiveTicketGuides(null);
+                          }}
+                          onMouseLeave={() => setActiveTicketGuides(null)}
                         >
                           <CartesianGrid
                             strokeDasharray="0"
@@ -1051,6 +1274,9 @@ const ODashboard: React.FC = () => {
                             tickLine={{ stroke: "#ccd6eb" }}
                           />
                           <YAxis
+                            yAxisId="left"
+                            orientation="left"
+                            domain={ticketAxisDomain}
                             tick={{ fontSize: 12, fill: "#666" }}
                             axisLine={{ stroke: "#ccd6eb" }}
                             tickLine={{ stroke: "#ccd6eb" }}
@@ -1062,8 +1288,23 @@ const ODashboard: React.FC = () => {
                               style: { fontSize: 12, fill: "#666" },
                             }}
                           />
+                          <YAxis
+                            yAxisId="right"
+                            orientation="right"
+                            domain={ticketAxisDomain}
+                            tick={{ fontSize: 12, fill: "#666" }}
+                            axisLine={{ stroke: "#ccd6eb" }}
+                            tickLine={{ stroke: "#ccd6eb" }}
+                            label={{
+                              value: "Tickets",
+                              angle: 90,
+                              position: "insideRight",
+                              offset: 10,
+                              style: { fontSize: 12, fill: "#666" },
+                            }}
+                          />
                           <Tooltip
-                            cursor={{ fill: "rgba(0,0,0,0.04)" }}
+                            cursor={false}
                             contentStyle={{
                               backgroundColor: "#fff",
                               borderRadius: "8px",
@@ -1072,14 +1313,23 @@ const ODashboard: React.FC = () => {
                               padding: "8px 12px",
                               fontSize: "13px",
                             }}
-                            formatter={(value: number, name: string) => [
+                            itemSorter={(item) =>
+                              item.dataKey === "expected" ? -1 : 1
+                            }
+                            formatter={(
+                              value: number,
+                              _name: string,
+                              props?: any,
+                            ) => [
                               <span
-                                key={name}
+                                key={props?.dataKey ?? _name}
                                 style={{ color: "#333", fontWeight: 600 }}
                               >
                                 {value.toFixed(2)}
                               </span>,
-                              name === "completed" ? "Completed" : "Required",
+                              props?.dataKey === "completed"
+                                ? "Completed"
+                                : "Expected",
                             ]}
                             labelFormatter={(label: string) => (
                               <span
@@ -1089,14 +1339,58 @@ const ODashboard: React.FC = () => {
                               </span>
                             )}
                           />
+                          {activeTicketGuides?.required !== undefined && (
+                            <ReferenceLine
+                              yAxisId="left"
+                              y={activeTicketGuides.required}
+                              stroke="#2563eb"
+                              strokeDasharray="6 3"
+                              strokeOpacity={1}
+                              strokeWidth={1.5}
+                              label={{
+                                value: activeTicketGuides.required.toFixed(2),
+                                position: "left",
+                                fill: "#2563eb",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                background: { fill: "#fff", radius: 4 },
+                                padding: [4, 8],
+                                offset: 10,
+                              }}
+                              isFront
+                            />
+                          )}
+                          {activeTicketGuides?.completed !== undefined && (
+                            <ReferenceLine
+                              yAxisId="right"
+                              y={activeTicketGuides.completed}
+                              stroke="#c7d2fe"
+                              strokeDasharray="6 3"
+                              strokeOpacity={1}
+                              strokeWidth={1.5}
+                              label={{
+                                value: activeTicketGuides.completed.toFixed(2),
+                                position: "right",
+                                fill: "#6366f1",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                background: { fill: "#fff", radius: 4 },
+                                padding: [4, 8],
+                                offset: 10,
+                              }}
+                              isFront
+                            />
+                          )}
                           <Bar
-                            dataKey="required"
-                            name="Required"
+                            yAxisId="left"
+                            dataKey="expected"
+                            name="Expected"
                             fill="#2563eb"
                             maxBarSize={32}
                             radius={[4, 4, 0, 0]}
                           />
                           <Bar
+                            yAxisId="right"
                             dataKey="completed"
                             name="Completed"
                             fill="#b6c1ff"
@@ -1106,14 +1400,14 @@ const ODashboard: React.FC = () => {
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
-                    <div className="px-5 pb-3 flex items-center justify-center gap-6 text-xs">
+                    <div className="px-5 pb-3 flex items-center justify-center gap-6 text-xs w-full">
                       <span className="flex items-center gap-1.5">
                         <span
                           className="w-3 h-3 rounded-sm inline-block"
                           style={{ backgroundColor: "#2563eb" }}
                         />
                         <span className="text-slate-600 font-medium">
-                          Required
+                          Expected
                         </span>
                       </span>
                       <span className="flex items-center gap-1.5">
