@@ -294,6 +294,9 @@ const ODashboard: React.FC = () => {
   const [selectedMonths, setSelectedMonths] = useState<string[]>([
     getCurrentMonth(),
   ]);
+  const [pendingSelectedMonths, setPendingSelectedMonths] = useState<string[]>(
+    [getCurrentMonth()],
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const [odcKPI, setOdcKPI] = useState<KPIData>(DEFAULT_KPI);
@@ -438,7 +441,17 @@ const ODashboard: React.FC = () => {
 
   useEffect(() => {
     fetchClosedTickets(selectedMonths.join(","), ticketProjectId, ticketTypeId);
-  }, [selectedMonths, ticketProjectId, ticketTypeId]);
+  }, [ticketProjectId, ticketTypeId]);
+
+  const handleRefreshData = () => {
+    setSelectedMonths(pendingSelectedMonths);
+    fetchDashboardByMonth(pendingSelectedMonths, contributionProjectId);
+    fetchClosedTickets(
+      pendingSelectedMonths.join(","),
+      ticketProjectId,
+      ticketTypeId,
+    );
+  };
 
   const fetchDashboardPayloadByMonths = async (
     months: string[],
@@ -778,8 +791,8 @@ const ODashboard: React.FC = () => {
               <div className="min-w-[180px]">
                 <MultiSelectDropdown
                   options={monthOptions}
-                  selectedValues={selectedMonths}
-                  onChange={setSelectedMonths}
+                  selectedValues={pendingSelectedMonths}
+                  onChange={setPendingSelectedMonths}
                   placeholder="Select month"
                   disabled={isLoading}
                   showSelectAll
@@ -802,32 +815,49 @@ const ODashboard: React.FC = () => {
             (r: ContributionRow) => r.status === "Bad",
           ).length;
 
-          // Mock monthly data for logwork comparison (line chart)
-          const logworkTrendData =
-            logworkComparisonData.length > 0
-              ? logworkComparisonData
-              : [
-                  {
-                    month: "01",
-                    standard: toNumber(odcKPI.logworkStandard, 161),
-                    actual: 145,
-                  },
-                  {
-                    month: "02",
-                    standard: toNumber(odcKPI.logworkStandard, 161),
-                    actual: 152,
-                  },
-                  {
-                    month: "03",
-                    standard: toNumber(odcKPI.logworkStandard, 161),
-                    actual:
-                      contributionRows.reduce(
-                        (sum: number, r: ContributionRow) =>
-                          sum + toNumber(r.logwork, 0),
-                        0,
-                      ) || 138,
-                  },
-                ];
+          const selectedMonthValues = monthOptions
+            .map((option) => option.value)
+            .filter((monthValue) => selectedMonths.includes(monthValue));
+          const isSingleMonthSelected = selectedMonthValues.length === 1;
+
+          const logworkComparisonMap = new Map(
+            logworkComparisonData
+              .map((item) => {
+                const normalizedMonth = normalizeMonthValue(item.month);
+                if (!normalizedMonth) {
+                  return null;
+                }
+
+                return [normalizedMonth, item] as const;
+              })
+              .filter(Boolean) as Array<
+              readonly [string, LogworkComparisonChartPoint]
+            >,
+          );
+
+          const fallbackActualFromContribution =
+            contributionRows.reduce(
+              (sum: number, r: ContributionRow) => sum + toNumber(r.logwork, 0),
+              0,
+            ) || 138;
+
+          const logworkTrendData = selectedMonthValues.map((month, index) => {
+            const fromApi = logworkComparisonMap.get(month);
+
+            return {
+              month,
+              standard: toNumber(
+                fromApi?.standard,
+                toNumber(odcKPI.logworkStandard, 161),
+              ),
+              actual: toNumber(
+                fromApi?.actual,
+                index === selectedMonthValues.length - 1
+                  ? fallbackActualFromContribution
+                  : 0,
+              ),
+            };
+          });
 
           // Mock monthly data for ticket comparison (line chart)
           const ticketTrendData = [
@@ -852,9 +882,7 @@ const ODashboard: React.FC = () => {
                 kpi={odcKPI}
                 isLoading={isLoading}
                 isKPILoading={isKPILoading}
-                onRefresh={() =>
-                  fetchDashboardByMonth(selectedMonths, contributionProjectId)
-                }
+                onRefresh={handleRefreshData}
                 showTotal
                 totalMembers={totalCurrentMember}
                 hideParams
@@ -897,8 +925,8 @@ const ODashboard: React.FC = () => {
                       <ResponsiveContainer width="100%" height={280}>
                         <BarChart
                           data={logworkTrendData}
-                          barGap={-34}
-                          barCategoryGap="20%"
+                          barGap={isSingleMonthSelected ? -300 : -100}
+                          barCategoryGap={isSingleMonthSelected ? "20%" : "20%"}
                           margin={{ top: 20, right: 20, bottom: 5, left: 0 }}
                         >
                           <CartesianGrid
@@ -1007,8 +1035,8 @@ const ODashboard: React.FC = () => {
                       <ResponsiveContainer width="100%" height={280}>
                         <BarChart
                           data={ticketTrendData}
-                          barGap={-42}
-                          barCategoryGap="20%"
+                          barGap={isSingleMonthSelected ? 100 : -42}
+                          barCategoryGap={isSingleMonthSelected ? "0%" : "20%"}
                           margin={{ top: 20, right: 20, bottom: 5, left: 0 }}
                         >
                           <CartesianGrid
@@ -1126,8 +1154,8 @@ const ODashboard: React.FC = () => {
                   <div className="w-[180px]">
                     <MultiSelectDropdown
                       options={monthOptions}
-                      selectedValues={selectedMonths}
-                      onChange={setSelectedMonths}
+                      selectedValues={pendingSelectedMonths}
+                      onChange={setPendingSelectedMonths}
                       placeholder="Select month"
                       disabled={isLoading}
                       showSelectAll
