@@ -58,6 +58,12 @@ export interface FormulaLogworkComparisonItem {
   actual: number;
 }
 
+export interface FormulaTicketComparisonItem {
+  month: string;
+  expected: number;
+  actual: number;
+}
+
 const normalizeLogworkComparisonItem = (
   item: any,
   index: number,
@@ -276,6 +282,104 @@ export const extractFormulaLogworkComparisonFromResponse = (
   const fallbackSource =
     dataLogworkComparison ?? nestedDataLogworkComparison ?? root?.logwork_comparison;
   const fallbackSingle = normalizeLogworkComparisonItem(fallbackSource, 0);
+  if (fallbackSingle) {
+    return [fallbackSingle];
+  }
+
+  return [];
+};
+
+const normalizeTicketComparisonItem = (
+  item: any,
+  index: number,
+): FormulaTicketComparisonItem | null => {
+  if (!item || typeof item !== "object" || Array.isArray(item)) {
+    return null;
+  }
+
+  const month = toMonthLabel(
+    item.month ?? item.month_no ?? item.formula_month ?? item.label,
+    index,
+  );
+  const expected = toOptionalNumber(
+    item.expected_ticket ??
+      item.expected_tickets ??
+      item.expected ??
+      item.required_tickets ??
+      item.required ??
+      item.standard ??
+      item.total_required ??
+      item.ticket_required ??
+      item.planned,
+  );
+  const actual = toOptionalNumber(
+    item.actual_closed_ticket ??
+      item.actual_tickets ??
+      item.actual ??
+      item.completed_tickets ??
+      item.completed ??
+      item.total_completed ??
+      item.ticket_completed ??
+      item.done ??
+      item.closed,
+  );
+
+  if (expected === undefined && actual === undefined) {
+    return null;
+  }
+
+  return {
+    month,
+    expected: expected ?? 0,
+    actual: actual ?? 0,
+  };
+};
+
+export const extractFormulaTicketComparisonFromResponse = (
+  root: any,
+): FormulaTicketComparisonItem[] => {
+  const response = root as FormulaApiResponse;
+  const dataAny = response?.data as any;
+  const nestedDataAny = dataAny?.data as any;
+  const dataTicketComparison = dataAny?.ticket_comparison;
+  const nestedDataTicketComparison = nestedDataAny?.ticket_comparison;
+
+  const sources = [
+    dataAny?.ticket_comparison,
+    dataTicketComparison?.items,
+    dataAny?.ticketComparison,
+    nestedDataAny?.ticket_comparison,
+    nestedDataTicketComparison?.items,
+    nestedDataAny?.ticketComparison,
+    root?.ticket_comparison,
+    root?.ticket_comparison?.items,
+    root?.ticketComparison,
+  ];
+
+  for (const source of sources) {
+    if (Array.isArray(source)) {
+      const normalized = source
+        .map((item: any, index: number) =>
+          normalizeTicketComparisonItem(item, index),
+        )
+        .filter(Boolean) as FormulaTicketComparisonItem[];
+
+      if (normalized.length > 0) {
+        return normalized;
+      }
+      continue;
+    }
+
+    const normalizedSingle = normalizeTicketComparisonItem(source, 0);
+
+    if (normalizedSingle) {
+      return [normalizedSingle];
+    }
+  }
+
+  const fallbackSource =
+    dataTicketComparison ?? nestedDataTicketComparison ?? root?.ticket_comparison;
+  const fallbackSingle = normalizeTicketComparisonItem(fallbackSource, 0);
   if (fallbackSingle) {
     return [fallbackSingle];
   }
