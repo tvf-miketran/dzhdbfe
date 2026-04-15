@@ -52,6 +52,12 @@ export interface FormulaAggregateData {
   };
 }
 
+export interface FormulaLogworkComparisonItem {
+  month: string;
+  standard: number;
+  actual: number;
+}
+
 export interface FormulaResponseData extends FormulaAggregateData {
   results?: FormulaResultRow[];
   kpi?: Record<string, unknown>;
@@ -166,4 +172,86 @@ export const extractFormulaAggregateFromResponse = (
         }
       : undefined,
   };
+};
+
+const toMonthLabel = (value: unknown, index: number): string => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value).padStart(2, "0");
+  }
+
+  const raw = toOptionalString(value);
+  if (!raw) {
+    return String(index + 1).padStart(2, "0");
+  }
+
+  const asNumber = Number(raw);
+  if (Number.isFinite(asNumber)) {
+    return String(asNumber).padStart(2, "0");
+  }
+
+  return raw;
+};
+
+export const extractFormulaLogworkComparisonFromResponse = (
+  root: any,
+): FormulaLogworkComparisonItem[] => {
+  const response = root as FormulaApiResponse;
+  const dataAny = response?.data as any;
+  const nestedDataAny = dataAny?.data as any;
+
+  const sources = [
+    dataAny?.logwork_comparison,
+    dataAny?.logworkComparison,
+    nestedDataAny?.logwork_comparison,
+    nestedDataAny?.logworkComparison,
+    root?.logwork_comparison,
+    root?.logworkComparison,
+  ];
+
+  for (const source of sources) {
+    if (!Array.isArray(source)) {
+      continue;
+    }
+
+    const normalized = source
+      .map((item: any, index: number) => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) {
+          return null;
+        }
+
+        const month = toMonthLabel(
+          item.month ?? item.month_no ?? item.formula_month ?? item.label,
+          index,
+        );
+        const standard = toOptionalNumber(
+          item.standard ??
+            item.standard_point ??
+            item.logwork_standard ??
+            item.required,
+        );
+        const actual = toOptionalNumber(
+          item.actual ??
+            item.actual_point ??
+            item.logwork_point ??
+            item.value,
+        );
+
+        if (standard === undefined && actual === undefined) {
+          return null;
+        }
+
+        return {
+          month,
+          standard: standard ?? 0,
+          actual: actual ?? 0,
+        };
+      })
+      .filter(Boolean) as FormulaLogworkComparisonItem[];
+
+    if (normalized.length > 0) {
+      return normalized;
+    }
+  }
+
+  return [];
 };
