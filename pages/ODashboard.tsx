@@ -820,23 +820,6 @@ const ODashboard: React.FC = () => {
             .filter((monthValue) => selectedMonths.includes(monthValue));
           const isSingleMonthSelected = selectedMonthValues.length === 1;
 
-          const logworkComparisonMap = new Map(
-            logworkComparisonData
-              .map((item) => {
-                const normalizedMonth = normalizeMonthValue(item.month);
-                if (!normalizedMonth) {
-                  return null;
-                }
-
-                return [normalizedMonth, item] as const;
-              })
-              .filter(Boolean) as Array<
-              readonly [string, LogworkComparisonChartPoint]
-            >,
-          );
-
-          const logworkComparisonByIndex = logworkComparisonData;
-
           const fallbackActualFromContribution =
             contributionRows.reduce(
               (sum: number, r: ContributionRow) => sum + toNumber(r.logwork, 0),
@@ -845,7 +828,9 @@ const ODashboard: React.FC = () => {
 
           const logworkTrendData = selectedMonthValues.map((month, index) => {
             const fromApi =
-              logworkComparisonMap.get(month) ?? logworkComparisonByIndex[index];
+              selectedMonthValues.length === 1
+                ? logworkComparisonData[0]
+                : logworkComparisonData[index] ?? logworkComparisonData[0];
 
             return {
               month,
