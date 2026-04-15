@@ -24,6 +24,7 @@ import { EmployeesEEModal } from "../components/modal";
 import {
   extractFormulaAggregateFromResponse,
   extractFormulaCandidateFromResponse,
+  extractFormulaLogworkComparisonFromResponse,
   extractFormulaRowsFromResponse,
   type FormulaAggregateData,
   type FormulaResultRow,
@@ -74,6 +75,12 @@ type TicketBreakdownItem = NonNullable<
   task?: number;
   bugCount?: number;
   bug?: number;
+};
+
+type LogworkComparisonChartPoint = {
+  month: string;
+  standard: number;
+  actual: number;
 };
 
 const toOptionalNumber = (value: unknown): number | undefined => {
@@ -294,6 +301,9 @@ const ODashboard: React.FC = () => {
   const [isKPILoading, setIsKPILoading] = useState(true);
   const [kpiTrendData, setKpiTrendData] = useState<TrendData[]>([]);
   const [isTrendLoading, setIsTrendLoading] = useState(true);
+  const [logworkComparisonData, setLogworkComparisonData] = useState<
+    LogworkComparisonChartPoint[]
+  >([]);
   const [teamData, setTeamData] = useState<TeamData[]>([]);
   const [isTeamLoading, setIsTeamLoading] = useState(true);
   const [contributionRows, setContributionRows] = useState<ContributionRow[]>(
@@ -448,12 +458,15 @@ const ODashboard: React.FC = () => {
           })) ?? {};
         const rows = extractFormulaRowsFromResponse(root);
         const aggregateData = extractFormulaAggregateFromResponse(root);
+        const logworkComparisonData =
+          extractFormulaLogworkComparisonFromResponse(root);
 
         if (rows.length > 0) {
           return {
             rows,
             candidate: null,
             aggregateData,
+            logworkComparisonData,
           };
         }
 
@@ -463,6 +476,16 @@ const ODashboard: React.FC = () => {
             rows: [],
             candidate,
             aggregateData,
+            logworkComparisonData,
+          };
+        }
+
+        if (logworkComparisonData.length > 0) {
+          return {
+            rows: [],
+            candidate: null,
+            aggregateData,
+            logworkComparisonData,
           };
         }
       } catch (error) {
@@ -480,6 +503,7 @@ const ODashboard: React.FC = () => {
       rows: [],
       candidate: null,
       aggregateData: {},
+      logworkComparisonData: [],
     };
   };
 
@@ -502,6 +526,7 @@ const ODashboard: React.FC = () => {
       setVisibleContributionCount(CONTRIBUTION_PAGE_SIZE);
       setContributionReloadKey((prev) => prev + 1);
       setKpiTrendData([]);
+      setLogworkComparisonData([]);
       setIsContributionLoading(false);
       return;
     }
@@ -604,6 +629,7 @@ const ODashboard: React.FC = () => {
         setTeamData(next.team);
         setIsTeamLoading(false);
         setContributionRows(next.contribution);
+        setLogworkComparisonData(payload.logworkComparisonData);
         setTotalCurrentMember(
           payload.aggregateData.total_current_member ??
             next.contribution.length,
@@ -685,6 +711,7 @@ const ODashboard: React.FC = () => {
         setTeamData([]);
         setIsTeamLoading(false);
         setContributionRows([]);
+        setLogworkComparisonData(payload.logworkComparisonData);
         setTotalCurrentMember(0);
         setVisibleContributionCount(CONTRIBUTION_PAGE_SIZE);
         setContributionReloadKey((prev) => prev + 1);
@@ -698,6 +725,7 @@ const ODashboard: React.FC = () => {
       setTeamData([]);
       setIsTeamLoading(false);
       setContributionRows([]);
+      setLogworkComparisonData(payload.logworkComparisonData);
       setTotalCurrentMember(0);
       setVisibleContributionCount(CONTRIBUTION_PAGE_SIZE);
       setContributionReloadKey((prev) => prev + 1);
@@ -713,6 +741,7 @@ const ODashboard: React.FC = () => {
       setTeamData([]);
       setIsTeamLoading(false);
       setContributionRows([]);
+      setLogworkComparisonData([]);
       setTotalCurrentMember(0);
       setVisibleContributionCount(CONTRIBUTION_PAGE_SIZE);
       setContributionReloadKey((prev) => prev + 1);
@@ -776,20 +805,31 @@ const ODashboard: React.FC = () => {
           ).length;
 
           // Mock monthly data for logwork comparison (line chart)
-          const logworkTrendData = [
-            { month: "01", standard: 161, actual: 145 },
-            { month: "02", standard: 161, actual: 152 },
-            {
-              month: "03",
-              standard: 161,
-              actual:
-                contributionRows.reduce(
-                  (sum: number, r: ContributionRow) =>
-                    sum + toNumber(r.logwork, 0),
-                  0,
-                ) || 138,
-            },
-          ];
+          const logworkTrendData =
+            logworkComparisonData.length > 0
+              ? logworkComparisonData
+              : [
+                  {
+                    month: "01",
+                    standard: toNumber(odcKPI.logworkStandard, 161),
+                    actual: 145,
+                  },
+                  {
+                    month: "02",
+                    standard: toNumber(odcKPI.logworkStandard, 161),
+                    actual: 152,
+                  },
+                  {
+                    month: "03",
+                    standard: toNumber(odcKPI.logworkStandard, 161),
+                    actual:
+                      contributionRows.reduce(
+                        (sum: number, r: ContributionRow) =>
+                          sum + toNumber(r.logwork, 0),
+                        0,
+                      ) || 138,
+                  },
+                ];
 
           // Mock monthly data for ticket comparison (line chart)
           const ticketTrendData = [
