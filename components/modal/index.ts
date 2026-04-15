@@ -4,3 +4,4 @@ export { default as CreateProjectModal } from "./CreateProjectModal";
 export { default as EditProjectModal } from "./EditProjectModal";
 export { default as UserDetailModal } from "./UserDetailModal";
 export { default as ExistingTicketsModal } from "./ExistingTicketsModal";
+export { default as EmployeesEEModal } from "./EmployeesEEModal";

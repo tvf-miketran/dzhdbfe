@@ -21,6 +21,7 @@ import MainKPISection from "../components/MainKPISection";
 import TicketConsumptionDashboard from "../components/TicketConsumptionDashboard";
 import StatusOverviewDonut from "../components/StatusOverviewDonut";
 import ProjectPerformanceTable from "../components/ProjectPerformanceTable";
+import { EmployeesEEModal } from "../components/modal";
 import {
   extractFormulaAggregateFromResponse,
   extractFormulaCandidateFromResponse,
@@ -87,7 +88,7 @@ type LogworkComparisonChartPoint = {
 type TicketComparisonChartPoint = {
   month: string;
   expected: number;
-  actual: number;
+  completed: number;
 };
 
 const toOptionalNumber = (value: unknown): number | undefined => {
@@ -355,6 +356,7 @@ const ODashboard: React.FC = () => {
   const [closedTicketError, setClosedTicketError] = useState<string | null>(
     null,
   );
+  const [isEEModalOpen, setIsEEModalOpen] = useState(false);
 
   const normalizedContributionSearch = contributionSearch.trim().toLowerCase();
 
@@ -916,7 +918,7 @@ const ODashboard: React.FC = () => {
                       : 70
                     : 0,
                 ),
-                actual: toNumber(
+                completed: toNumber(
                   fromApi?.actual,
                   index === selectedMonthValues.length - 1
                     ? contributionRows.reduce(
@@ -934,7 +936,7 @@ const ODashboard: React.FC = () => {
               Math.max(
                 maxValue,
                 toNumber(item.expected, 0),
-                toNumber(item.actual, 0),
+                toNumber(item.completed, 0),
               ),
             0,
           );
@@ -955,6 +957,7 @@ const ODashboard: React.FC = () => {
                 hideParams
                 reachKPICount={reachCount}
                 notReachKPICount={notReachCount}
+                onAverageEEClick={() => setIsEEModalOpen(true)}
               />
 
               {/* Variance Analysis */}
@@ -1224,13 +1227,13 @@ const ODashboard: React.FC = () => {
                                 payload.find((item: any) => item?.dataKey === "expected")
                                   ?.value,
                               );
-                              const actualValue = toOptionalNumber(
-                                payload.find((item: any) => item?.dataKey === "actual")
+                              const completedValue = toOptionalNumber(
+                                payload.find((item: any) => item?.dataKey === "completed")
                                   ?.value,
                               );
                               setActiveTicketGuides({
                                 required: expectedValue,
-                                completed: actualValue,
+                                completed: completedValue,
                               });
                               return;
                             }
@@ -1245,12 +1248,12 @@ const ODashboard: React.FC = () => {
                               const expectedValue = toOptionalNumber(
                                 activePoint?.expected,
                               );
-                              const actualValue = toOptionalNumber(
-                                activePoint?.actual,
+                              const completedValue = toOptionalNumber(
+                                activePoint?.completed,
                               );
                               setActiveTicketGuides({
                                 required: expectedValue,
-                                completed: actualValue,
+                                completed: completedValue,
                               });
                               return;
                             }
@@ -1324,8 +1327,8 @@ const ODashboard: React.FC = () => {
                               >
                                 {value.toFixed(2)}
                               </span>,
-                              props?.dataKey === "actual"
-                                ? "Actual"
+                              props?.dataKey === "completed"
+                                ? "Completed"
                                 : "Expected",
                             ]}
                             labelFormatter={(label: string) => (
@@ -1388,9 +1391,9 @@ const ODashboard: React.FC = () => {
                           />
                           <Bar
                             yAxisId="right"
-                            dataKey="actual"
-                            name="Actual"
-                            fill="#c7d2fe"
+                            dataKey="completed"
+                            name="Completed"
+                            fill="#b6c1ff"
                             maxBarSize={32}
                             radius={[4, 4, 0, 0]}
                           />
@@ -1410,10 +1413,10 @@ const ODashboard: React.FC = () => {
                       <span className="flex items-center gap-1.5">
                         <span
                           className="w-3 h-3 rounded-sm inline-block"
-                          style={{ backgroundColor: "#c7d2fe" }}
+                          style={{ backgroundColor: "#b6c1ff" }}
                         />
                         <span className="text-slate-600 font-medium">
-                          Actual
+                          Completed
                         </span>
                       </span>
                     </div>
@@ -1872,6 +1875,11 @@ const ODashboard: React.FC = () => {
           )}
         </div>
       </div>
+
+      <EmployeesEEModal
+        isOpen={isEEModalOpen}
+        onClose={() => setIsEEModalOpen(false)}
+      />
     </div>
   );
 };
