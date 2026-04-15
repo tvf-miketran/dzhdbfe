@@ -4,7 +4,13 @@
  */
 
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
-import { userService, UserProfile, UserPreferences } from "../../services";
+import {
+  userService,
+  UserProfile,
+  UserPreferences,
+  EmployeeProjectsListResponse,
+  EmployeeProjectsMeResponse,
+} from "../../services";
 import { queryKeys } from "./queryKeys";
 import type { EmployeesResponse } from "../../types/index";
 
@@ -77,6 +83,40 @@ export const useEmployees = (
     queryKey: queryKeys.employees.list(params),
     queryFn: () => userService.getEmployees(params),
     staleTime: 5 * 60 * 1000, // 5 minutes
+    ...options,
+  });
+};
+
+/**
+ * Hook to fetch all members and their project assignments (admin only)
+ */
+export const useMembersProjects = (
+  options?: Omit<
+    UseQueryOptions<EmployeeProjectsListResponse, Error>,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: queryKeys.employees.membersProjects(),
+    queryFn: userService.getMembersProjects,
+    staleTime: 5 * 60 * 1000,
+    ...options,
+  });
+};
+
+/**
+ * Hook to fetch current member's project assignments
+ */
+export const useMeProjects = (
+  options?: Omit<
+    UseQueryOptions<EmployeeProjectsMeResponse, Error>,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: queryKeys.employees.meProjects(),
+    queryFn: userService.getMeProjects,
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
