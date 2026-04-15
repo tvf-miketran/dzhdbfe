@@ -906,7 +906,7 @@ const ODashboard: React.FC = () => {
                         Logwork Comparison
                       </h3>
                       <p className="text-[11px] text-slate-400 mt-0.5">
-                        Standard vs Actual logwork points per month
+                        Expected vs Actual logwork points per month
                       </p>
                     </div>
                     <div className="px-2 pb-4">
@@ -950,14 +950,23 @@ const ODashboard: React.FC = () => {
                               padding: "8px 12px",
                               fontSize: "13px",
                             }}
-                            formatter={(value: number, name: string) => [
+                            itemSorter={(item) =>
+                              item.dataKey === "standard" ? -1 : 1
+                            }
+                            formatter={(
+                              value: number,
+                              _name: string,
+                              props?: any,
+                            ) => [
                               <span
-                                key={name}
+                                key={props?.dataKey ?? _name}
                                 style={{ color: "#333", fontWeight: 600 }}
                               >
                                 {value.toFixed(2)}
                               </span>,
-                              name === "actual" ? "Actual" : "Standard",
+                              props?.dataKey === "actual"
+                                ? "Actual"
+                                : "Expected",
                             ]}
                             labelFormatter={(label: string) => (
                               <span
@@ -969,7 +978,7 @@ const ODashboard: React.FC = () => {
                           />
                           <Bar
                             dataKey="standard"
-                            name="Standard"
+                            name="Expected"
                             fill="#2563eb"
                             maxBarSize={32}
                             radius={[4, 4, 0, 0]}
@@ -977,7 +986,7 @@ const ODashboard: React.FC = () => {
                           <Bar
                             dataKey="actual"
                             name="Actual"
-                            fill="#60a5fa"
+                            fill="#93c5fd"
                             maxBarSize={32}
                             radius={[4, 4, 0, 0]}
                           />
@@ -991,13 +1000,13 @@ const ODashboard: React.FC = () => {
                           style={{ backgroundColor: "#2563eb" }}
                         />
                         <span className="text-slate-600 font-medium">
-                          Standard
+                          Expected
                         </span>
                       </span>
                       <span className="flex items-center gap-1.5">
                         <span
                           className="w-3 h-3 rounded-sm inline-block"
-                          style={{ backgroundColor: "#60a5fa" }}
+                          style={{ backgroundColor: "#93c5fd" }}
                         />
                         <span className="text-slate-600 font-medium">
                           Actual
