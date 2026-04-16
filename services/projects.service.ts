@@ -163,14 +163,14 @@ export const projectsService = {
     id: string,
     payload: AddProjectMembersPayload,
   ): Promise<AddProjectMembersResponse> => {
-    // Validate payload has members with role_id
+    // Validate payload has members with roleId
     const hasInvalidMembers = (payload.members || []).some(
-      (m) => !m.role_id || m.role_id === undefined || m.role_id === null,
+      (m) => !m.roleId || m.roleId === undefined || m.roleId === null,
     );
     if (hasInvalidMembers) {
-      console.warn("[ProjectsService] WARNING: Some members missing role_id!");
+      console.warn("[ProjectsService] WARNING: Some members missing roleId!");
       (payload.members || []).forEach((m, idx) => {
-        console.warn(`  Member ${idx}: userId=${m.userId}, role_id=${m.role_id}`);
+        console.warn(`  Member ${idx}: userId=${m.userId}, roleId=${m.roleId}`);
       });
     }
 

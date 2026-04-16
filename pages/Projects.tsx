@@ -1070,6 +1070,7 @@ const Projects: React.FC = () => {
                             userId: m.userId,
                             allocationPercent: parseFloat(m.allocationPercent),
                             roleId: roleId,
+                            enFullName: m.enFullName,
                           };
                         }),
                       },

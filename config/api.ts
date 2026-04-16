@@ -8,7 +8,7 @@ export const API_BASE_URL =
   // import.meta.env.VITE_API_BASE_URL || "https://dzhdb-production.up.railway.app";
 
   import.meta.env.VITE_API_BASE_URL ||
-  "https://dzhdb-production.up.railway.app";
+  "https://dzhilocal-be.pro.vn";
 
 // API versions
 export const API_VERSION = {

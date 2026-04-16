@@ -198,7 +198,8 @@ export interface ProjectDetailResponse
 export interface AddProjectMemberItem {
   userId: string;
   allocationPercent: number;
-  role_id: string;
+  roleId: string;
+  enFullName: string;
 }
 
 /** Payload for POST /api/projects/:id/members */
