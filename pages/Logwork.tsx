@@ -689,30 +689,28 @@ const Logwork: React.FC = () => {
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full lg:w-auto lg:ml-auto lg:pb-2">
-            {!isMember && (
-              <button
-                onClick={handleOpenSaveConfirm}
-                disabled={!hasChanges || isSaving}
-                className={`flex items-center justify-center gap-2 h-10 px-5 rounded-lg font-semibold text-xs transition-all shadow-xl ${
-                  hasChanges && !isSaving
-                    ? "bg-primary hover:bg-emerald-600 text-white shadow-primary/20 cursor-pointer"
-                    : "bg-slate-200 text-slate-400 shadow-none cursor-not-allowed"
-                }`}
+            <button
+              onClick={handleOpenSaveConfirm}
+              disabled={!hasChanges || isSaving}
+              className={`flex items-center justify-center gap-2 h-10 px-5 rounded-lg font-semibold text-xs transition-all shadow-xl ${
+                hasChanges && !isSaving
+                  ? "bg-primary hover:bg-emerald-600 text-white shadow-primary/20 cursor-pointer"
+                  : "bg-slate-200 text-slate-400 shadow-none cursor-not-allowed"
+              }`}
               >
-                {isSaving ? (
-                  <span className="material-symbols-outlined text-[18px] animate-spin">
-                    progress_activity
-                  </span>
-                ) : (
-                  <span className="material-symbols-outlined text-[18px]">
-                    save
-                  </span>
-                )}
-                <span className="hidden sm:inline">
-                  {isSaving ? "Saving..." : "Save Changes"}
+              {isSaving ? (
+                <span className="material-symbols-outlined text-[18px] animate-spin">
+                  progress_activity
                 </span>
-              </button>
-            )}
+              ) : (
+                <span className="material-symbols-outlined text-[18px]">
+                  save
+                </span>
+              )}
+              <span className="hidden sm:inline">
+                {isSaving ? "Saving..." : "Save Changes"}
+              </span>
+            </button>
           </div>
         </div>
 
@@ -926,7 +924,6 @@ const Logwork: React.FC = () => {
                                         currentCell.hours,
                                       )}
                                       placeholder="-"
-                                      disabled={isMember}
                                       onChange={(
                                         e: React.ChangeEvent<HTMLInputElement>,
                                       ) =>
@@ -937,11 +934,7 @@ const Logwork: React.FC = () => {
                                           e.target.value,
                                         )
                                       }
-                                      className={`w-full h-8 md:h-10 bg-transparent border-0 text-center text-[10px] md:text-sm font-semibold focus:ring-2 focus:ring-primary rounded transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                                        isMember
-                                          ? "cursor-not-allowed opacity-60"
-                                          : "hover:ring-2 hover:ring-primary/30"
-                                      } text-slate-900 ${changedCells.has(cellKey) ? "ring-2 ring-amber-400" : ""}`}
+                                      className={`w-full h-8 md:h-10 bg-transparent border-0 text-center text-[10px] md:text-sm font-semibold focus:ring-2 focus:ring-primary rounded transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none hover:ring-2 hover:ring-primary/30 text-slate-900 ${changedCells.has(cellKey) ? "ring-2 ring-amber-400" : ""}`}
                                     />
                                   </td>
                                 );
