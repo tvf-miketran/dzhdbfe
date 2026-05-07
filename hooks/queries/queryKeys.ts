@@ -28,7 +28,8 @@ export const queryKeys = {
       [...queryKeys.employees.lists(), { params }] as const,
     details: () => [...queryKeys.employees.all, "detail"] as const,
     detail: (id: string) => [...queryKeys.employees.details(), id] as const,
-    meProjects: () => [...queryKeys.employees.all, "meProjects"] as const,
+    meProjects: (userId?: string) =>
+      [...queryKeys.employees.all, "meProjects", { userId }] as const,
     membersProjects: () =>
       [...queryKeys.employees.all, "membersProjects"] as const,
   },
@@ -107,6 +108,8 @@ export const queryKeys = {
     all: ["logworks"] as const,
     adminAll: (filters?: object | undefined) =>
       [...queryKeys.logworks.all, "adminAll", { filters }] as const,
+    userOwn: (userId?: string, filters?: object | undefined) =>
+      [...queryKeys.logworks.all, "userOwn", { userId, filters }] as const,
   },
 
   // Formula keys

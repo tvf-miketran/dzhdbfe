@@ -13,6 +13,7 @@ import {
 } from "../../services";
 import { queryKeys } from "./queryKeys";
 import type { EmployeesResponse } from "../../types/index";
+import { useAuth } from "../../context/AuthContext";
 
 /**
  * Hook to fetch user profile
@@ -113,8 +114,10 @@ export const useMeProjects = (
     "queryKey" | "queryFn"
   >,
 ) => {
+  const { user } = useAuth();
+
   return useQuery({
-    queryKey: queryKeys.employees.meProjects(),
+    queryKey: queryKeys.employees.meProjects(user?.UUID),
     queryFn: userService.getMeProjects,
     staleTime: 5 * 60 * 1000,
     ...options,
