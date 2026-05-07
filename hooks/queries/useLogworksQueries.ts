@@ -6,6 +6,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { logworksService, LogworksFilters } from "../../services";
 import { queryKeys } from "./queryKeys";
+import { useAuth } from "../../context/AuthContext";
 
 /**
  * Hook to fetch admin logworks with optional filters
@@ -24,10 +25,13 @@ export const useAdminLogworks = (filters?: LogworksFilters) => {
  * Hook to fetch the current user's own logworks (MEMBER role)
  */
 export const useUserLogworks = (filters?: LogworksFilters) => {
+  const { user } = useAuth();
+  const userId = user?.UUID;
+
   return useQuery({
-    queryKey: [...queryKeys.logworks.all, "userOwn", { params: filters }],
+    queryKey: queryKeys.logworks.userOwn(userId, filters),
     queryFn: () => logworksService.getUserLogworks(filters),
-    enabled: !!filters?.year,
+    enabled: !!filters?.year && !!userId,
     staleTime: 0,
     gcTime: 0,
   });

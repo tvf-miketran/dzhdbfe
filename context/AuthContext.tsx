@@ -20,6 +20,7 @@ import {
 import { User } from "../types/index";
 import axiosInstance from "../helpers/axios";
 import { ENDPOINTS } from "../config/api";
+import { resetQueries } from "../store/QueryProvider";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -91,6 +92,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setToken(null);
     setUser(null);
     setIsAuthenticated(false);
+    resetQueries();
   }, []);
 
   // Check authentication status on mount
