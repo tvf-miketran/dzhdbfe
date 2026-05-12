@@ -155,8 +155,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Check immediately on mount
     checkUserStatus();
 
-    // Then check every 10 seconds
-    const interval = setInterval(checkUserStatus, 10000);
+    // Then check every 2 minutes
+    const interval = setInterval(checkUserStatus, 120000);
 
     return () => clearInterval(interval);
   }, [isAuthenticated, user, logout]);
